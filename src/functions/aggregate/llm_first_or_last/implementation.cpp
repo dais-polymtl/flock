@@ -32,11 +32,11 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
     do {
         accumulated_tuples_tokens = Tiktoken::GetNumTokens(batch_tuples.dump());
         accumulated_tuples_tokens +=
-            Tiktoken::GetNumTokens(PromptManager::ConstructMarkdownHeader(tuples[start_index]));
+            Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples[start_index]));
         while (accumulated_tuples_tokens < static_cast<unsigned int>(available_tokens) &&
                start_index < static_cast<int>(tuples.size())) {
             const auto num_tokens =
-                Tiktoken::GetNumTokens(PromptManager::ConstructMarkdownSingleTuple(tuples[start_index]));
+                Tiktoken::GetNumTokens(PromptManager::ConstructSingleInputTuple(tuples[start_index]));
             if (accumulated_tuples_tokens + num_tokens > static_cast<unsigned int>(available_tokens)) {
                 break;
             }

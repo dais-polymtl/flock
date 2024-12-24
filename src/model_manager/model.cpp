@@ -30,7 +30,7 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     model_details_.max_output_tokens = model_json.contains("max_output_tokens")
                                            ? model_json.at("max_output_tokens").get<int>()
                                            : std::get<3>(query_result);
-    model_details_.temperature = model_json.contains("temperature") ? model_json.at("temperature").get<float>() : 0.5;
+    model_details_.temperature = model_json.contains("temperature") ? model_json.at("temperature").get<float>() : 0.7;
 }
 
 std::tuple<std::string, std::string, int32_t, int32_t> Model::GetQueriedModel(const std::string& model_name) {
