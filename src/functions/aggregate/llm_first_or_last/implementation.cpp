@@ -32,6 +32,8 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
     do {
         accumulated_tuples_tokens = Tiktoken::GetNumTokens(batch_tuples.dump());
         accumulated_tuples_tokens +=
+            Tiktoken::GetNumTokens(PromptManager::ConstructNumTuples(static_cast<int>(tuples.size())));
+        accumulated_tuples_tokens +=
             Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples[start_index]));
         while (accumulated_tuples_tokens < static_cast<unsigned int>(available_tokens) &&
                start_index < static_cast<int>(tuples.size())) {

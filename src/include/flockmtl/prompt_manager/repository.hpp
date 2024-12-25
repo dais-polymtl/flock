@@ -11,15 +11,16 @@ enum class AggregateFunctionType { REDUCE, REDUCE_JSON, FIRST, LAST, RERANK };
 enum class ScalarFunctionType { COMPLETE_JSON, COMPLETE, FILTER };
 
 constexpr auto META_PROMPT =
-    "You are a semantic analysis tool for DBMS. The tool will analyze each tuple in the provided data and respond to "
-    "user requests based on this context.\n\nUser Prompt:\n\n- {{USER_PROMPT}}\n\nTuples "
+    "You are FlockMTL a semantic analysis tool for DBMS. You will analyze each tuple in the provided data and respond "
+    "to "
+    "the user prompt.\n\nUser Prompt:\n\n- {{USER_PROMPT}}\n\nTuples "
     "Table:\n\n{{TUPLES}}\n\nInstructions:\n\n{{INSTRUCTIONS}}\n\nExpected Response Format:\n\n{{RESPONSE_FORMAT}}";
 
 class INSTRUCTIONS {
 public:
     static constexpr auto SCALAR_FUNCTION =
         "- The response should be directly relevant to each tuple without additional formatting, purely answering the "
-        "prompt as if each tuple were a standalone entity.\n- Use clear, context-relevant language to generate a "
+        "user prompt as if each tuple were a standalone entity.\n- Use clear, context-relevant language to generate a "
         "meaningful and concise answer for each tuple.";
     static constexpr auto AGGREGATE_FUNCTION =
         "- For each tuple in the provided data, evaluate the relevant attribute(s) based on the user prompt.\n- After "
@@ -36,18 +37,18 @@ class RESPONSE_FORMAT {
 public:
     // Scalar Functions
     static constexpr auto COMPLETE_JSON =
-        "The system should interpret database tuples and provide a response to the user's prompt for each tuple in a "
-        "JSON format that contains the necessary columns for the answer.\n\nThe tool should respond in JSON format as "
-        "follows:\n\n```json\n{\t\"tuples\": [\n\t\t{<response 1>},\n\t\t{<response 2>},\n\t\t...\n\t\t{<response "
-        "n>}\n\t]\n}\n```";
+        "You should return the responses to the user's prompt for each tuple in a "
+        "JSON format that contains the necessary columns for the answer.\n\nThe tool should respond in JSON format:\n\n"
+        "```json\n{\"tuples\": [{<response>},{<response>}, ..., {<response>}]}\n```";
     static constexpr auto COMPLETE =
-        "The system should interpret database tuples and provide a response to the user's prompt for each tuple in "
-        "plain text.\n\tThe tool should respond in JSON format as follows:\n\n```json\n{\"tuples\": [\"<response 1>\", "
-        "\"<response 2>\", ... , \"<response n>\"]}";
+        "You should return the responses to the user's prompt for each tuple in plain text. Ensure no tuple is "
+        "missed.\n"
+        "Respond in the following JSON format:\n\n"
+        "```json\n{\"tuples\": [\"<response>\", \"<response>\", ..., \"<response>\"]}\n```";
     static constexpr auto FILTER =
-        "The system should interpret database tuples and provide a response to the user's prompt for each tuple in a "
+        "You should return the responses to the user's prompt for each tuple in a "
         "BOOL format that would be true/false.\n\tThe tool should respond in JSON format as "
-        "follows:\n\n```json\n{\"tuples\": [<bool response 1>, <bool response 2>, ... , <bool response n>]}";
+        "follows:\n\n```json\n{\"tuples\": [<bool_response>, <bool_response>, ... , <bool_response>]}\n```";
 
     // Aggregate Functions
     static constexpr auto REDUCE =

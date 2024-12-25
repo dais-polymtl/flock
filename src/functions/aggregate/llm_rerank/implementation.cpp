@@ -41,6 +41,8 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
         batch_size = half_batch;
         accumulated_rows_tokens = Tiktoken::GetNumTokens(window_tuples.dump());
         accumulated_rows_tokens +=
+            Tiktoken::GetNumTokens(PromptManager::ConstructNumTuples(static_cast<int>(tuples.size())));
+        accumulated_rows_tokens +=
             Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples[start_index]));
         while (available_tokens - accumulated_rows_tokens > 0 && start_index >= 0) {
             auto num_tokens = Tiktoken::GetNumTokens(PromptManager::ConstructSingleInputTuple(tuples[start_index]));

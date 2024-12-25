@@ -56,8 +56,13 @@ std::string PromptManager::ConstructSingleInputTuple(const nlohmann::json& tuple
     return tuple_str;
 }
 
+std::string PromptManager::ConstructNumTuples(const int num_tuples) {
+    return "- The Number of Tuples to Generate Responses for: " + std::to_string(num_tuples) + "\n\n";
+}
+
 std::string PromptManager::ConstructInputTuples(const nlohmann::json& tuples) {
     auto tuples_str = std::string("");
+    tuples_str += PromptManager::ConstructNumTuples(static_cast<int>(tuples.size()));
     tuples_str += PromptManager::ConstructInputTuplesHeader(tuples[0]);
     for (const auto& tuple : tuples) {
         tuples_str += PromptManager::ConstructSingleInputTuple(tuple);
