@@ -36,6 +36,10 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
     std::vector<std::string> results;
     results.reserve(responses.size());
     for (const auto& response : responses) {
+        if (response.is_null()) {
+            results.emplace_back("True");
+            continue;
+        }
         results.push_back(response.dump());
     }
 
