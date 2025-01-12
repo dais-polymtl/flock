@@ -19,7 +19,8 @@ int LlmRerank::GetAvailableTokens() {
 
 std::vector<int> LlmRerank::RerankBatch(const nlohmann::json& tuples) {
     nlohmann::json data;
-    auto prompt = PromptManager::Render(user_query, tuples, AggregateFunctionType::RERANK);
+    auto prompt =
+        PromptManager::Render(user_query, tuples, AggregateFunctionType::RERANK, model.GetModelDetails().tuple_format);
     auto response = model.CallComplete(prompt);
     return response["ranking"].get<std::vector<int>>();
 };
