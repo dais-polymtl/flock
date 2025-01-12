@@ -26,11 +26,13 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     }
     model_details_.secret = SecretManager::GetSecret(secret_name);
     model_details_.context_window =
-        model_json.contains("context_window") ? model_json.at("context_window").get<int>() : std::get<2>(query_result);
+        model_json.contains("context_window") ? std::stoi(model_json.at("context_window").get<std::string>()) : std::get<2>(query_result);
     model_details_.max_output_tokens = model_json.contains("max_output_tokens")
-                                           ? model_json.at("max_output_tokens").get<int>()
+                                           ? std::stoi(model_json.at("max_output_tokens").get<std::string>())
                                            : std::get<3>(query_result);
     model_details_.temperature = model_json.contains("temperature") ? model_json.at("temperature").get<float>() : 0.7;
+    model_details_.temperature = model_json.contains("temperature") ? std::stof(model_json.at("temperature").get<std::string>()) : 0;
+    model_details_.batch_size = model_json.contains("batch_size") ? std::stoi(model_json.at("batch_size").get<std::string>()) : 0;
 }
 
 std::tuple<std::string, std::string, int32_t, int32_t> Model::GetQueriedModel(const std::string& model_name) {
