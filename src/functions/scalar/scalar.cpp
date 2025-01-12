@@ -5,7 +5,7 @@ namespace flockmtl {
 nlohmann::json ScalarFunctionBase::Complete(const nlohmann::json& tuples, const std::string& user_prompt,
                                             ScalarFunctionType function_type, Model& model) {
     nlohmann::json data;
-    const auto prompt = PromptManager::Render(user_prompt, tuples, function_type);
+    const auto prompt = PromptManager::Render(user_prompt, tuples, function_type, model.GetModelDetails().tuple_format);
     auto response = model.CallComplete(prompt);
     return response["tuples"];
 };
