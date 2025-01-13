@@ -4,8 +4,8 @@
 name: Main Extension Distribution Pipeline
 on:
   push:
-    branches:
-      - main
+#    branches:
+#      - main
     paths:
       - .github/workflows/_extension_deploy.yml
       - .github/workflows/MainDistributionPipeline.yml
@@ -21,13 +21,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  duckdb-next-build:
-    name: Build extension binaries
-    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@main
-    with:
-      duckdb_version: main
-      ci_tools_version: main
-      extension_name: flockmtl
+#  duckdb-next-build:
+#    name: Build extension binaries
+#    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@main
+#    with:
+#      duckdb_version: main
+#      ci_tools_version: main
+#      extension_name: flockmtl
 
   duckdb-stable-build:
     name: Build extension binaries
