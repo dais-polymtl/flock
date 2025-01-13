@@ -13,7 +13,7 @@ enum class ScalarFunctionType { COMPLETE_JSON, COMPLETE, FILTER };
 
 enum class TupleFormat { XML, JSON, Markdown };
 
-inline std::pmr::unordered_map<std::string, TupleFormat> TUPLE_FORMAT = {
+inline std::unordered_map<std::string, TupleFormat> TUPLE_FORMAT = {
     {"XML", TupleFormat::XML}, {"JSON", TupleFormat::JSON}, {"Markdown", TupleFormat::Markdown}};
 
 constexpr auto META_PROMPT =
