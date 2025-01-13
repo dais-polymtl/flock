@@ -34,7 +34,7 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
         auto template_str = prompt_details.prompt;
         auto response = model.CallComplete(template_str, false);
 
-        results.push_back(response.dump());
+        results.push_back(response.get<std::string>());
     } else {
         auto tuples = CastVectorOfStructsToJson(args.data[2], args.size());
 
@@ -42,7 +42,7 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
 
         results.reserve(responses.size());
         for (const auto& response : responses) {
-            results.push_back(response.dump());
+            results.push_back(response.get<std::string>());
         }
     }
     return results;
