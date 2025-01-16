@@ -11,7 +11,7 @@ To use the Azure API, configure it using the secret manager. Use the following q
 
 ```sql
 CREATE SECRET (
-    TYPE AZURE,
+    TYPE AZURE_LLM,
     API_KEY 'your-key-here',
     RESOURCE_NAME 'resource-name',
     API_VERSION 'api-version'

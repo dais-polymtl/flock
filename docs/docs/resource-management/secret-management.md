@@ -45,7 +45,7 @@ This creates a secret named `__default_ollama`.
 
 ```sql
 CREATE SECRET (
-    TYPE AZURE,
+    TYPE AZURE_LLM,
     API_KEY 'your-key-here',
     RESOURCE_NAME 'resource-name',
     API_VERSION 'api-version'
@@ -80,7 +80,7 @@ CREATE PERSISTENT SECRET (
 
 ```sql
 CREATE PERSISTENT SECRET (
-    TYPE AZURE,
+    TYPE AZURE_LLM,
     API_KEY 'your-key-here',
     RESOURCE_NAME 'resource-name',
     API_VERSION 'api-version'
