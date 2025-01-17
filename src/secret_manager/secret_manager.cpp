@@ -25,7 +25,7 @@ std::vector<SecretDetails> get_secret_details_list() {
 }
 
 std::unordered_map<std::string, SecretManager::SupportedProviders> SecretManager::providerNames = {
-    {"openai", OPENAI}, {"azure", AZURE}, {"ollama", OLLAMA}};
+    {"openai", OPENAI}, {"azure_llm", AZURE}, {"ollama", OLLAMA}};
 
 SecretManager::SupportedProviders SecretManager::GetProviderType(const std::string& provider) {
     return providerNames[provider];
