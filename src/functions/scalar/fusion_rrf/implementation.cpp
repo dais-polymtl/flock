@@ -5,7 +5,7 @@ namespace flockmtl {
 void FusionRRF::ValidateArguments(duckdb::DataChunk& args) {
     for (int i = 0; i < static_cast<int>(args.ColumnCount()); i++) {
         if (args.data[i].GetType() != duckdb::LogicalType::DOUBLE) {
-            throw std::runtime_error("fusion_embedding: argument must be a double");
+            throw std::runtime_error("fusion_rrf: argument must be a double");
         }
     }
 }
@@ -65,7 +65,7 @@ std::vector<int> FusionRRF::Operation(duckdb::DataChunk& args) {
         });
 
     // return the resulting ranking of all documents
-    std::vector<int> results(num_entries);
+    std::vector<int> results;
     for (int i = 0; i < num_entries; i++) {
         results.push_back(cumulative_scores[i].first + 1);
     }
