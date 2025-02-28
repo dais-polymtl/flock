@@ -6,7 +6,8 @@ namespace flockmtl {
 void ScalarRegistry::RegisterFusionRRF(duckdb::DatabaseInstance& db) {
     duckdb::ExtensionUtil::RegisterFunction(
         db, duckdb::ScalarFunction("fusion_rrf", {}, duckdb::LogicalType::INTEGER, FusionRRF::Execute, nullptr,
-                                   nullptr, nullptr, nullptr, duckdb::LogicalType::ANY));
+                                   nullptr, nullptr, nullptr, duckdb::LogicalType::ANY,
+                                   duckdb::FunctionStability::VOLATILE, duckdb::FunctionNullHandling::SPECIAL_HANDLING));
 }
 
 } // namespace flockmtl
