@@ -71,7 +71,7 @@ std::vector<int> FusionRRF::Operation(duckdb::DataChunk& args) {
                 cur_rank++;
             }
             int cur_entry_num = extracted_column[j].first;
-            // calculate RRF score at correct entry, j is the ranking position since we sorted the list
+            // calculate RRF score at correct entry
             tmp_scores[cur_entry_num].second = static_cast<double>(1) / (rrf_constant + cur_rank);
         }
 
