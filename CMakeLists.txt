@@ -56,3 +56,30 @@ install(
   EXPORT "${DUCKDB_EXPORT_SET}"
   LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
   ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")
+
+# ===============================
+# Add Tests
+# ===============================
+
+# Define the test directory
+set(TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
+
+# Recursively find all test files in the test directory
+file(GLOB_RECURSE TEST_SOURCES ${TEST_DIR}/*.cpp)
+
+# Find Catch2
+find_package(Catch2 REQUIRED)
+
+# Add an executable for the tests
+add_executable(${TARGET_NAME}_tests ${TEST_SOURCES})
+
+# Include directories for tests
+target_include_directories(${TARGET_NAME}_tests PRIVATE test/include)
+target_include_directories(${TARGET_NAME}_tests PRIVATE duckdb/test/include)
+
+# Link the test executable to the extension and the Catch2 framework (used for testing)
+target_link_libraries(${TARGET_NAME}_tests PRIVATE ${EXTENSION_NAME} Catch2::Catch2WithMain)
+
+# Register the tests with CTest (built into CMake)
+enable_testing()
+add_test(NAME ${TARGET_NAME}_tests COMMAND ${TARGET_NAME}_tests)
