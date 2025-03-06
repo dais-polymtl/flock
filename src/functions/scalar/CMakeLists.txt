@@ -1,6 +1,7 @@
 add_subdirectory(llm_complete)
 add_subdirectory(llm_complete_json)
 add_subdirectory(llm_filter)
+add_subdirectory(fusion_combmnz)
 add_subdirectory(fusion_relative)
 add_subdirectory(fusion_rrf)
 add_subdirectory(llm_embedding)

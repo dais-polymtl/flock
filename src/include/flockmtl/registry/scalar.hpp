@@ -15,6 +15,7 @@ private:
     static void RegisterLlmFilter(duckdb::DatabaseInstance& db);
     static void RegisterFusionRelative(duckdb::DatabaseInstance& db);
     static void RegisterFusionRRF(duckdb::DatabaseInstance& db);
+    static void RegisterFusionCombMNZ(duckdb::DatabaseInstance& db);
 };
 
 } // namespace flockmtl

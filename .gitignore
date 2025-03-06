@@ -16,3 +16,4 @@ tags/
 !./docs/.gitignore
 notebooks/data
 notebooks/*.ipynb
+/research_papers/

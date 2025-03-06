@@ -9,6 +9,7 @@ void ScalarRegistry::Register(duckdb::DatabaseInstance& db) {
     RegisterLlmFilter(db);
     RegisterFusionRelative(db);
     RegisterFusionRRF(db);
+    RegisterFusionCombMNZ(db);
 }
 
 } // namespace flockmtl
