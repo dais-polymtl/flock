@@ -1,0 +1,4 @@
+set(EXTENSION_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/max_normalizer.cpp
+        ${EXTENSION_SOURCES}
+        PARENT_SCOPE)
