@@ -13,7 +13,6 @@ private:
     static void RegisterLlmComplete(duckdb::DatabaseInstance& db);
     static void RegisterLlmEmbedding(duckdb::DatabaseInstance& db);
     static void RegisterLlmFilter(duckdb::DatabaseInstance& db);
-    static void RegisterFusionRelative(duckdb::DatabaseInstance& db);
     static void RegisterFusionRRF(duckdb::DatabaseInstance& db);
     static void RegisterFusionCombMNZ(duckdb::DatabaseInstance& db);
 };

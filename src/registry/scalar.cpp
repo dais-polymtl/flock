@@ -7,7 +7,6 @@ void ScalarRegistry::Register(duckdb::DatabaseInstance& db) {
     RegisterLlmComplete(db);
     RegisterLlmEmbedding(db);
     RegisterLlmFilter(db);
-    RegisterFusionRelative(db);
     RegisterFusionRRF(db);
     RegisterFusionCombMNZ(db);
 }
