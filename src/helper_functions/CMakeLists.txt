@@ -1,5 +1,4 @@
-add_subdirectory(data_normalization)
-
 set(EXTENSION_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/normalizer.cpp
         ${EXTENSION_SOURCES}
         PARENT_SCOPE)
