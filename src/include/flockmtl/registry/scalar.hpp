@@ -15,6 +15,7 @@ private:
     static void RegisterLlmFilter(duckdb::DatabaseInstance& db);
     static void RegisterFusionRRF(duckdb::DatabaseInstance& db);
     static void RegisterFusionCombANZ(duckdb::DatabaseInstance& db);
+    static void RegisterFusionCombMED(duckdb::DatabaseInstance& db);
     static void RegisterFusionCombMNZ(duckdb::DatabaseInstance& db);
     static void RegisterFusionCombSUM(duckdb::DatabaseInstance& db);
 };
