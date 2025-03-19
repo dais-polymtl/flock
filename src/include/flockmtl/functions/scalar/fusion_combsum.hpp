@@ -5,9 +5,8 @@
 namespace flockmtl {
 
 /**
- * Performs the CombMNZ algorithm to merge lists based multiple scoring sources,
- * as proposed by Fox et al. Compared to CombSUM, this algorithm is less heavily influenced by high scores from any single system.
- * Instead, it heavily rewards entries found by multiple scoring systems (the more, the better).
+ * Performs the CombSUM algorithm to merge lists based multiple scoring sources,
+ * as proposed by Fox et al. It sums the normalized scores for each entry.
  * Unfortunately, there is no DOI for this paper.
  *
  * Authors   = Edward A. Fox and Joseph A. Shaw
@@ -18,7 +17,7 @@ namespace flockmtl {
  *
  * Year      = 1993
  */
-class FusionCombMNZ : public ScalarFunctionBase {
+class FusionCombSUM : public ScalarFunctionBase {
 public:
     static void ValidateArguments(duckdb::DataChunk& args);
     static std::vector<std::string> Operation(duckdb::DataChunk& args);

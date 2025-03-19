@@ -31,7 +31,7 @@ std::vector<int> FusionRRF::Operation(duckdb::DataChunk& args) {
         cumulative_scores[i].first = i;
     }
 
-    // for each column, we want a vector of individual input scores
+    // for each column (scoring system), we want a vector of individual input scores
     for (int i = 0; i < num_different_scores; i++) {
         // extract a single column's score values and associated row position
         std::vector<std::pair<int, double>> extracted_column(num_entries);
