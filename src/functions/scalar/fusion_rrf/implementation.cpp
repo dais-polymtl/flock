@@ -33,7 +33,7 @@ std::vector<int> FusionRRF::Operation(duckdb::DataChunk& args) {
 
     // for each column (scoring system), we want a vector of individual input scores
     for (int i = 0; i < num_different_scores; i++) {
-        // extract a single column's score values and associated row position
+        // extract a single column's score values and associated row position. Initializing this way ensures 0 for null values
         std::vector<std::pair<int, double>> extracted_column(num_entries);
         for (int j = 0; j < num_entries; j++) {
             // first item is it's position

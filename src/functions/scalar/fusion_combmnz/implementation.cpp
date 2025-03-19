@@ -37,7 +37,7 @@ std::vector<std::string> FusionCombMNZ::Operation(duckdb::DataChunk& args) {
 
     // for each column (scoring system), we want a vector of individual input scores
     for (int i = 0; i < num_different_scores; i++) {
-        // extract a single column's score values
+        // extract a single column's score values. Initializing this way ensures 0 for null values
         std::vector<double> extracted_scores(num_entries);
         for (int j = 0; j < num_entries; j++) {
             auto valueWrapper = args.data[i].GetValue(j);
