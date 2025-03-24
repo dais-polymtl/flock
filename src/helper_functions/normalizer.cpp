@@ -2,15 +2,17 @@
 
 namespace flockmtl {
 
-std::vector<double> Normalizer::normalize(const NormalizationMethod method, const std::vector<double>& scores) {
-    return execute_normalization(method, scores);
+std::vector<double> Normalizer::normalize(const std::vector<double>& scores, const NormalizationMethod method) {
+    return execute_normalization(scores, method);
 }
 
-std::vector<double> Normalizer::normalize(const NormalizationMethod method, const std::vector<double>& scores, std::vector<int>& hit_counts) {
-    return execute_normalization(method, scores, &hit_counts);
+std::vector<double> Normalizer::normalize(const std::vector<double>& scores, std::vector<int>& hit_counts,
+                                          const NormalizationMethod method) {
+    return execute_normalization(scores, method, &hit_counts);
 }
 
-std::vector<double> Normalizer::execute_normalization(const NormalizationMethod method, const std::vector<double>& scores, std::vector<int>* hit_counts) {
+std::vector<double> Normalizer::execute_normalization(const std::vector<double>& scores,
+                                                      const NormalizationMethod method, std::vector<int>* hit_counts) {
     // make sure we don't have to deal with an empty scores vector in any function
     if (scores.empty()) {
         return {};

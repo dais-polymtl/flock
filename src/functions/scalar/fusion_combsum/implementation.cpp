@@ -50,7 +50,7 @@ std::vector<std::string> FusionCombSUM::Operation(duckdb::DataChunk& args) {
         }
 
         // we now normalize each scoring system independently, increasing hit counts appropriately
-        extracted_scores = Normalizer::normalize(NormalizationMethod::Max, extracted_scores);
+        extracted_scores = Normalizer::normalize(extracted_scores, NormalizationMethod::Max);
 
         // add this column's scores to the cumulative scores
         for (int k = 0; k < num_entries; k++) {
