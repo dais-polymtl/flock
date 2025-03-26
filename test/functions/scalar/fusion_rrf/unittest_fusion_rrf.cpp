@@ -5,7 +5,7 @@
 
 using namespace duckdb;
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with 2 DOUBLES", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionRRF with 2 DOUBLES", "[fusion_rrf][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -30,7 +30,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with 2 DOUBLES", "[fusion_rrf]") {
     REQUIRE(result[0] == -1);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with multiple rows", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionRRF with multiple rows", "[fusion_rrf][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -64,7 +64,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with multiple rows", "[fusion_rrf]"
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with some NULL values", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionRRF with some NULL values", "[fusion_rrf][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -100,7 +100,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with some NULL values", "[fusion_rr
 /** This test case is only here for stability reasons and to make sure the function doesn't crash.
  *  We won't check the return value, because the behaviour is undefined. It makes no sense to rank only NULL values.
  */
-TEST_CASE("Unit test for flockmtl::FusionRRF with only NULL values", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionRRF with only NULL values", "[fusion_rrf][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -126,7 +126,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with only NULL values", "[fusion_rr
     // We're just making sure the function didn't throw any runtime errors.
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with empty DataChunk", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionRRF with empty DataChunk", "[fusion_rrf][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -147,7 +147,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with empty DataChunk", "[fusion_rrf
     REQUIRE(result[0] == -1);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with extreme values", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionRRF with extreme values", "[fusion_rrf][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 

@@ -1,6 +1,6 @@
-# name: test/sql/fusion_rrf.test
-# description: test fusion_rrf in flockmtl extension
-# group: [fusion_rrf][flockmtl]
+# name: test/sql/fusion_combmnz.test
+# description: test fusion_combmnz in flockmtl extension
+# group: [fusion_combmnz][flockmtl]
 
 # Tests both with optimizers enabled and disabled to see if there are any differences in results
 statement ok
@@ -8,18 +8,18 @@ PRAGMA enable_verification
 
 # Before we load the extension, this will fail
 statement error
-SELECT fusion_rrf(1::DOUBLE, 2::DOUBLE);
+SELECT fusion_combmnz(1::DOUBLE, 2::DOUBLE);
 ----
-Catalog Error: Scalar Function with name fusion_rrf does not exist!
+Catalog Error: Scalar Function with name fusion_combmnz does not exist!
 
 # Require statement will ensure this test is run with this extension loaded
 require flockmtl
 
-# Confirm the extension works and one row returns -1
+# Confirm the extension works and one row output starts with -1
 query I
-SELECT fusion_rrf(1::DOUBLE, 2::DOUBLE);
+SELECT fusion_combmnz(1::DOUBLE, 2::DOUBLE);
 ----
--1
+<REGEX>:.*^-1.*
 
 # Test function with tables of data
 statement ok
@@ -37,7 +37,7 @@ INSERT INTO vs_scores VALUES (1, 30.0), (2, 10.0), (3, 2.0), (4, 200.0), (5, 15.
 query II
 SELECT
     COALESCE(b.index_column, e.index_column) AS index_column,
-    fusion_rrf(
+    fusion_combmnz(
         b.bm25_score::DOUBLE,
         e.vs_score::DOUBLE
     ) AS ranking
@@ -46,11 +46,11 @@ FULL OUTER JOIN vs_scores e
 ON b.index_column = e.index_column
 ORDER BY index_column;
 ----
-1	3
-2	5
-3	4
-4	1
-5	2
+1	<REGEX>:.*^5.*
+2	<REGEX>:.*^4.*
+3	<REGEX>:.*^3.*
+4	<REGEX>:.*^1.*
+5	<REGEX>:.*^2.*
 
 # Test function with NULL values
 statement ok
@@ -66,7 +66,7 @@ INSERT INTO vs_scores VALUES
 query II
 SELECT
 	COALESCE(b.index_column, e.index_column) AS index_column,
-	fusion_rrf(
+	fusion_combmnz(
 		b.bm25_score::DOUBLE,
 		e.vs_score::DOUBLE
 	) AS ranking
@@ -75,8 +75,8 @@ FULL OUTER JOIN vs_scores e
 ON b.index_column = e.index_column
 ORDER BY index_column;
 ----
-1	3
-2	5
-3	1
-4	4
-5	2
+1	<REGEX>:.*^3.*
+2	<REGEX>:.*^5.*
+3	<REGEX>:.*^1.*
+4	<REGEX>:.*^4.*
+5	<REGEX>:.*^2.*

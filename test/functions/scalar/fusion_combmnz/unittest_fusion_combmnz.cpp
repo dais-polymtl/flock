@@ -5,7 +5,7 @@
 
 using namespace duckdb;
 
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 2 DOUBLES", "[fusion_combmnz]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 2 DOUBLES", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -30,7 +30,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 2 DOUBLES", "[fusion_combm
     REQUIRE(result[0].compare(0, 2, "-1") == 0);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with multiple rows", "[fusion_combmnz]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with multiple rows", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -64,7 +64,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with multiple rows", "[fusion_c
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with some NULL values", "[fusion_combmnz]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with some NULL values", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -100,7 +100,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with some NULL values", "[fusio
 /** This test case is only here for stability reasons and to make sure the function doesn't crash.
  *  We won't check the return value, because the behaviour is undefined. It makes no sense to rank only NULL values.
  */
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with only NULL values", "[fusion_combmnz]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with only NULL values", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -126,7 +126,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with only NULL values", "[fusio
     // We're just making sure the function didn't throw any runtime errors.
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with empty DataChunk", "[fusion_combmnz]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with empty DataChunk", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -147,7 +147,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with empty DataChunk", "[fusion
     REQUIRE(result[0].compare(0, 2, "-1") == 0);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with extreme values", "[fusion_combmnz]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with extreme values", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
