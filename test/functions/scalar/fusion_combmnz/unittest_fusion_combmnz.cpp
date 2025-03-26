@@ -1,11 +1,11 @@
 #include "flockmtl-test/functions/scalar/test_fusion.hpp"
-#include <flockmtl/functions/scalar/fusion_rrf.hpp>
+#include <flockmtl/functions/scalar/fusion_combmnz.hpp>
 
 #include <iostream>
 
 using namespace duckdb;
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with 2 DOUBLES", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 2 DOUBLES", "[fusion_combmnz]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -22,15 +22,15 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with 2 DOUBLES", "[fusion_rrf]") {
     chunk.SetValue(0, 0, 1.0);
     chunk.SetValue(1, 0, 2.0);
 
-    // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    // Call FusionCombMNZ with the prepared DataChunk
+    const std::vector<string> result = flockmtl::FusionCombMNZ::Operation(chunk);
 
-    // Verify the result
+    // Verify the result, it should start with "-1"
     REQUIRE(result.size() == 1);
-    REQUIRE(result[0] == -1);
+    REQUIRE(result[0].compare(0, 2, "-1") == 0);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with multiple rows", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with multiple rows", "[fusion_combmnz]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -53,18 +53,18 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with multiple rows", "[fusion_rrf]"
         chunk.SetValue(1, i, vs_scores[i]);
     }
 
-    // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    // Call FusionCombMNZ with the prepared DataChunk
+    const std::vector<string> result = flockmtl::FusionCombMNZ::Operation(chunk);
 
     // Verify the result
-    constexpr std::array<int, 5> expected_results = {3, 5, 4, 1, 2};
+    constexpr std::array<char, 5> expected_results = {'5', '4', '3', '1', '2'};
     REQUIRE(result.size() == expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
-        REQUIRE(result[i] == expected_results[i]);
+        REQUIRE(result[i][0] == expected_results[i]);
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with some NULL values", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with some NULL values", "[fusion_combmnz]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -86,21 +86,21 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with some NULL values", "[fusion_rr
         chunk.SetValue(1, i, vs_scores[i]);
     }
 
-    // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    // Call FusionCombMNZ with the prepared DataChunk
+    const std::vector<string> result = flockmtl::FusionCombMNZ::Operation(chunk);
 
     // Verify the result
-    constexpr std::array<int, 5> expected_results = {3, 5, 1, 4, 2};
+    constexpr std::array<char, 5> expected_results = {'3', '5', '1', '4', '2'};
     REQUIRE(result.size() == expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
-        REQUIRE(result[i] == expected_results[i]);
+        REQUIRE(result[i][0] == expected_results[i]);
     }
 }
 
 /** This test case is only here for stability reasons and to make sure the function doesn't crash.
  *  We won't check the return value, because the behaviour is undefined. It makes no sense to rank only NULL values.
  */
-TEST_CASE("Unit test for flockmtl::FusionRRF with only NULL values", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with only NULL values", "[fusion_combmnz]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -119,14 +119,14 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with only NULL values", "[fusion_rr
         chunk.SetValue(1, i, duckdb::Value(duckdb::LogicalType::DOUBLE));   // This creates NULL values
     }
 
-    // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    // Call FusionCombMNZ with the prepared DataChunk
+    const std::vector<string> result = flockmtl::FusionCombMNZ::Operation(chunk);
 
     // The results aren't checked because the behaviour is undefined. Ranking only NULL values doesn't make sense.
     // We're just making sure the function didn't throw any runtime errors.
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with empty DataChunk", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with empty DataChunk", "[fusion_combmnz]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -139,15 +139,15 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with empty DataChunk", "[fusion_rrf
     // Set the cardinality (number of rows) to 1
     chunk.SetCardinality(1);
 
-    // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    // Call FusionCombMNZ with the prepared DataChunk
+    const std::vector<string> result = flockmtl::FusionCombMNZ::Operation(chunk);
 
     // Verify the result
     REQUIRE(result.size() == 1);
-    REQUIRE(result[0] == -1);
+    REQUIRE(result[0].compare(0, 2, "-1") == 0);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with extreme values", "[fusion_rrf]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with extreme values", "[fusion_combmnz]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -172,13 +172,13 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with extreme values", "[fusion_rrf]
         chunk.SetValue(1, i, vs_scores[i]);
     }
 
-    // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    // Call FusionCombMNZ with the prepared DataChunk
+    const std::vector<string> result = flockmtl::FusionCombMNZ::Operation(chunk);
 
     // Verify the result
-    constexpr std::array<int, 5> expected_results = {1, 2, 3, 4, 5};
+    constexpr std::array<char, 5> expected_results = {'1', '2', '3', '4', '5'};
     REQUIRE(result.size() == expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
-        REQUIRE(result[i] == expected_results[i]);
+        REQUIRE(result[i][0] == expected_results[i]);
     }
 }

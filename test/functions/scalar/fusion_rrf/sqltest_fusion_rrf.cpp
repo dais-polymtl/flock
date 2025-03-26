@@ -1,4 +1,4 @@
-#include "flockmtl-test/functions/scalar/fusion_rrf/test_fusion_rrf.hpp"
+#include "flockmtl-test/functions/scalar/test_fusion.hpp"
 
 #include <iostream>
 
@@ -19,7 +19,7 @@ TEST_CASE("End-to-End SQL test for fusion_rrf with 2 DOUBLES", "[fusion_rrf]") {
     REQUIRE(result->GetValue<double>(0, 0) == -1);
 }
 
-TEST_CASE("Test fusion_rrf with multiple rows", "[fusion_rrf]") {
+TEST_CASE("End-to-End SQL test for fusion_rrf with multiple rows", "[fusion_rrf]") {
     // Initialize DuckDB in-memory instance
     auto db = make_uniq<DuckDB>(nullptr);
     auto con = make_uniq<Connection>(*db);
@@ -67,7 +67,7 @@ TEST_CASE("Test fusion_rrf with multiple rows", "[fusion_rrf]") {
     }
 }
 
-TEST_CASE("Test fusion_rrf with NULL values", "[fusion_rrf]") {
+TEST_CASE("End-to-End SQL test for fusion_rrf with NULL values", "[fusion_rrf]") {
     // Initialize an in-memory DuckDB instance
     auto db = make_uniq<DuckDB>(nullptr);
     auto con = make_uniq<Connection>(*db);
