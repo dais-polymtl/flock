@@ -70,8 +70,9 @@ private:
      * Scores of 0 are not ignored (as if the scoring system hasn't found the document). Instead, a poor score is assigned.
      * As such, this method is not recommended for use in score-based fusion algorithms.
      * If you choose to use it, be wary of entries with a score of 0 (potentially exclude them from the list of scores provided here),
-     * and you may need to offset all values so that they are all positive. Even then, make sure all your scoring sources lie on the same scale.
+     * and you may need to offset all values so that they are all positive.
      * Min-max normalization is recommended.
+     * hit_counts keeps track of how many systems returned the entry (search hits). Increments for all positive values.
      *
      * @param scores Vector of scores to normalize
      * @param hit_counts Vector which tracks hit counts. Must be the same size as scores and will only increment on hit (modified in-place)

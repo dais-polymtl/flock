@@ -57,8 +57,8 @@ std::vector<double> Normalizer::normalizeMax(const std::vector<double>& scores, 
     std::vector<double> normalized_scores(scores.size());
     for (size_t i = 0; i < scores.size(); i++) {
         normalized_scores[i] = scores[i] / max_score;
-        // Make sure we don't count a score of 0 as an entry hit
-        if (hit_counts != nullptr && scores[i] != 0.0) {
+        // Make sure we don't count a negative score or 0 as an entry hit
+        if (hit_counts != nullptr && scores[i] > 0.0) {
             (*hit_counts)[i]++;
         }
     }
@@ -91,8 +91,8 @@ std::vector<double> Normalizer::normalizeMinMax(const std::vector<double>& score
     for (size_t i = 0; i < scores.size(); i++) {
         normalized_scores[i] = (scores[i] - min_score) / range;
 
-        // Make sure we don't count a score of 0 as an entry hit
-        if (hit_counts != nullptr && scores[i] != 0.0) {
+        // Make sure we don't count a negative score or 0 as an entry hit
+        if (hit_counts != nullptr && scores[i] > 0.0) {
             (*hit_counts)[i]++;
         }
     }
@@ -107,7 +107,7 @@ std::vector<double> Normalizer::normalizeMinMax(const std::vector<double>& score
 // If you choose to use it, be wary of entries with a score of 0 (potentially exclude them from the list of scores provided here),
 // and you may need to offset all values so that all values are positive. Even then, make sure all your scoring sources lie on the same scale.
 // Min-max normalization is recommended.
-// hit_counts keeps track of how many systems returned the entry (search hits)
+// hit_counts keeps track of how many systems returned the entry (search hits). Increments for all positive values.
 std::vector<double> Normalizer::normalizeZScore(const std::vector<double>& scores, std::vector<int>* hit_counts) {
     // Ensure the hit_counts vector has the same size as scores if provided
     if (hit_counts != nullptr && hit_counts->size() != scores.size()) {
@@ -153,7 +153,7 @@ std::vector<double> Normalizer::normalizeZScore(const std::vector<double>& score
         normalized_scores[i] = (scores[i] - mean) / std_dev;
 
         // Increment hit count for non-zero entries
-        if (hit_counts != nullptr && scores[i] != 0.0) {
+        if (hit_counts != nullptr && scores[i] > 0.0) {
             (*hit_counts)[i]++;
         }
     }
