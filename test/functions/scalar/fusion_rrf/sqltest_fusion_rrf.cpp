@@ -4,7 +4,7 @@
 
 using namespace duckdb;
 
-TEST_CASE("Test fusion_rrf with 2 DOUBLES", "[fusion_rrf]") {
+TEST_CASE("End-to-End SQL test for fusion_rrf with 2 DOUBLES", "[fusion_rrf]") {
     // Initialize an in-memory DuckDB instance
     auto db = make_uniq<DuckDB>(nullptr);
     auto con = make_uniq<Connection>(*db);
