@@ -1,5 +1,4 @@
 #include "flockmtl/functions/scalar/fusion_combmed.hpp"
-#include "flockmtl/helper_functions/normalizer.hpp"
 
 namespace flockmtl {
 
@@ -12,7 +11,7 @@ void FusionCombMED::ValidateArguments(duckdb::DataChunk& args) {
 }
 
 // performs CombMED to merge lists based on a calculated score.
-std::vector<std::string> FusionCombMED::Operation(duckdb::DataChunk& args) {
+std::vector<std::string> FusionCombMED::Operation(duckdb::DataChunk& args, const NormalizationMethod normalization_method) {
     FusionCombMED::ValidateArguments(args);
     int num_different_scores = static_cast<int>(args.ColumnCount());
     int num_entries = static_cast<int>(args.size());
@@ -51,7 +50,7 @@ std::vector<std::string> FusionCombMED::Operation(duckdb::DataChunk& args) {
         }
 
         // we now normalize each scoring system independently, increasing hit counts appropriately
-        extracted_scores = Normalizer::normalize(extracted_scores, NormalizationMethod::Max);
+        extracted_scores = Normalizer::normalize(extracted_scores, normalization_method);
 
         // add this column's scores to the scores for this entry
         for (int k = 0; k < num_entries; k++) {
