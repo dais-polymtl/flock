@@ -71,6 +71,49 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with some NULL values", "[fusio
     // Create a DataChunk and initialize it with the default allocator
     duckdb::DataChunk chunk;
     auto &allocator = duckdb::Allocator::DefaultAllocator();
+    // Initialize with capacity 1 (one row)
+    chunk.Initialize(allocator, types, 5);
+
+    // Set the cardinality (number of rows) to 1
+    chunk.SetCardinality(5);
+
+    // Data we will use to populate the DataChunk. -1 means null
+    constexpr std::array<double, 5> bm25_scores = {-1, 20.0, -1, 40.0, 50.0};
+    constexpr std::array<double, 5> vs_scores = {30.0, 10.0, 2.0, 200.0, -1};
+
+    // Populate the DataChunk with test data
+    for (size_t i = 0; i < bm25_scores.size(); ++i) {
+        if (bm25_scores[i] == -1) {
+            chunk.SetValue(0, i, duckdb::Value(duckdb::LogicalType::DOUBLE));
+        } else {
+            chunk.SetValue(0, i, bm25_scores[i]);
+        }
+
+        if (vs_scores[i] == -1) {
+            chunk.SetValue(1, i, duckdb::Value(duckdb::LogicalType::DOUBLE));
+        } else {
+            chunk.SetValue(1, i, vs_scores[i]);
+        }
+    }
+
+    // Call FusionCombMNZ with the prepared DataChunk
+    const std::vector<string> result = flockmtl::FusionCombMNZ::Operation(chunk);
+
+    // Verify the result
+    constexpr std::array<char, 5> expected_results = {'4', '3', '5', '1', '2'};
+    REQUIRE(result.size() == expected_results.size());
+    for (size_t i = 0; i < expected_results.size(); ++i) {
+        REQUIRE(result[i][0] == expected_results[i]);
+    }
+}
+
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with entire NULL column", "[fusion_combmnz][flockmtl]") {
+    // Define the column types (2 DOUBLE columns)
+    const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
+
+    // Create a DataChunk and initialize it with the default allocator
+    duckdb::DataChunk chunk;
+    auto &allocator = duckdb::Allocator::DefaultAllocator();
     // Initialize with capacity 5 (five rows)
     chunk.Initialize(allocator, types, 5);
 
