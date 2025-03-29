@@ -10,19 +10,11 @@ namespace flockmtl {
  * as proposed by Fox et al. Compared to CombSUM, this algorithm is less heavily influenced by high scores from any single system.
  * Instead, it heavily rewards entries found by multiple scoring systems (the more, the better).
  * Unfortunately, there is no DOI for this paper.
- *
- * Authors   = Edward A. Fox and Joseph A. Shaw
- *
- * Title     = Combination of Multiple Searches
- *
- * Publisher = National Institute of Standards and Technology (NIST)
- *
- * Year      = 1993
+ * Reference: Combination of Multiple Searches. Edward A. Fox and Joseph A. Shaw. NIST, 1993.
  */
 class FusionCombMNZ : public ScalarFunctionBase {
 public:
-    static void ValidateArguments(duckdb::DataChunk& args);
-    static std::vector<std::string> Operation(duckdb::DataChunk& args, NormalizationMethod normalization_method = NormalizationMethod::MinMax);
+    static std::vector<double> Operation(duckdb::DataChunk& args, NormalizationMethod normalization_method = NormalizationMethod::MinMax);
     static void Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
 };
 

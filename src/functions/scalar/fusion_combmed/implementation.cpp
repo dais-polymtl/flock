@@ -2,17 +2,8 @@
 
 namespace flockmtl {
 
-void FusionCombMED::ValidateArguments(duckdb::DataChunk& args) {
-    for (int i = 0; i < static_cast<int>(args.ColumnCount()); i++) {
-        if (args.data[i].GetType() != duckdb::LogicalType::DOUBLE) {
-            throw std::runtime_error("fusion_combmed: argument must be a double");
-        }
-    }
-}
-
 // performs CombMED to merge lists based on a calculated score.
 std::vector<std::string> FusionCombMED::Operation(duckdb::DataChunk& args, const NormalizationMethod normalization_method) {
-    FusionCombMED::ValidateArguments(args);
     int num_different_scores = static_cast<int>(args.ColumnCount());
     int num_entries = static_cast<int>(args.size());
 

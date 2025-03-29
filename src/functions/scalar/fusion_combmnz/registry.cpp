@@ -5,7 +5,7 @@ namespace flockmtl {
 
 void ScalarRegistry::RegisterFusionCombMNZ(duckdb::DatabaseInstance& db) {
     duckdb::ExtensionUtil::RegisterFunction(
-        db, duckdb::ScalarFunction("fusion_combmnz", {}, duckdb::LogicalType::VARCHAR, FusionCombMNZ::Execute, nullptr,
+        db, duckdb::ScalarFunction("fusion_combmnz", {}, duckdb::LogicalType::DOUBLE, FusionCombMNZ::Execute, nullptr,
                                    nullptr, nullptr, nullptr, duckdb::LogicalType::ANY,
                                    duckdb::FunctionStability::VOLATILE, duckdb::FunctionNullHandling::SPECIAL_HANDLING));
 }

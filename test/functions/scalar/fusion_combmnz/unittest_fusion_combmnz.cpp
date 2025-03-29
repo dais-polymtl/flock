@@ -23,11 +23,11 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 2 DOUBLES", "[fusion_combm
     chunk.SetValue(1, 0, 2.0);
 
     // Call FusionCombMNZ with the prepared DataChunk
-    const std::vector<string> result = flockmtl::FusionCombMNZ::Operation(chunk);
+    const std::vector<double> result = flockmtl::FusionCombMNZ::Operation(chunk);
 
     // Verify the result, it should start with "-1"
     REQUIRE(result.size() == 1);
-    REQUIRE(result[0].compare(0, 2, "-1") == 0);
+    REQUIRE(result[0] == 1);
 }
 
 TEST_CASE("Unit test for flockmtl::FusionCombMNZ with multiple rows", "[fusion_combmnz][flockmtl]") {

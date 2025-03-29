@@ -11,7 +11,6 @@ namespace flockmtl {
  */
 class FusionRRF : public ScalarFunctionBase {
 public:
-    static void ValidateArguments(duckdb::DataChunk& args);
     /**
      * Implements the RRF logic
      * @param args Provided by core DuckDB when the function is executed in the CLI. Contains the arguments

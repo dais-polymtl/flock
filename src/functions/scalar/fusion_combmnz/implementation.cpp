@@ -2,28 +2,10 @@
 
 namespace flockmtl {
 
-void FusionCombMNZ::ValidateArguments(duckdb::DataChunk& args) {
-    for (int i = 0; i < static_cast<int>(args.ColumnCount()); i++) {
-        if (args.data[i].GetType() != duckdb::LogicalType::DOUBLE) {
-            throw std::runtime_error("fusion_combmnz: argument must be a double");
-        }
-    }
-}
-
 // performs CombMNZ to merge lists based on a calculated score.
-std::vector<std::string> FusionCombMNZ::Operation(duckdb::DataChunk& args, const NormalizationMethod normalization_method) {
-    FusionCombMNZ::ValidateArguments(args);
-    int num_different_scores = static_cast<int>(args.ColumnCount());
+std::vector<double> FusionCombMNZ::Operation(duckdb::DataChunk& args, const NormalizationMethod normalization_method) {
+    int num_columns = static_cast<int>(args.ColumnCount());
     int num_entries = static_cast<int>(args.size());
-
-    // the function is sometimes called with a singular entry, often when null values are present in a table
-    // in these cases, we return -1 to say that a ranking is impossible/invalid
-    if (num_entries == 1) {
-        return std::vector<std::string>(1, "-1 (INVALID)");
-    }
-    if (num_entries == 0) {
-        return std::vector<std::string>(1, "");
-    }
 
     // we want to keep track of the cumulative combined score for each entry
     std::vector<std::pair<int, double>> cumulative_scores(num_entries);
@@ -35,7 +17,9 @@ std::vector<std::string> FusionCombMNZ::Operation(duckdb::DataChunk& args, const
     std::vector<int> hit_counts(num_entries);
 
     // for each column (scoring system), we want a vector of individual input scores
-    for (int i = 0; i < num_different_scores; i++) {
+    // we increment i by 3 because each scoring system is followed by its min and max value
+    // we check for num_columns - 2 because each scoring system takes 3 columns, we want to stop without reaching min and max columns
+    for (int i = 0; i < num_columns - 2; i += 3) {
         // extract a single column's score values. Initializing this way ensures 0 for null values
         std::vector<double> extracted_scores(num_entries);
         for (int j = 0; j < num_entries; j++) {
@@ -51,8 +35,12 @@ std::vector<std::string> FusionCombMNZ::Operation(duckdb::DataChunk& args, const
             continue;
         }
 
+        // before normalizing, we need the minimum and maximum values for the column
+        double min_value = args.data[i+1].GetValue(0).GetValue<double>();
+        double max_value = args.data[i+2].GetValue(0).GetValue<double>();
+
         // we now normalize each scoring system independently, increasing hit counts appropriately
-        extracted_scores = Normalizer::normalize(extracted_scores, hit_counts, normalization_method);
+        extracted_scores = Normalizer::normalize(extracted_scores, min_value, max_value, hit_counts, normalization_method);
 
         // add this column's scores to the cumulative scores
         for (int k = 0; k < num_entries; k++) {
@@ -71,11 +59,11 @@ std::vector<std::string> FusionCombMNZ::Operation(duckdb::DataChunk& args, const
         });
 
     // return the resulting ranking of all documents
-    std::vector<std::string> results(num_entries);
+    std::vector<double> results(num_entries);
     for (int i = 0; i < num_entries; i++) {
         const int tmp_index = cumulative_scores[i].first;
         // add 1 to rank because we want rankings to start at 1, not 0
-        results[tmp_index] = std::to_string(i + 1) + " (" + std::to_string(cumulative_scores[i].second) + ")";
+        results[tmp_index] = cumulative_scores[i].second;
     }
 
     return results;

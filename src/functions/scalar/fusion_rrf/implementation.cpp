@@ -2,18 +2,9 @@
 
 namespace flockmtl {
 
-void FusionRRF::ValidateArguments(duckdb::DataChunk& args) {
-    for (int i = 0; i < static_cast<int>(args.ColumnCount()); i++) {
-        if (args.data[i].GetType() != duckdb::LogicalType::DOUBLE) {
-            throw std::runtime_error("fusion_rrf: argument must be a double");
-        }
-    }
-}
-
 // performs RRF (Reciprocal Rank Fusion) to merge lists based on some score.
 // Different entries with the same RRF score are assigned different, consecutive, rankings arbitrarily
 std::vector<int> FusionRRF::Operation(duckdb::DataChunk& args) {
-    FusionRRF::ValidateArguments(args);
     // recommended rrf constant is 60
     int rrf_constant = 60;
     int num_different_scores = static_cast<int>(args.ColumnCount());
