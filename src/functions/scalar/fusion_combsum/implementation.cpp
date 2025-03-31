@@ -3,18 +3,9 @@
 namespace flockmtl {
 
 // performs CombSUM to merge lists based on a calculated score.
-std::vector<std::string> FusionCombSUM::Operation(duckdb::DataChunk& args, const NormalizationMethod normalization_method) {
+std::vector<double> FusionCombSUM::Operation(duckdb::DataChunk& args, const NormalizationMethod normalization_method) {
     int num_different_scores = static_cast<int>(args.ColumnCount());
     int num_entries = static_cast<int>(args.size());
-
-    // the function is sometimes called with a singular entry, often when null values are present in a table
-    // in these cases, we return -1 to say that a ranking is impossible/invalid
-    if (num_entries == 1) {
-        return std::vector<std::string>(1, "-1 (INVALID)");
-    }
-    if (num_entries == 0) {
-        return std::vector<std::string>(1, "");
-    }
 
     // we want to keep track of the cumulative combined score for each entry
     std::vector<std::pair<int, double>> cumulative_scores(num_entries);
@@ -30,7 +21,10 @@ std::vector<std::string> FusionCombSUM::Operation(duckdb::DataChunk& args, const
             auto valueWrapper = args.data[i].GetValue(j);
             // null values are left as 0, treated as if the entry is not present in that scoring system's results
             if (!valueWrapper.IsNull()) {
-                extracted_scores[j] = valueWrapper.GetValue<double>();
+                double value = valueWrapper.GetValue<double>();
+                if (!std::isnan(value)) {
+                    extracted_scores[j] = valueWrapper.GetValue<double>();
+                }
             }
         }
 
@@ -38,9 +32,6 @@ std::vector<std::string> FusionCombSUM::Operation(duckdb::DataChunk& args, const
         if (std::adjacent_find(extracted_scores.begin(), extracted_scores.end(), std::not_equal_to<>()) == extracted_scores.end()) {
             continue;
         }
-
-        // we now normalize each scoring system independently, increasing hit counts appropriately
-        extracted_scores = Normalizer::normalize(extracted_scores, normalization_method);
 
         // add this column's scores to the cumulative scores
         for (int k = 0; k < num_entries; k++) {
@@ -54,11 +45,11 @@ std::vector<std::string> FusionCombSUM::Operation(duckdb::DataChunk& args, const
         });
 
     // return the resulting ranking of all documents
-    std::vector<std::string> results(num_entries);
+    std::vector<double> results(num_entries);
     for (int i = 0; i < num_entries; i++) {
         const int tmp_index = cumulative_scores[i].first;
         // add 1 to rank because we want rankings to start at 1, not 0
-        results[tmp_index] = std::to_string(i + 1) + " (" + std::to_string(cumulative_scores[i].second) + ")";
+        results[tmp_index] = cumulative_scores[i].second;
     }
 
     return results;

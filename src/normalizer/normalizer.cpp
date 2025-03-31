@@ -67,7 +67,7 @@ std::vector<double> Normalizer::normalizeMax(const std::vector<double>& scores, 
     }
 
     // If no max value was passed, find max absolute value (to handle both positive/negative scores). We make sure to retrieve the absolute value
-    if (max_value == std::numeric_limits<double>::quiet_NaN()) {
+    if (std::isnan(max_value)) {
         max_value = std::abs(*std::max_element(scores.begin(), scores.end(),
                                                [](double a, double b) { return std::abs(a) < std::abs(b); }));
     }
@@ -101,17 +101,17 @@ std::vector<double> Normalizer::normalizeMinMax(const std::vector<double>& score
     }
 
     // If they weren't provided, find min and max values. No need to take care of sign because we divide by range.
-    if (min_value == std::numeric_limits<double>::quiet_NaN() && max_value == std::numeric_limits<double>::quiet_NaN()) {
+    if (std::isnan(min_value) && std::isnan(max_value)) {
         auto [min_it, max_it] = std::minmax_element(scores.begin(), scores.end());
         min_value = *min_it;
         max_value = *max_it;
     }
 
-    if (max_value == std::numeric_limits<double>::quiet_NaN()) {
+    if (std::isnan(max_value)) {
         max_value = *std::max_element(scores.begin(), scores.end());
     }
 
-    if (min_value == std::numeric_limits<double>::quiet_NaN()) {
+    if (std::isnan(min_value)) {
         min_value = *std::min_element(scores.begin(), scores.end());
     }
 

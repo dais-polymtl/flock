@@ -5,7 +5,7 @@ namespace flockmtl {
 
 void ScalarRegistry::RegisterFusionCombSUM(duckdb::DatabaseInstance& db) {
     duckdb::ExtensionUtil::RegisterFunction(
-        db, duckdb::ScalarFunction("fusion_combsum", {}, duckdb::LogicalType::VARCHAR, FusionCombSUM::Execute, nullptr,
+        db, duckdb::ScalarFunction("fusion_combsum", {}, duckdb::LogicalType::DOUBLE, FusionCombSUM::Execute, nullptr,
                                    nullptr, nullptr, nullptr, duckdb::LogicalType::ANY,
                                    duckdb::FunctionStability::VOLATILE, duckdb::FunctionNullHandling::SPECIAL_HANDLING));
 }
