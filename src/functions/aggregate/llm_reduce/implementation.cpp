@@ -68,7 +68,7 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
         auto state = function_instance->state_map[state_ptr];
 
         auto response = function_instance->ReduceLoop(state->value, function_type);
-        result.SetValue(idx, response.dump());
+        result.SetValue(idx, response.get<std::string>());
     }
 }
 
