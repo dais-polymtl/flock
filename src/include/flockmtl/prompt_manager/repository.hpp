@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 
 namespace flockmtl {
 
@@ -9,6 +10,11 @@ enum class PromptSection { USER_PROMPT, TUPLES, RESPONSE_FORMAT, INSTRUCTIONS };
 enum class AggregateFunctionType { REDUCE, REDUCE_JSON, FIRST, LAST, RERANK };
 
 enum class ScalarFunctionType { COMPLETE_JSON, COMPLETE, FILTER };
+
+enum class TupleFormat { XML, JSON, Markdown };
+
+inline std::pmr::unordered_map<std::string, TupleFormat> TUPLE_FORMAT = {
+    {"XML", TupleFormat::XML}, {"JSON", TupleFormat::JSON}, {"Markdown", TupleFormat::Markdown}};
 
 constexpr auto META_PROMPT =
     "You are FlockMTL a semantic analysis tool for DBMS. You will analyze each tuple in the provided data and respond "

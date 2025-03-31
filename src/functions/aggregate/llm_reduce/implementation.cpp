@@ -18,7 +18,7 @@ int LlmReduce::GetAvailableTokens(const AggregateFunctionType& function_type) {
 
 nlohmann::json LlmReduce::ReduceBatch(const nlohmann::json& tuples, const AggregateFunctionType& function_type) {
     nlohmann::json data;
-    auto prompt = PromptManager::Render(user_query, tuples, function_type);
+    const auto prompt = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
     auto response = model.CallComplete(prompt);
     return response["output"];
 };

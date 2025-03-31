@@ -35,16 +35,22 @@ public:
 
     static std::string ConstructNumTuples(int num_tuples);
 
-    static std::string ConstructInputTuplesHeader(const nlohmann::json& tuple);
+    static std::string ConstructInputTuplesHeader(const nlohmann::json& tuple, const std::string& tuple_format = "XML");
+    static std::string ConstructInputTuplesHeaderXML(const nlohmann::json& tuple);
+    static std::string ConstructInputTuplesHeaderMarkdown(const nlohmann::json& tuple);
 
-    static std::string ConstructSingleInputTuple(const nlohmann::json& tuple);
+    static std::string ConstructSingleInputTuple(const nlohmann::json& tuple, const std::string& tuple_format = "XML");
+    static std::string ConstructSingleInputTupleXML(const nlohmann::json& tuple);
+    static std::string ConstructSingleInputTupleMarkdown(const nlohmann::json& tuple);
+    static std::string ConstructSingleInputTupleJSON(const nlohmann::json& tuple);
 
-    static std::string ConstructInputTuples(const nlohmann::json& tuples);
+    static std::string ConstructInputTuples(const nlohmann::json& tuples, const std::string& tuple_format = "XML");
 
     template <typename FunctionType>
-    static std::string Render(const std::string& user_prompt, const nlohmann::json& tuples, FunctionType option) {
+    static std::string Render(const std::string& user_prompt, const nlohmann::json& tuples, FunctionType option,
+                              const std::string& tuple_format = "XML") {
         auto prompt = PromptManager::GetTemplate(option);
-        auto markdown_tuples = PromptManager::ConstructInputTuples(tuples);
+        auto markdown_tuples = PromptManager::ConstructInputTuples(tuples, tuple_format);
         prompt = PromptManager::ReplaceSection(prompt, PromptSection::USER_PROMPT, user_prompt);
         prompt = PromptManager::ReplaceSection(prompt, PromptSection::TUPLES, markdown_tuples);
         return prompt;
