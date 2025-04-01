@@ -1,4 +1,4 @@
-import { IconType } from "@node_modules/react-icons/lib";
+import { IconType } from "react-icons/lib";
 
 export interface FeatredCardProps {
     Icon: IconType;
