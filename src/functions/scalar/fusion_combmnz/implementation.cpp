@@ -28,11 +28,6 @@ std::vector<double> FusionCombMNZ::Operation(duckdb::DataChunk& args) {
             }
         }
 
-        // If all entries have the same score, then this scoring system can be considered useless and should be ignored
-        if (std::adjacent_find(extracted_scores.begin(), extracted_scores.end(), std::not_equal_to<>()) == extracted_scores.end()) {
-            continue;
-        }
-
         // add this column's scores to the cumulative scores
         for (int k = 0; k < num_entries; k++) {
             cumulative_scores[k] += extracted_scores[k];
