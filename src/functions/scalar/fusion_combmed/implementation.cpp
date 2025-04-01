@@ -19,7 +19,7 @@ std::vector<double> FusionCombMED::Operation(duckdb::DataChunk& args) {
             // if there is a value, it is extracted. if there is no value (NULL/NaN), it stays at 0
             if (!valueWrapper.IsNull()) {
                 if (const double value = valueWrapper.GetValue<double>(); !std::isnan(value)) {
-                    extracted_scores[j] = valueWrapper.GetValue<double>();
+                    extracted_scores[j] = value;
                 }
             }
         }
