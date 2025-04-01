@@ -75,7 +75,6 @@ add_executable(${TARGET_NAME}_tests ${TEST_SOURCES})
 
 # Include directories for tests
 target_include_directories(${TARGET_NAME}_tests PRIVATE test/include)
-target_include_directories(${TARGET_NAME}_tests PRIVATE duckdb/test/include)
 
 # Link the test executable to the extension and the Catch2 framework (used for testing)
 target_link_libraries(${TARGET_NAME}_tests PRIVATE ${EXTENSION_NAME} Catch2::Catch2WithMain)
