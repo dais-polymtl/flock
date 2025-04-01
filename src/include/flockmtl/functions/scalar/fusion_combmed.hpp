@@ -14,10 +14,10 @@ namespace flockmtl {
  */
 class FusionCombMED : public ScalarFunctionBase {
 public:
-    static std::vector<std::string> Operation(duckdb::DataChunk& args, NormalizationMethod normalization_method = NormalizationMethod::MinMax);
+    static std::vector<double> Operation(duckdb::DataChunk& args);
     static void Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
 private:
-    static double calculateMedian(const std::vector<double>& data);
+    static double calculateMedian(const std::vector<double>& scores);
 };
 
 } // namespace flockmtl
