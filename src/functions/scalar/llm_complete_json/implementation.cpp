@@ -51,11 +51,16 @@ std::vector<std::string> LlmCompleteJson::Operation(duckdb::DataChunk& args) {
 
 void LlmCompleteJson::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
 
-    auto results = LlmCompleteJson::Operation(args);
-
-    auto index = 0;
-    for (const auto& res : results) {
-        result.SetValue(index++, duckdb::Value(res));
+    if (const auto results = LlmCompleteJson::Operation(args); static_cast<int>(results.size()) == 1) {
+        auto empty_vec = duckdb::Vector(std::string());
+        duckdb::UnaryExecutor::Execute<duckdb::string_t, duckdb::string_t>(
+            empty_vec, result, args.size(),
+            [&](duckdb::string_t name) { return duckdb::StringVector::AddString(result, results[0]); });
+    } else {
+        auto index = 0;
+        for (const auto& res : results) {
+            result.SetValue(index++, duckdb::Value(res));
+        }
     }
 }
 

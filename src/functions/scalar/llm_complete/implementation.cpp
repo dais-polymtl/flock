@@ -33,7 +33,6 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
     if (args.ColumnCount() == 2) {
         auto template_str = prompt_details.prompt;
         auto response = model.CallComplete(template_str, false);
-
         results.push_back(response.get<std::string>());
     } else {
         auto tuples = CastVectorOfStructsToJson(args.data[2], args.size());
@@ -50,11 +49,16 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
 
 void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
 
-    auto results = LlmComplete::Operation(args);
-
-    auto index = 0;
-    for (const auto& res : results) {
-        result.SetValue(index++, duckdb::Value(res));
+    if (const auto results = LlmComplete::Operation(args); static_cast<int>(results.size()) == 1) {
+        auto empty_vec = duckdb::Vector(std::string());
+        duckdb::UnaryExecutor::Execute<duckdb::string_t, duckdb::string_t>(
+            empty_vec, result, args.size(),
+            [&](duckdb::string_t name) { return duckdb::StringVector::AddString(result, results[0]); });
+    } else {
+        auto index = 0;
+        for (const auto& res : results) {
+            result.SetValue(index++, duckdb::Value(res));
+        }
     }
 }
 

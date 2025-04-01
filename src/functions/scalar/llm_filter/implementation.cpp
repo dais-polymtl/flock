@@ -3,7 +3,7 @@
 namespace flockmtl {
 
 void LlmFilter::ValidateArguments(duckdb::DataChunk& args) {
-    if (args.ColumnCount() < 2 || args.ColumnCount() > 3) {
+    if (args.ColumnCount() != 3) {
         throw std::runtime_error("Invalid number of arguments.");
     }
 
@@ -14,10 +14,8 @@ void LlmFilter::ValidateArguments(duckdb::DataChunk& args) {
         throw std::runtime_error("Prompt details must be a struct.");
     }
 
-    if (args.ColumnCount() == 3) {
-        if (args.data[2].GetType().id() != duckdb::LogicalTypeId::STRUCT) {
-            throw std::runtime_error("Inputs must be a struct.");
-        }
+    if (args.data[2].GetType().id() != duckdb::LogicalTypeId::STRUCT) {
+        throw std::runtime_error("Inputs must be a struct.");
     }
 }
 
@@ -47,7 +45,7 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
 }
 
 void LlmFilter::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
-    auto results = LlmFilter::Operation(args);
+    const auto results = LlmFilter::Operation(args);
 
     auto index = 0;
     for (const auto& res : results) {
