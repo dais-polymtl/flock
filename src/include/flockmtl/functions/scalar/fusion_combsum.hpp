@@ -13,8 +13,7 @@ namespace flockmtl {
  */
 class FusionCombSUM : public ScalarFunctionBase {
 public:
-    static std::vector<double> Operation(duckdb::DataChunk& args,
-                                         NormalizationMethod normalization_method = NormalizationMethod::MinMax);
+    static std::vector<double> Operation(duckdb::DataChunk& args);
     static void Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
 };
 
