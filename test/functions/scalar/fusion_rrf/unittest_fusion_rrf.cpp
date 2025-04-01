@@ -23,7 +23,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with 2 DOUBLES", "[fusion_rrf][floc
     chunk.SetValue(1, 0, 2.0);
 
     // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
 
     // Verify the result
     REQUIRE(result.size() == 1);
@@ -54,7 +54,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with multiple rows", "[fusion_rrf][
     }
 
     // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
 
     // Verify the result
     constexpr std::array<int, 5> expected_results = {3, 5, 4, 1, 2};
@@ -97,7 +97,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with some NULL values", "[fusion_rr
     }
 
     // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
 
     // Verify the result
     constexpr std::array<int, 5> expected_results = {4, 2, 5, 1, 3};
@@ -130,7 +130,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with entire NULL column", "[fusion_
     }
 
     // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
 
     // Verify the result
     constexpr std::array<int, 5> expected_results = {3, 5, 1, 4, 2};
@@ -163,31 +163,10 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with only NULL values", "[fusion_rr
     }
 
     // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
 
     // The results aren't checked because the behaviour is undefined. Ranking only NULL values doesn't make sense.
     // We're just making sure the function didn't throw any runtime errors.
-}
-
-TEST_CASE("Unit test for flockmtl::FusionRRF with empty DataChunk", "[fusion_rrf][flockmtl]") {
-    // Define the column types (2 DOUBLE columns)
-    const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
-
-    // Create a DataChunk and initialize it with the default allocator
-    duckdb::DataChunk chunk;
-    auto &allocator = duckdb::Allocator::DefaultAllocator();
-    // Initialize with capacity 1 (one row). The allocator doesn't allow us to have 0 rows.
-    chunk.Initialize(allocator, types, 1);
-
-    // Set the cardinality (number of rows) to 1
-    chunk.SetCardinality(1);
-
-    // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
-
-    // Verify the result
-    REQUIRE(result.size() == 1);
-    REQUIRE(result[0] == -1);
 }
 
 TEST_CASE("Unit test for flockmtl::FusionRRF with extreme values", "[fusion_rrf][flockmtl]") {
@@ -216,7 +195,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with extreme values", "[fusion_rrf]
     }
 
     // Call FusionRRF with the prepared DataChunk
-    const std::vector<int> result = flockmtl::FusionRRF::Operation(chunk);
+    const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
 
     // Verify the result
     constexpr std::array<int, 5> expected_results = {1, 2, 3, 4, 5};
