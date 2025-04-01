@@ -28,7 +28,10 @@ std::vector<double> FusionRRF::Operation(duckdb::DataChunk& args) {
         // If all entries have the same score or are NULL (0), then this scoring system can be considered useless and should be ignored
         // Or else, all entries would get assigned the best rank possible, even if they are 0
         if (std::all_of(extracted_ranks.begin(), extracted_ranks.end(), [](const auto& rank) { return rank <= 1; })) {
-            continue;
+            // if there is only one entry and the rank isn't 0, it's a valid ranking. We don't want to skip.
+            if (!(num_entries == 1 && extracted_ranks[0] == 1)) {
+                continue;
+            }
         }
 
         // add this column's scores to the cumulative scores

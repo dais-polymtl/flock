@@ -1,7 +1,6 @@
 #pragma once
 
 #include "flockmtl/functions/scalar/scalar.hpp"
-#include "flockmtl/helper_functions/normalizer.hpp"
 
 namespace flockmtl {
 
