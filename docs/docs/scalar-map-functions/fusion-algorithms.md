@@ -18,7 +18,7 @@ where `N` represents the number of scoring systems and `ranking_n` represents th
 
 This algorithm was proposed by Cormack et al.:
 
-Gordon V. Cormack, Charles L A Clarke, and Stefan Buettcher. 2009. Reciprocal rank fusion outperforms condorcet and individual rank learning methods. In Proceedings of the 32nd international ACM SIGIR conference on Research and development in information retrieval (SIGIR '09). Association for Computing Machinery, New York, NY, USA, 758–759. https://doi.org/10.1145/1571941.1572114
+* Gordon V. Cormack, Charles L A Clarke, and Stefan Buettcher. 2009. Reciprocal rank fusion outperforms condorcet and individual rank learning methods. In Proceedings of the 32nd international ACM SIGIR conference on Research and development in information retrieval (SIGIR '09). Association for Computing Machinery, New York, NY, USA, 758–759. https://doi.org/10.1145/1571941.1572114
 
 ## Score-Based Fusion Algorithms
 The input to the score-based fusion algorithms is n normalized sets of scores. The scores must be normalized because different scoring systems often use different scales for their scores. To ensure that all scoring systems are treated equally, they must first be normalized.
@@ -40,7 +40,7 @@ Calculates the average normalized score for each document. Please note that NULL
 
 These algorithms were proposed by Fox et al.:
 
-Fox, E. A. and Shaw, J. A. 1993. Combination of Multiple Searches. In Proceedings of the Second Text REtrieval Conference (TREC-2) (TREC ’93). NIST Special Publication 500-215. National Institute of Standards and Technology (NIST), 243–252.
+* Fox, E. A. and Shaw, J. A. 1993. Combination of Multiple Searches. In Proceedings of the Second Text REtrieval Conference (TREC-2) (TREC ’93). NIST Special Publication 500-215. National Institute of Standards and Technology (NIST), 243–252.
 
 ## Data pre-processing
 ### Rank-Based Algorithm
