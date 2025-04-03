@@ -29,7 +29,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombSUM with 2 DOUBLES", "[fusion_combs
     REQUIRE(result[0] == 0.7);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombSUM with multiple rows", "[fusion_combsum][flockmtl]") {
+TEST_CASE("Unit test for flockmtl::FusionCombSUM with 2 rows", "[fusion_combsum][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -57,6 +57,42 @@ TEST_CASE("Unit test for flockmtl::FusionCombSUM with multiple rows", "[fusion_c
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {0.14, (0.41 + 0.4), 0.6, (0.8 + 1.0), (1.0 + 0.66)};
+    REQUIRE(result.size() == expected_results.size());
+    for (size_t i = 0; i < expected_results.size(); ++i) {
+        REQUIRE(result[i] == expected_results[i]);
+    }
+}
+
+TEST_CASE("Unit test for flockmtl::FusionCombSUM with 3 rows", "[fusion_combsum][flockmtl]") {
+    // Define the column types (2 DOUBLE columns)
+    const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
+
+    // Create a DataChunk and initialize it with the default allocator
+    duckdb::DataChunk chunk;
+    auto &allocator = duckdb::Allocator::DefaultAllocator();
+    // Initialize with capacity 5 (five rows)
+    chunk.Initialize(allocator, types, 5);
+
+    // Set the cardinality (number of rows) to 5
+    chunk.SetCardinality(5);
+
+    // Data we will use to populate the DataChunk
+    constexpr std::array<double, 5> bm25_scores = {0.0, 0.4, 0.6, 0.8, 1.0};
+    constexpr std::array<double, 5> vs_scores = {0.14, 0.41, 0.0, 1.0, 0.66};
+    constexpr std::array<double, 5> random_scores = {0.28, 0.5, 0.1, 0.8, 1.0};
+
+    // Populate the DataChunk with test data
+    for (size_t i = 0; i < bm25_scores.size(); ++i) {
+        chunk.SetValue(0, i, bm25_scores[i]);
+        chunk.SetValue(1, i, vs_scores[i]);
+        chunk.SetValue(2, i, random_scores[i]);
+    }
+
+    // Call FusionCombSUM with the prepared DataChunk
+    const std::vector<double> result = flockmtl::FusionCombSUM::Operation(chunk);
+
+    // Verify the result
+    constexpr std::array<double, 5> expected_results = {(0.14 + 0.28), (0.4 + 0.41 + 0.5), (0.6 + 0.1), (0.8 + 1.0 + 0.8), (1.0 + 0.66 + 1.0)};
     REQUIRE(result.size() == expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
         REQUIRE(result[i] == expected_results[i]);
