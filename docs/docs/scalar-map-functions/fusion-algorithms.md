@@ -98,8 +98,6 @@ SELECT fusion_combsum(0.4, 0.5);
 0.9
 ```
 
-**Explanation**: The function returns `0.9` because it applies a fusion algorithm that combines the scores, and in this case, it sums the values.
-
 ### 1.2 Example with BM25 and Embedding Scores
 ### Rank-Based Algorithm
 
