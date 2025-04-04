@@ -29,7 +29,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 2 DOUBLES", "[fusion_combm
     REQUIRE(result[0] == 0.7 * 2);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 2 rows", "[fusion_combmnz][flockmtl]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 2 columns", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -63,7 +63,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 2 rows", "[fusion_combmnz]
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 3 rows", "[fusion_combmnz][flockmtl]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 3 columns", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -99,7 +99,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with 3 rows", "[fusion_combmnz]
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with some NULL values", "[fusion_combmnz][flockmtl]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with some NULL/NaN values", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -143,7 +143,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with some NULL values", "[fusio
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with entire NULL column", "[fusion_combmnz][flockmtl]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with entire NULL/NaN column", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
@@ -176,7 +176,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombMNZ with entire NULL column", "[fus
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombMNZ with only NULL values", "[fusion_combmnz][flockmtl]") {
+TEST_CASE("Unit test for flockmtl::FusionCombMNZ with only NULL/NaN values", "[fusion_combmnz][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 

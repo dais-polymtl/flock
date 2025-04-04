@@ -28,7 +28,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with 2 DOUBLES", "[fusion_rrf][floc
     REQUIRE(result[0] == 1.0/61 + 1.0/61);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with 2 rows", "[fusion_rrf][flockmtl]") {
+TEST_CASE("Unit test for flockmtl::FusionRRF with 2 columns", "[fusion_rrf][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::BIGINT, duckdb::LogicalType::BIGINT};
 
@@ -62,7 +62,7 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with 2 rows", "[fusion_rrf][flockmt
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with 3 rows", "[fusion_rrf][flockmtl]") {
+TEST_CASE("Unit test for flockmtl::FusionRRF with 3 columns", "[fusion_rrf][flockmtl]") {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::BIGINT, duckdb::LogicalType::BIGINT, duckdb::LogicalType::BIGINT};
 

@@ -7,7 +7,6 @@ namespace flockmtl {
 /**
  * Performs the CombSUM algorithm to merge lists based multiple scoring sources,
  * as proposed by Fox et al. It sums the normalized scores for each entry.
- * Unfortunately, there is no DOI for this paper.
  * Reference: Combination of Multiple Searches. Edward A. Fox and Joseph A. Shaw. NIST, 1993.
  */
 class FusionCombSUM : public ScalarFunctionBase {
