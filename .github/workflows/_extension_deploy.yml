@@ -23,7 +23,7 @@ on:
         required: false
         type: string
         # exclude wasm architectures by default
-        default: "wasm_mvp,wasm_eh,wasm_threads"
+        default: "wasm_mvp;wasm_eh;wasm_threads"
       # Whether to upload this deployment as the latest. This may overwrite a previous deployment.
       deploy_latest:
         required: false
