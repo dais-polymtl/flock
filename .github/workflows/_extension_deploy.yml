@@ -22,7 +22,8 @@ on:
       exclude_archs:
         required: false
         type: string
-        default: ""
+        # exclude wasm architectures by default
+        default: "wasm_mvp,wasm_eh,wasm_threads"
       # Whether to upload this deployment as the latest. This may overwrite a previous deployment.
       deploy_latest:
         required: false
@@ -37,7 +38,7 @@ on:
       artifact_postfix:
         required: false
         type: string
-        default: "wasm_mvp,wasm_eh,wasm_threads"
+        default: ""
       # Override the default deploy script with a custom script
       deploy_script:
         required: false
