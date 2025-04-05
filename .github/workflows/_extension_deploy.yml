@@ -37,7 +37,7 @@ on:
       artifact_postfix:
         required: false
         type: string
-        default: ""
+        default: "wasm"
       # Override the default deploy script with a custom script
       deploy_script:
         required: false
