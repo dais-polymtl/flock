@@ -4,8 +4,8 @@
 name: Main Extension Distribution Pipeline
 on:
   push:
-    branches:
-      - main
+#    branches:
+#      - main
     paths:
       - .github/workflows/_extension_deploy.yml
       - .github/workflows/MainDistributionPipeline.yml
