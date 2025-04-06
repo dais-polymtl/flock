@@ -1,5 +1,5 @@
 ---
-title: fusion_algorithms
+title: Fusion Functions
 sidebar_position: 5
 ---
 

@@ -1,6 +1,6 @@
 ---
 title: llm_reduce_json
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 # llm_reduce_json Aggregate Function

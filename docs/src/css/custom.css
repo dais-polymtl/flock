@@ -31,4 +31,34 @@
   --ifm-color-primary-lighter: #ffc691;
   --ifm-color-primary-lightest: #FFE7D1;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+
+  .github-button::before {
+    background-image: url('https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg');
+    filter: invert(1); /* makes the black SVG white */
+  }
 }
+
+.github-button {
+  position: relative;
+}
+
+.github-button::before {
+  content: '';
+  position: absolute;
+  left: 0.75rem; /* aligns perfectly inside pl-11 */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.25rem;  /* slightly larger for better visibility */
+  height: 1.25rem;
+  background-image: url('https://cdn.jsdelivr.net/npm/simple-icons@v9/icons/github.svg');
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-color: transparent;
+  filter: brightness(0) saturate(100%) invert(10%) sepia(6%) saturate(106%) hue-rotate(173deg) brightness(95%) contrast(90%);
+  transition: filter 0.2s ease;
+}
+
+.github-button:hover::before {
+  filter: brightness(0) saturate(100%) invert(11%) sepia(7%) saturate(324%) hue-rotate(173deg) brightness(95%) contrast(90%);
+}
+

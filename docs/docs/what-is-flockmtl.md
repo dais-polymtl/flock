@@ -6,21 +6,33 @@ sidebar_position: 1
 
 ## Overview
 
-**FlockMTL** is an extension for DuckDB designed to bring analytics & semantic analysis capabilities directly into your SQL queries. It deeply integrates capabilities of language models and retrieval-augmented generation using a set of map and reduce functions such as:
+**FlockMTL** enhances DuckDB by integrating semantic functions and robust resource management capabilities, enabling advanced analytics and language model operations directly within SQL queries.
 
-- [`llm_complete`](/docs/scalar-map-functions/llm-complete)
-- [`llm_complete_json`](/docs/scalar-map-functions/llm-complete-json)
-- [`llm_filter`](/docs/scalar-map-functions/llm-filter)
-- [`llm_embedding`](/docs/scalar-map-functions/llm-embedding)
-- [`fusion_relative`](/docs/scalar-map-functions/)
-- [`llm_reduce`](/docs/aggregate-reduce-functions/llm-reduce)
-- [`llm_rerank`](/docs/aggregate-reduce-functions/llm-rerank)
-- [`llm_first`](/docs/aggregate-reduce-functions/llm-first)
-- [`llm_last`](/docs/aggregate-reduce-functions/llm-last)
+## Semantic Functions
+
+FlockMTL offers a suite of semantic functions that allow users to perform various language model operations:
+
+- **Scalar Map Functions**:
+    - [`llm_complete`](/docs/scalar-functions/llm-complete): Generates text completions using a specified language model.
+    - [`llm_complete_json`](/docs/scalar-functions/llm-complete-json): Produces JSON-formatted text completions.
+    - [`llm_filter`](/docs/scalar-functions/llm-filter): Filters data based on language model evaluations, returning boolean values.
+    - [`llm_embedding`](/docs/scalar-functions/llm-embedding): Generates embeddings for input text, useful for semantic similarity tasks.
+    - [`fusion functions`](/docs/scalar-functions/fusion-functions): Combines results from multiple queries based on relative relevance.
+
+- **Aggregate Reduce Functions**:
+    - [`llm_reduce`](/docs/aggregate-functions/llm-reduce): Aggregates multiple inputs into a single output using a language model.
+    - [`llm_reduce_json`](/docs/aggregate-functions/llm-reduce-json): Similar to `llm_reduce`, but outputs JSON-formatted results.
+    - [`llm_rerank`](/docs/aggregate-functions/llm-rerank): Reorders query results based on relevance scores from a language model.
+    - [`llm_first`](/docs/aggregate-functions/llm-first): Selects the top-ranked result after reranking.
+    - [`llm_last`](/docs/aggregate-functions/llm-last): Selects the bottom-ranked result after reranking.
 
 This allows users to perform tasks such as text generation, summarization, classification, filtering, fusion, and embedding generation and even end-to-end RAG pipelines within DuckDB.
 
 We believe that relational DBMSs and LLMs are a match made in heaven. We are leaning on the tradition of declarative interfaces to unburden users from lower-level implementation details. Users can query both structured and unstructred datasets while combining analytics and semantic analysis directly within SQL.
+
+## Resource Management
+
+FlockMTL introduces a [**resource management**](/docs/resource-managment) framework that treats models (`MODEL`) and prompts (`PROMPT`) similarly to tables, allowing for organized storage and retrieval.
 
 ## System Requirements
 
