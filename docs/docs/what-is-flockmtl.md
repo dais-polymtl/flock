@@ -32,7 +32,7 @@ We believe that relational DBMSs and LLMs are a match made in heaven. We are lea
 
 ## Resource Management
 
-FlockMTL introduces a [**resource management**](/docs/resource-managment) framework that treats models (`MODEL`) and prompts (`PROMPT`) similarly to tables, allowing for organized storage and retrieval.
+FlockMTL introduces a [**resource management**](/docs/resource-management) framework that treats models (`MODEL`) and prompts (`PROMPT`) similarly to tables, allowing for organized storage and retrieval.
 
 ## System Requirements
 
