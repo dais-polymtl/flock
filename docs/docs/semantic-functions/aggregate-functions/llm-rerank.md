@@ -7,6 +7,14 @@ sidebar_position: 3
 
 The `llm_rerank` aggregate function implements **progressive reranking** using a sliding window strategy, as introduced by Xueguang Ma et al. (2023) in their paper [Zero-Shot Listwise Document Reranking with a Large Language Model](https://arxiv.org/abs/2305.02156). This approach addresses the input length limitations of transformer-based models, which can only process a fixed number of tokens at a time (e.g., `16,384` tokens for `gpt-4o`). When tasked with reranking a list of documents that exceeds the model's token limit, the function uses a sliding window mechanism to progressively rank subsets of documents.
 
+# Table of Contents
+
+Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
+
+import TOCInline from '@theme/TOCInline';
+
+<TOCInline toc={toc} />
+
 ## 1. **Function Overview**
 
 `llm_rerank` is designed to rank a list of documents or rows based on the relevance to a given prompt. When the list length exceeds the model's input limit, the function uses a sliding window strategy to progressively rerank the documents:

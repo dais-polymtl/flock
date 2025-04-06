@@ -7,6 +7,14 @@ sidebar_position: 2
 
 The **Prompt Management** section provides guidance on how to manage and configure prompts for **analytics and semantic analysis tasks** within FlockMTL. Prompts guide models in generating specific outputs for tasks like content generation, summarization, and ranking. Each database is configured with its own prompt management table during the initial load.
 
+# Table of Contents
+
+Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
+
+import TOCInline from '@theme/TOCInline';
+
+<TOCInline toc={toc} />
+
 ### 1. Prompt Table Structure
 
 | **Column Name** | **Description**                   |

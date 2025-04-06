@@ -7,7 +7,15 @@ sidebar_position: 3
 
 The `llm_filter` function evaluates a condition based on a given prompt and returns a boolean value (`TRUE` or `FALSE`). This function mostly used in the workload of `WHERE` clause of a query.
 
-## 1. Basic Usage Examples
+# Table of Contents
+
+Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
+
+import TOCInline from '@theme/TOCInline';
+
+<TOCInline toc={toc} />
+
+## 1. Simple Usage (without data)
 
 ### 1.1 Using an Inline Prompt
 
@@ -54,7 +62,7 @@ SELECT * FROM filtered_products;
 
 **Description**: This example demonstrates how to combine `llm_filter` with other SQL logic. It filters the products based on the eco-friendliness of their descriptions and processes the result in a subquery for further use.
 
-### 1.4 Advanced Example
+### 1.4 Actual Usage (with data)
 
 ```sql
 WITH relevant_reviews AS (
@@ -70,7 +78,7 @@ SELECT * FROM relevant_reviews
 WHERE LENGTH(review_content) > 50;
 ```
 
-**Description**: This advanced example uses `llm_filter` to filter reviews based on positive sentiment. It then further filters the results to only include reviews with content longer than 50 characters.
+**Description**: This actual example uses `llm_filter` to filter reviews based on positive sentiment. It then further filters the results to only include reviews with content longer than 50 characters.
 
 ## 2. Input Parameters
 

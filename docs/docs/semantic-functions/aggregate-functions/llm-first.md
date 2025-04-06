@@ -7,6 +7,14 @@ sidebar_position: 4
 
 The `llm_first` function is used to extract the first matching result that satisfies a condition defined by a model's prompt and column data. It operates across rows, typically combined with a `GROUP BY` clause, to return the first relevant row for each group.
 
+# Table of Contents
+
+Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
+
+import TOCInline from '@theme/TOCInline';
+
+<TOCInline toc={toc} />
+
 ## 1. **Usage Examples**
 
 ### 1.1. **Example without `GROUP BY`**

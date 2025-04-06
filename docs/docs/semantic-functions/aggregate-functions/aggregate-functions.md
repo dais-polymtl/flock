@@ -2,6 +2,14 @@
 
 Aggregate functions in FlockMTL perform operations on groups of rows, returning a single result for each group. They're particularly useful for summarizing, ranking, and reordering data, often used with the `GROUP BY` clause in SQL queries. Leveraging language models, these functions enable advanced tasks like summarization, ranking, and relevance-based filtering, enhancing data analysis and NLP capabilities.
 
+# Table of Contents
+
+Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
+
+import TOCInline from '@theme/TOCInline';
+
+<TOCInline toc={toc} />
+
 ## 1. Available Aggregate Functions
 
 FlockMTL offers several powerful aggregate functions:

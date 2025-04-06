@@ -7,6 +7,14 @@ sidebar_position: 5
 ## Overview
 The fusion functions combine two or more numerical values (e.g., BM25 and embedding scores) into a single, unified relevance score. These functions are ideal for hybrid search cases where scores from multiple scoring systems are combined to produce the best-fit result. Rank-based functions calculate a combined score based on each document's position when compared to other documents from best to worst (ranking). Score-based functions calculate a combined score based on each document's scores. Please note that all input scores must already be normalized. 
 
+# Table of Contents
+
+Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
+
+import TOCInline from '@theme/TOCInline';
+
+<TOCInline toc={toc} />
+
 ## Rank-Based Fusion Algorithm
 The input to the rank-based fusion algorithm is each document's ranking in n scoring systems, from best to worst, where 1 is the best-ranked document. Multiple documents can have the same rank and will be treated as equal.
 ### `fusion_rrf`
@@ -16,7 +24,7 @@ combined\_score = \sum_{n=1}^{N} \frac{1}{60 + \text{ranking}_n}
 $$
 where `N` represents the number of scoring systems and `ranking_n` represents the rank of the document in that scoring system.
 
-This algorithm was proposed by Cormack et al.:
+Performs Reciprocal Rank Fusion (RRF) as described by [Cormack et al](https://doi.org/10.1145/1571941.1572114).
 
 * Gordon V. Cormack, Charles L A Clarke, and Stefan Buettcher. 2009. Reciprocal rank fusion outperforms condorcet and individual rank learning methods. In Proceedings of the 32nd international ACM SIGIR conference on Research and development in information retrieval (SIGIR '09). Association for Computing Machinery, New York, NY, USA, 758–759. https://doi.org/10.1145/1571941.1572114
 
@@ -28,7 +36,7 @@ Sums over all normalized scores for each document. Please note that NULL, NaN, a
 ### `fusion_combmnz`
 Sums over all normalized scores for each document and multiplies that sum by the number of scoring systems which found the document (hit count). A hit constitutes any score greater than 0. Please note that NULL, NaN, and 0 values are all treated as 0. Each document's combined score is calculated using the following formula:
 $$
-combined\_score = hit\_count * \sum_{n=1}^{N} \text{normalized_score}_n
+combined\_score = hit\_count * \sum_{n=1}^{N} normalized\_score_n
 $$
 where $N$ represents the number of scoring systems, $normalized\_score_n$ represents the normalized score of the document in that scoring system, and $hit\_count$ represents the number of non-zero scores that the document has.
 
@@ -38,9 +46,7 @@ Takes the median of all scores for each document. Please note that NULL, NaN, an
 ### `fusion_combanz`
 Calculates the average normalized score for each document. Please note that NULL, NaN, and 0 values are all treated as 0 and are considered when calculating the average. If the inputs are `(NULL, NULL, 1.0)`, then the average returned is $0.\overline{3}$.
 
-These algorithms were proposed by Fox et al.:
-
-* Fox, E. A. and Shaw, J. A. 1993. Combination of Multiple Searches. In Proceedings of the Second Text REtrieval Conference (TREC-2) (TREC ’93). NIST Special Publication 500-215. National Institute of Standards and Technology (NIST), 243–252.
+A variety of algorithms as described by [fox et al](https://trec.nist.gov/pubs/trec2/papers/txt/23.txt).
 
 ## Data pre-processing
 ### Rank-Based Algorithm

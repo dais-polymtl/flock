@@ -8,6 +8,14 @@ sidebar_position: 1
 
 **FlockMTL** enhances DuckDB by integrating semantic functions and robust resource management capabilities, enabling advanced analytics and language model operations directly within SQL queries.
 
+# Table of Contents
+
+Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
+
+import TOCInline from '@theme/TOCInline';
+
+<TOCInline toc={toc} />
+
 ## Semantic Functions
 
 FlockMTL offers a suite of semantic functions that allow users to perform various language model operations:

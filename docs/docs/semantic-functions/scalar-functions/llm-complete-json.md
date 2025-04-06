@@ -7,7 +7,15 @@ sidebar_position: 2
 
 The `llm_complete_json` function extends the capabilities of `llm_complete` by producing JSON responses.
 
-## 1. Basic Usage Examples
+# Table of Contents
+
+Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
+
+import TOCInline from '@theme/TOCInline';
+
+<TOCInline toc={toc} />
+
+## 1. Simple Usage (without data)
 
 ### 1.1 Using an Inline Prompt
 
@@ -54,7 +62,7 @@ FROM product_features;
 
 **Description**: This example demonstrates the use of a named prompt (`product-features`) with version `1` to generate structured JSON data. The `reduce-model` processes the `product_name` column and outputs the product name along with a list of its features.
 
-## 2. Advanced Example
+## 2. Actual Usage (with data)
 
 ```sql
 WITH detailed_products AS (
@@ -76,7 +84,7 @@ FROM detailed_products
 WHERE json_array_length(product_summary.features) > 2;
 ```
 
-**Description**: This advanced example uses the `gpt-4` model to generate detailed product information, including a list of features. The query also calculates the number of features (`feature_count`) using `json_array_length()` and filters out products with fewer than 3 features.
+**Description**: This actual example uses the `gpt-4` model to generate detailed product information, including a list of features. The query also calculates the number of features (`feature_count`) using `json_array_length()` and filters out products with fewer than 3 features.
 
 ## 3. Input Parameters
 

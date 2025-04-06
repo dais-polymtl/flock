@@ -7,7 +7,15 @@ sidebar_position: 1
 
 The `llm_complete` function generates text completions using specified models and prompts for dynamic data generation.
 
-## 1. Basic Usage Examples
+# Table of Contents
+
+Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
+
+import TOCInline from '@theme/TOCInline';
+
+<TOCInline toc={toc} />
+
+## 1. Simple Usage (without data)
 
 ### 1.1 Inline Prompt
 
@@ -33,7 +41,7 @@ FROM products;
 
 **Description**: In this example, a named prompt `description-generation` is used with the `summarizer` model. The function generates product descriptions using data from the `product_name` column for each row in the `products` table.
 
-## 2. Advanced Example
+## 2. Actual Usage (with data)
 
 ```sql
 WITH enhanced_products AS (
@@ -52,7 +60,7 @@ FROM enhanced_products
 WHERE LENGTH(enhanced_description) > 50;
 ```
 
-**Description**: This advanced example demonstrates the use of a pre-configured prompt `summarize-content` with version `2` and the `reduce-model`. It processes the `product_name` column and generates a summarized description. The query then filters out rows where the generated description is shorter than 50 characters.
+**Description**: This actual example demonstrates the use of a pre-configured prompt `summarize-content` with version `2` and the `reduce-model`. It processes the `product_name` column and generates a summarized description. The query then filters out rows where the generated description is shorter than 50 characters.
 
 ## 3. Input Parameters
 
