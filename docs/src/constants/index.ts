@@ -65,12 +65,12 @@ export const team = [
     {
         id: "team-member-1",
         name: "Anas Dorbani",
-        role: "Research Associate",
+        role: "PhD Student",
         company: "Data Systems Group, Polytechnique Montréal",
         img: AnasDorbani,
-        github: "https://github.com/dorbanianas",
-        linkedin: "https://linkedin.com/in/dorbanianas",
-        X: "https://x.com/dorbanianas",
+        github: "https://github.com/anasdorbani",
+        linkedin: "https://linkedin.com/in/anasdorbani",
+        X: "https://x.com/anasdorbani",
     },
     {
         id: "team-member-2",

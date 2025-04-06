@@ -32,7 +32,7 @@ import TOCInline from '@theme/TOCInline';
 
 ## 3. Secrets
 
-[Secrets Management](/docs/resource-management/secret-management) provides secure storage and handling of sensitive authentication credentials for external model providers.
+[Secrets Management](/docs/resource-management/api-keys-management) provides secure storage and handling of sensitive authentication credentials for external model providers.
 
 ### Key Attributes:
 

@@ -25,7 +25,7 @@ Efficiently manage resources, models, prompts, and secrets to optimize the perfo
 - [Resource Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/resource-management): Learn about tools and techniques for managing resources within FlockMTL.
 - [Model Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/model-management): Handle and configure models to suit your project needs.
 - [Prompt Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/prompt-management): Create, edit, and optimize prompts for various tasks.
-- [Secret Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/secret-management): Safeguard sensitive data like API keys and credentials with FlockMTL's secure secret management.
+- [Secret Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/api-keys-management): Safeguard sensitive data like API keys and credentials with FlockMTL's secure secret management.
 
 ## Supported Providers
 
@@ -40,22 +40,22 @@ Integrate with supported providers to unlock the full potential of FlockMTL. Lea
 
 Scalar map functions transform individual rows of data with advanced AI operations. These functions are essential for processing text, generating embeddings, and applying filters.
 
-- [Scalar Map Functions](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/): Overview of scalar map functions and their use cases.
-- [LLM Complete](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-complete): Generate text completions for prompts.
-- [LLM Complete JSON](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-complete-json): Output text completions in JSON format for structured applications.
-- [LLM Embedding](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-embedding): Generate vector embeddings for semantic search and similarity.
-- [LLM Filter](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-filter): Filter data based on relevance to queries.
-- [Fusion Relative](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/fusion-relative): Apply relative transformations using fusion models.
+- [Scalar Map Functions](https://dsg-polymtl.github.io/flockmtl/docs/semantic-functions/scalar-functions/): Overview of scalar map functions and their use cases.
+- [LLM Complete](https://dsg-polymtl.github.io/flockmtl/docs/semantic-functions/scalar-functions/llm-complete): Generate text completions for prompts.
+- [LLM Complete JSON](https://dsg-polymtl.github.io/flockmtl/docs/semantic-functions/scalar-functions/llm-complete-json): Output text completions in JSON format for structured applications.
+- [LLM Embedding](https://dsg-polymtl.github.io/flockmtl/docs/semantic-functions/scalar-functions/llm-embedding): Generate vector embeddings for semantic search and similarity.
+- [LLM Filter](https://dsg-polymtl.github.io/flockmtl/docs/semantic-functions/scalar-functions/llm-filter): Filter data based on relevance to queries.
+- [Fusion Relative](https://dsg-polymtl.github.io/flockmtl/docs/semantic-functions/scalar-functions/fusion-relative): Apply relative transformations using fusion models.
 
 ## Aggregate Reduce Functions
 
 Aggregate reduce functions summarize or rearrange data based on AI-powered insights, enabling you to derive key insights efficiently.
 
 - [Aggregate Reduce Functions](https://dsg-polymtl.github.io/flockmtl/docs/aggregate-functions): Introduction to aggregate reduce functions.
-- [LLM First](https://dsg-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-first): Retrieve the most relevant value based on a user query.
-- [LLM Last](https://dsg-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-last): Extract the least relevant value in a dataset based on a user query.
-- [LLM Reduce](https://dsg-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-reduce): Condense datasets using AI-powered reduction.
-- [LLM Rerank](https://dsg-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-rerank): Rank elements based on their relevance to a search query.
+- [LLM First](https://dsg-polymtl.github.io/flockmtl/docs/semantic-functions/aggregate-functions/llm-first): Retrieve the most relevant value based on a user query.
+- [LLM Last](https://dsg-polymtl.github.io/flockmtl/docs/semantic-functions/aggregate-functions/llm-last): Extract the least relevant value in a dataset based on a user query.
+- [LLM Reduce](https://dsg-polymtl.github.io/flockmtl/docs/semantic-functions/aggregate-functions/llm-reduce): Condense datasets using AI-powered reduction.
+- [LLM Rerank](https://dsg-polymtl.github.io/flockmtl/docs/semantic-functions/aggregate-functions/llm-rerank): Rank elements based on their relevance to a search query.
 
 ## FAQ
 
