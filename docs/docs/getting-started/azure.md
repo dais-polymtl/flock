@@ -39,7 +39,7 @@ CREATE MODEL(
 
 ```sql
 SELECT llm_complete(
-        {'model_name': 'QuackingModel'},
-        {'prompt': 'Talk like a duck 🦆 and write a poem about a database 📚'}
-        );
+    {'model_name': 'QuackingModel'},
+    {'prompt': 'Talk like a duck 🦆 and write a poem about a database 📚'}
+);
 ```

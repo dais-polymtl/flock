@@ -5,7 +5,7 @@ sidebar_position: 6
 
 # Hybrid Search using FlockMTL
 ## Overview
-FlockMTL provides a set of fusion functions that allow you to combine multiple scoring systems into a single, unified relevance score. This is particularly useful in hybrid search scenarios where you want to leverage the strengths of different scoring methods (e.g., BM25 and embedding scores) to produce the best-fit result. To achieve that, FlockMTL offers two types of fusion functions: rank-based and score-based.
+FlockMTL provides a set of fusion functions that allow you to combine multiple scoring systems into a single, unified relevance score. This is particularly useful in hybrid search scenarios where you want to leverage the strengths of different scoring methods (e.g., BM25 and vector similarity scores) to produce the best-fit result. To achieve that, FlockMTL offers two types of fusion functions: rank-based and score-based.
 
 import TOCInline from '@theme/TOCInline';
 
@@ -145,7 +145,7 @@ The fusion functions (score-based and rank-based) accept **two or more numerical
 ### 3.1 Numerical Inputs
 
 - **Parameter**: One or more numeric values (e.g., normalized scores from different systems)
-- **Description**: Each input represents a score from a distinct retrieval method (e.g., BM25, embedding models, etc.). These values are combined by the fusion algorithm.
+- **Description**: Each input represents a score from a distinct retrieval method (e.g., BM25, vector similarity search, etc.). These values are combined by the fusion algorithm.
 - **Example**: `0.4, 0.9, 0.7`
 
 > 💡 You can pass any number of numerical inputs—two or more—depending on how many scoring systems you’re combining.

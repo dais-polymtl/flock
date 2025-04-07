@@ -39,7 +39,7 @@ CREATE MODEL(
 - Now you simply use FlockMTL with Ollama provider. Here's a small query to run to test if everything is working:
 ```sql
 SELECT llm_complete(
-        {'model_name': 'QuackingModel'},
-        {'prompt': 'Talk like a duck 🦆 and write a poem about a database 📚'}
-        );
+    {'model_name': 'QuackingModel'},
+    {'prompt': 'Talk like a duck 🦆 and write a poem about a database 📚'}
+);
 ```
