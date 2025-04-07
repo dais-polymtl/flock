@@ -2,10 +2,6 @@
 
 FlockMTL as a DuckDB extension is designed to simplify the integration of Large Language Models (LLMs) into your data workflows. This guide will help you get started with FlockMTL, covering installation, setup, and basic usage.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />

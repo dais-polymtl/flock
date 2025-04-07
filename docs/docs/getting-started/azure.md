@@ -7,10 +7,6 @@ sidebar_position: 1
 
 Before starting, ensure you have followed the [Getting Started](/docs/getting-started) guide to setup FlockMTL. Next you need to get the necesary credentials to use Azure API check the [Microsoft Azure](https://learn.microsoft.com/en-us/azure/ai-services/openai/reference) Page.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />

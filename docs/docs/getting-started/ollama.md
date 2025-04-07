@@ -10,10 +10,6 @@ Choosing Ollama is a good option for local model execution. It allows you to run
 - **Install Ollama**: Ensure Ollama is installed. If not, download it from the [Ollama download page](https://ollama.com/download).
 - **Download the Model**: Confirm that the required model is available on your system.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />

@@ -7,10 +7,6 @@ sidebar_position: 1
 
 The `llm_reduce` function in FlockMTL consolidates multiple rows of text-based results into a single output. It is used in SQL queries with the `GROUP BY` clause to combine multiple values into a summary or reduced form.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />

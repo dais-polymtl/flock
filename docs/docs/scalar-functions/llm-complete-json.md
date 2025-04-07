@@ -7,10 +7,6 @@ sidebar_position: 2
 
 The `llm_complete_json` function extends the capabilities of `llm_complete` by producing JSON responses.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />

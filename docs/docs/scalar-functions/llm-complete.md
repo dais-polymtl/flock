@@ -7,10 +7,6 @@ sidebar_position: 1
 
 The `llm_complete` function generates text completions using specified models and prompts for dynamic data generation.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />

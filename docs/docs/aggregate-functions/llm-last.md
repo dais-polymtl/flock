@@ -7,10 +7,6 @@ sidebar_position: 5
 
 The `llm_last` function is used to extract the least relevant result from a set of rows based on a model's prompt and input columns. It operates over a set of rows, generally combined with a `GROUP BY` clause, to return the least relevant row for each group.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />

@@ -9,10 +9,6 @@ In this section we will cover how to set up and use OpenAI provider and OpenAI-C
 
 Before starting, you should have already followed the [Getting Started](/docs/getting-started) guide.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />

@@ -1,15 +1,11 @@
 ---
-title: API Keys Management
+title: API Keys
 sidebar_position: 3
 ---
 
 # API Keys Management
 
 FlockMTL uses [DuckDB's Secrets Manager](https://duckdb.org/docs/configuration/secrets_manager.html) to securely store and manage sensitive information like API keys and credentials. Secrets are typed by service provider and can be temporary (in-memory) or persistent (on-disk).
-
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
 
 import TOCInline from '@theme/TOCInline';
 

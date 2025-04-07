@@ -7,10 +7,6 @@ sidebar_position: 3
 
 The `llm_filter` function evaluates a condition based on a given prompt and returns a boolean value (`TRUE` or `FALSE`). This function mostly used in the workload of `WHERE` clause of a query.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />

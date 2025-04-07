@@ -25,9 +25,9 @@ The Getting Started section provides a foundation for understanding and setting 
 Efficiently manage resources, models, prompts, and secrets to optimize the performance and security of your FlockMTL setup.
 
 - [Resource Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/resource-management): Learn about tools and techniques for managing resources within FlockMTL.
-- [Model Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/model-management): Handle and configure models to suit your project needs.
-- [Prompt Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/prompt-management): Create, edit, and optimize prompts for various tasks.
-- [API Keys Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/api-keys-management): Safeguard sensitive data like API keys and credentials with FlockMTL's secure secret management.
+- [Model Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/models): Handle and configure models to suit your project needs.
+- [Prompt Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/prompts): Create, edit, and optimize prompts for various tasks.
+- [API Keys Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/api-keys): Safeguard sensitive data like API keys and credentials with FlockMTL's secure secret management.
 
 ## Scalar Map Functions
 
@@ -38,7 +38,6 @@ Scalar map functions transform individual rows of data with advanced AI operatio
 - [LLM Complete JSON](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-complete-json): Output text completions in JSON format for structured applications.
 - [LLM Embedding](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-embedding): Generate vector embeddings for semantic search and similarity.
 - [LLM Filter](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-filter): Filter data based on relevance to queries.
-- [Fusion Functions](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/fusion-functions): Apply relative transformations using fusion functions.
 
 ## Aggregate Reduce Functions
 

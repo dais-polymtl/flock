@@ -7,10 +7,6 @@ sidebar_position: 4
 
 The `llm_embedding` function generates vector embeddings that represent the semantic meaning of text from specified table columns.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />

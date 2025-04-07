@@ -2,17 +2,13 @@
 
 Resource Management is a critical component of FlockMTL that provides comprehensive tools for managing models, prompts, and secrets essential to semantic analytics tasks.
 
-# Table of Contents
-
-Below is a quick overview to help you navigate with ease through the documentation. You can click on any of the links to jump to the relevant section.
-
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />
 
 ## 1. Models
 
-[Model Management](/docs/resource-management/model-management) allows configuration of both system-defined and user-defined models for various semantic analytics purposes.
+[Model Management](/docs/resource-management/models) allows configuration of both system-defined and user-defined models for various semantic analytics purposes.
 
 ### Key Capabilities:
 
@@ -22,7 +18,7 @@ import TOCInline from '@theme/TOCInline';
 
 ## 2. Prompts
 
-[Prompt Management](/docs/resource-management/prompt-management) enables precise control over how models interact with data by defining structured guidance for model outputs.
+[Prompt Management](/docs/resource-management/prompts) enables precise control over how models interact with data by defining structured guidance for model outputs.
 
 ### Key Features:
 
@@ -32,7 +28,7 @@ import TOCInline from '@theme/TOCInline';
 
 ## 3. Secrets
 
-[Secrets Management](/docs/resource-management/api-keys-management) provides secure storage and handling of sensitive authentication credentials for external model providers.
+[Secrets Management](/docs/resource-management/api-keys) provides secure storage and handling of sensitive authentication credentials for external model providers.
 
 ### Key Attributes:
 
