@@ -93,8 +93,8 @@ const config: Config = {
       },
       items: [
         {to: 'docs/getting-started', label: 'Getting Started', position: 'left'},
-        {to: 'docs/semantic-functions/scalar-functions', label: 'Scalar Functions', position: 'left'},
-        {to: 'docs/semantic-functions/aggregate-functions', label: 'Aggregate Functions', position: 'left'},
+        {to: 'docs/scalar-functions', label: 'Scalar Functions', position: 'left'},
+        {to: 'docs/aggregate-functions', label: 'Aggregate Functions', position: 'left'},
         {
           href: 'https://github.com/dsg-polymtl/flockmtl',
           position: 'right',

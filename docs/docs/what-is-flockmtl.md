@@ -21,18 +21,18 @@ import TOCInline from '@theme/TOCInline';
 FlockMTL offers a suite of semantic functions that allow users to perform various language model operations:
 
 - **Scalar Map Functions**:
-    - [`llm_complete`](/docs/semantic-functions/scalar-functions/llm-complete): Generates text completions using a specified language model.
-    - [`llm_complete_json`](/docs/semantic-functions/scalar-functions/llm-complete-json): Produces JSON-formatted text completions.
-    - [`llm_filter`](/docs/semantic-functions/scalar-functions/llm-filter): Filters data based on language model evaluations, returning boolean values.
-    - [`llm_embedding`](/docs/semantic-functions/scalar-functions/llm-embedding): Generates embeddings for input text, useful for semantic similarity tasks.
-    - [`fusion functions`](/docs/semantic-functions/scalar-functions/fusion-functions): Combines results from multiple queries based on relative relevance.
+    - [`llm_complete`](/docs/scalar-functions/llm-complete): Generates text completions using a specified language model.
+    - [`llm_complete_json`](/docs/scalar-functions/llm-complete-json): Produces JSON-formatted text completions.
+    - [`llm_filter`](/docs/scalar-functions/llm-filter): Filters data based on language model evaluations, returning boolean values.
+    - [`llm_embedding`](/docs/scalar-functions/llm-embedding): Generates embeddings for input text, useful for semantic similarity tasks.
+    - [`fusion functions`](/docs/scalar-functions/fusion-functions): Combines results from multiple queries based on relative relevance.
 
 - **Aggregate Reduce Functions**:
-    - [`llm_reduce`](/docs/semantic-functions/aggregate-functions/llm-reduce): Aggregates multiple inputs into a single output using a language model.
-    - [`llm_reduce_json`](/docs/semantic-functions/aggregate-functions/llm-reduce-json): Similar to `llm_reduce`, but outputs JSON-formatted results.
-    - [`llm_rerank`](/docs/semantic-functions/aggregate-functions/llm-rerank): Reorders query results based on relevance scores from a language model.
-    - [`llm_first`](/docs/semantic-functions/aggregate-functions/llm-first): Selects the top-ranked result after reranking.
-    - [`llm_last`](/docs/semantic-functions/aggregate-functions/llm-last): Selects the bottom-ranked result after reranking.
+    - [`llm_reduce`](/docs/aggregate-functions/llm-reduce): Aggregates multiple inputs into a single output using a language model.
+    - [`llm_reduce_json`](/docs/aggregate-functions/llm-reduce-json): Similar to `llm_reduce`, but outputs JSON-formatted results.
+    - [`llm_rerank`](/docs/aggregate-functions/llm-rerank): Reorders query results based on relevance scores from a language model.
+    - [`llm_first`](/docs/aggregate-functions/llm-first): Selects the top-ranked result after reranking.
+    - [`llm_last`](/docs/aggregate-functions/llm-last): Selects the bottom-ranked result after reranking.
 
 This allows users to perform tasks such as text generation, summarization, classification, filtering, fusion, and embedding generation and even end-to-end RAG pipelines within DuckDB.
 
