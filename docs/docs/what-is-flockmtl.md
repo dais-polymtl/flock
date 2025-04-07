@@ -34,7 +34,7 @@ This allows users to perform tasks such as text generation, summarization, class
 
 ## Hybrid Search Functions
 
-FlockMTL also provides hybrid search functions that combine vector and semantic search capabilities. These functions allow users to perform complex queries that leverage both traditional SQL operations and advanced language model features.
+FlockMTL also provides functions that support hybrid search. Namely, the following data fusion algorithms to combine scores of various retrievers:
 
 - [**`fusion_rrf`**](/docs/hybrid-search#fusion_rrf): Implements Reciprocal Rank Fusion (RRF) to combine rankings from multiple scoring systems.
 - [**`fusion_combsum`**](/docs/hybrid-search#fusion_combsum): Sums normalized scores from different scoring systems.
