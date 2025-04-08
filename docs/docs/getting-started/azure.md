@@ -25,6 +25,9 @@ CREATE SECRET (
     API_VERSION 'api-version'
 );
 ```
+
+The azure_endpoint will be reconstruct from the _RESOURCE_NAME_ param. If your **azure_endpoint** is `https://my-personal-resource-name.openai.azure.com`, _RESOURCE_NAME_ should be `my-personal-resource-name`.
+
 - Create your Azure model in the model manager. Make sure that the name of the model is unique. You can do this by running the following SQL command:
 
 ```sql
