@@ -41,7 +41,7 @@ WITH product_embeddings AS (
 SELECT 
     a.product_name, 
     b.product_name, 
-    array_cosine_distance(a.product_embedding::DOUBLE[1536], b.product_embedding::DOUBLE[1536]) AS similarity
+    array_cosine_similarity(a.product_embedding::DOUBLE[1536], b.product_embedding::DOUBLE[1536]) AS similarity
 FROM product_embeddings a
 JOIN product_embeddings b
 ON a.product_id != b.product_id
