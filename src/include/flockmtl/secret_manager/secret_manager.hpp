@@ -19,14 +19,20 @@ SecretDetails get_openai_secret_details();
 SecretDetails get_azure_secret_details();
 SecretDetails get_ollama_secret_details();
 
+std::vector<SecretDetails> get_secret_details_list();
+
 class SecretManager {
 public:
-    enum SupportedProviders { OPENAI, AZURE, OLLAMA };
+    enum SupportedProviders { OPENAI,
+                              AZURE,
+                              OLLAMA };
     static std::unordered_map<std::string, SupportedProviders> providerNames;
 
     static void Register(duckdb::DatabaseInstance& instance);
     static std::unordered_map<std::string, std::string> GetSecret(const std::string& secret_name);
     static SupportedProviders GetProviderType(const std::string& provider);
+    static void ValidateRequiredFields(const duckdb::CreateSecretInput& input,
+                                       const std::vector<std::string>& required_fields);
 
 private:
     static void RegisterSecretType(duckdb::DatabaseInstance& instance);
@@ -40,9 +46,6 @@ private:
                                                                           const SecretDetails& details,
                                                                           std::string& type, std::string& provider,
                                                                           std::string& name);
-
-    static void ValidateRequiredFields(const duckdb::CreateSecretInput& input,
-                                       const std::vector<std::string>& required_fields);
 };
 
-} // namespace flockmtl
+}// namespace flockmtl

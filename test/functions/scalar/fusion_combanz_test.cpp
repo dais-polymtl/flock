@@ -1,16 +1,16 @@
-#include "flockmtl-test/functions/scalar/test_fusion.hpp"
 #include <flockmtl/functions/scalar/fusion_combanz.hpp>
+#include <gtest/gtest.h>
 
 using namespace duckdb;
 
 // CombSum takes normalized data as input
-TEST_CASE("Unit test for flockmtl::FusionCombANZ with 2 DOUBLES", "[fusion_combanz][flockmtl]") {
+TEST(FusionCombANZ, With2Doubles) {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
     // Create a DataChunk and initialize it with the default allocator
     duckdb::DataChunk chunk;
-    auto &allocator = duckdb::Allocator::DefaultAllocator();
+    auto& allocator = duckdb::Allocator::DefaultAllocator();
     // Initialize with capacity 1 (one row)
     chunk.Initialize(allocator, types, 1);
 
@@ -25,17 +25,17 @@ TEST_CASE("Unit test for flockmtl::FusionCombANZ with 2 DOUBLES", "[fusion_comba
     const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
 
     // Verify the result
-    REQUIRE(result.size() == 1);
-    REQUIRE(result[0] == (0.5 + 0.2)/2);
+    ASSERT_EQ(result.size(), 1);
+    ASSERT_EQ(result[0], (0.5 + 0.2) / 2);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombANZ with 2 columns", "[fusion_combanz][flockmtl]") {
+TEST(FusionCombANZ, With2Columns) {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
     // Create a DataChunk and initialize it with the default allocator
     duckdb::DataChunk chunk;
-    auto &allocator = duckdb::Allocator::DefaultAllocator();
+    auto& allocator = duckdb::Allocator::DefaultAllocator();
     // Initialize with capacity 5 (five rows)
     chunk.Initialize(allocator, types, 5);
 
@@ -56,20 +56,20 @@ TEST_CASE("Unit test for flockmtl::FusionCombANZ with 2 columns", "[fusion_comba
     const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
 
     // Verify the result
-    constexpr std::array<double, 5> expected_results = {0.14/2, (0.41 + 0.4)/2, 0.6/2, (0.8 + 1.0)/2, (1.0 + 0.66)/2};
-    REQUIRE(result.size() == expected_results.size());
+    constexpr std::array<double, 5> expected_results = {0.14 / 2, (0.41 + 0.4) / 2, 0.6 / 2, (0.8 + 1.0) / 2, (1.0 + 0.66) / 2};
+    ASSERT_EQ(result.size(), expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
-        REQUIRE(result[i] == expected_results[i]);
+        ASSERT_EQ(result[i], expected_results[i]);
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombANZ with 3 columns", "[fusion_combanz][flockmtl]") {
-    // Define the column types (2 DOUBLE columns)
+TEST(FusionCombANZ, With3Columns) {
+    // Define the column types (3 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
     // Create a DataChunk and initialize it with the default allocator
     duckdb::DataChunk chunk;
-    auto &allocator = duckdb::Allocator::DefaultAllocator();
+    auto& allocator = duckdb::Allocator::DefaultAllocator();
     // Initialize with capacity 5 (five rows)
     chunk.Initialize(allocator, types, 5);
 
@@ -93,19 +93,19 @@ TEST_CASE("Unit test for flockmtl::FusionCombANZ with 3 columns", "[fusion_comba
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {(0.14 + 0.28) / 3, (0.4 + 0.41 + 0.5) / 3, (0.6 + 0.1) / 3, (0.8 + 1.0 + 0.8) / 3, (1.0 + 0.66 + 1.0) / 3};
-    REQUIRE(result.size() == expected_results.size());
+    ASSERT_EQ(result.size(), expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
-        REQUIRE(result[i] == expected_results[i]);
+        ASSERT_EQ(result[i], expected_results[i]);
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombANZ with some NULL/NaN values", "[fusion_combanz][flockmtl]") {
+TEST(FusionCombANZ, WithSomeNullNaNValues) {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
     // Create a DataChunk and initialize it with the default allocator
     duckdb::DataChunk chunk;
-    auto &allocator = duckdb::Allocator::DefaultAllocator();
+    auto& allocator = duckdb::Allocator::DefaultAllocator();
     // Initialize with capacity 5 (five rows)
     chunk.Initialize(allocator, types, 5);
 
@@ -136,20 +136,20 @@ TEST_CASE("Unit test for flockmtl::FusionCombANZ with some NULL/NaN values", "[f
     const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
 
     // Verify the result
-    constexpr std::array<double, 5> expected_results = {0.14/2, (0.41 + 0.4)/2, 0.0, (0.8 + 1.0)/2, 1.0/2};
-    REQUIRE(result.size() == expected_results.size());
+    constexpr std::array<double, 5> expected_results = {0.14 / 2, (0.41 + 0.4) / 2, 0.0, (0.8 + 1.0) / 2, 1.0 / 2};
+    ASSERT_EQ(result.size(), expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
-        REQUIRE(result[i] == expected_results[i]);
+        ASSERT_EQ(result[i], expected_results[i]);
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombANZ with entire NULL/NaN column", "[fusion_combanz][flockmtl]") {
+TEST(FusionCombANZ, WithEntireNullNaNColumn) {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
     // Create a DataChunk and initialize it with the default allocator
     duckdb::DataChunk chunk;
-    auto &allocator = duckdb::Allocator::DefaultAllocator();
+    auto& allocator = duckdb::Allocator::DefaultAllocator();
     // Initialize with capacity 5 (five rows)
     chunk.Initialize(allocator, types, 5);
 
@@ -161,7 +161,7 @@ TEST_CASE("Unit test for flockmtl::FusionCombANZ with entire NULL/NaN column", "
 
     // Populate the DataChunk with test data
     for (size_t i = 0; i < vs_scores.size(); ++i) {
-        chunk.SetValue(0, i, std::numeric_limits<double>::quiet_NaN());   // Result of division by 0 in DuckDB
+        chunk.SetValue(0, i, std::numeric_limits<double>::quiet_NaN());// Result of division by 0 in DuckDB
         chunk.SetValue(1, i, vs_scores[i]);
     }
 
@@ -169,20 +169,20 @@ TEST_CASE("Unit test for flockmtl::FusionCombANZ with entire NULL/NaN column", "
     const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
 
     // Verify the result
-    constexpr std::array<double, 5> expected_results = {0.046906565486452/2, 0.43271756518423/2, 0.75739696774139/2, 0.520761702528056/2, 0.58813126808257/2};
-    REQUIRE(result.size() == expected_results.size());
+    constexpr std::array<double, 5> expected_results = {0.046906565486452 / 2, 0.43271756518423 / 2, 0.75739696774139 / 2, 0.520761702528056 / 2, 0.58813126808257 / 2};
+    ASSERT_EQ(result.size(), expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
-        REQUIRE(result[i] == expected_results[i]);
+        ASSERT_EQ(result[i], expected_results[i]);
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionCombANZ with only NULL/NaN values", "[fusion_combanz][flockmtl]") {
+TEST(FusionCombANZ, WithOnlyNullNaNValues) {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::DOUBLE, duckdb::LogicalType::DOUBLE};
 
     // Create a DataChunk and initialize it with the default allocator
     duckdb::DataChunk chunk;
-    auto &allocator = duckdb::Allocator::DefaultAllocator();
+    auto& allocator = duckdb::Allocator::DefaultAllocator();
     // Initialize with capacity 5 (five rows)
     chunk.Initialize(allocator, types, 5);
 
@@ -191,14 +191,14 @@ TEST_CASE("Unit test for flockmtl::FusionCombANZ with only NULL/NaN values", "[f
 
     // Populate the DataChunk with test data
     for (size_t i = 0; i < 5; ++i) {
-        chunk.SetValue(0, i, std::numeric_limits<double>::quiet_NaN());   // Result of division by 0 in DuckDB
-        chunk.SetValue(1, i, std::numeric_limits<double>::quiet_NaN());   // Result of division by 0 in DuckDB
+        chunk.SetValue(0, i, std::numeric_limits<double>::quiet_NaN());// Result of division by 0 in DuckDB
+        chunk.SetValue(1, i, std::numeric_limits<double>::quiet_NaN());// Result of division by 0 in DuckDB
     }
 
     // Call FusionCombANZ with the prepared DataChunk
     const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
 
     for (size_t i = 0; i < 5; ++i) {
-        REQUIRE(result[i] == 0.0);
+        ASSERT_EQ(result[i], 0.0);
     }
 }

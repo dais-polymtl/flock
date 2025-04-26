@@ -1,6 +1,6 @@
 #include "flockmtl/secret_manager/secret_manager.hpp"
-#include <unordered_map>
 #include "flockmtl/core/config.hpp"
+#include <unordered_map>
 
 #include <duckdb/main/secret/secret_manager.hpp>
 
@@ -11,9 +11,7 @@ SecretDetails get_openai_secret_details() {
 }
 
 SecretDetails get_azure_secret_details() {
-    return {"azure_llm",    "flockmtl",
-            "azure_llm://", {"api_key", "resource_name", "api_version"},
-            {"api_key"},    {"api_key", "resource_name", "api_version"}};
+    return {"azure_llm", "flockmtl", "azure_llm://", {"api_key", "resource_name", "api_version"}, {"api_key"}, {"api_key", "resource_name", "api_version"}};
 }
 
 SecretDetails get_ollama_secret_details() {
@@ -25,10 +23,16 @@ std::vector<SecretDetails> get_secret_details_list() {
 }
 
 std::unordered_map<std::string, SecretManager::SupportedProviders> SecretManager::providerNames = {
-    {"openai", OPENAI}, {"azure_llm", AZURE}, {"ollama", OLLAMA}};
+        {"openai", OPENAI},
+        {"azure_llm", AZURE},
+        {"ollama", OLLAMA}};
 
 SecretManager::SupportedProviders SecretManager::GetProviderType(const std::string& provider) {
-    return providerNames[provider];
+    auto it = providerNames.find(provider);
+    if (it == providerNames.end()) {
+        throw duckdb::InvalidInputException("Unsupported secret provider: %s", provider.c_str());
+    }
+    return it->second;
 }
 
 void SecretManager::Register(duckdb::DatabaseInstance& instance) {
@@ -37,7 +41,7 @@ void SecretManager::Register(duckdb::DatabaseInstance& instance) {
 }
 
 void SecretManager::RegisterSecretType(duckdb::DatabaseInstance& instance) {
-    for (const auto& secret_detail : get_secret_details_list()) {
+    for (const auto& secret_detail: get_secret_details_list()) {
         duckdb::SecretType secret_type;
         secret_type.name = secret_detail.type;
         secret_type.deserializer = duckdb::KeyValueSecret::Deserialize<duckdb::KeyValueSecret>;
@@ -48,10 +52,10 @@ void SecretManager::RegisterSecretType(duckdb::DatabaseInstance& instance) {
 }
 
 void SecretManager::RegisterSecretFunction(duckdb::DatabaseInstance& instance) {
-    for (const auto& secret_details : get_secret_details_list()) {
+    for (const auto& secret_details: get_secret_details_list()) {
         duckdb::CreateSecretFunction secret_function = {secret_details.type, secret_details.provider, CreateSecret};
 
-        for (const auto& field : secret_details.fields) {
+        for (const auto& field: secret_details.fields) {
             secret_function.named_parameters[field] = duckdb::LogicalType::VARCHAR;
         }
 
@@ -82,7 +86,7 @@ duckdb::unique_ptr<duckdb::BaseSecret> SecretManager::CreateSecret(duckdb::Clien
 
     auto secret = ConstructBaseSecret(prefix_paths, selected_details, input.type, input.provider, input.name);
 
-    for (const auto& field : selected_details.fields) {
+    for (const auto& field: selected_details.fields) {
         if (auto lookup = input.options.find(field); lookup != input.options.end()) {
             secret->secret_map[field] = lookup->second;
         }
@@ -115,20 +119,20 @@ std::unordered_map<std::string, std::string> SecretManager::GetSecret(const std:
     auto providerType = SecretManager::GetProviderType(provider);
     SecretDetails secret_details;
     switch (providerType) {
-    case SupportedProviders::OPENAI:
-        secret_details = get_openai_secret_details();
-        break;
-    case SupportedProviders::AZURE:
-        secret_details = get_azure_secret_details();
-        break;
-    case SupportedProviders::OLLAMA:
-        secret_details = get_ollama_secret_details();
-        break;
-    default:
-        throw duckdb::InvalidInputException("Unsupported secret type: %s", provider.c_str());
+        case SupportedProviders::OPENAI:
+            secret_details = get_openai_secret_details();
+            break;
+        case SupportedProviders::AZURE:
+            secret_details = get_azure_secret_details();
+            break;
+        case SupportedProviders::OLLAMA:
+            secret_details = get_ollama_secret_details();
+            break;
+        default:
+            throw duckdb::InvalidInputException("Unsupported secret type: %s", provider.c_str());
     }
 
-    for (const auto& field : secret_details.fields) {
+    for (const auto& field: secret_details.fields) {
         if (auto value = kv_secret.TryGetValue(field); !value.IsNull()) {
             secret_map[field] = value.ToString();
         }
@@ -139,7 +143,7 @@ std::unordered_map<std::string, std::string> SecretManager::GetSecret(const std:
 
 void SecretManager::ValidateRequiredFields(const duckdb::CreateSecretInput& input,
                                            const std::vector<std::string>& required_fields) {
-    for (const auto& field : required_fields) {
+    for (const auto& field: required_fields) {
         if (auto lookup = input.options.find(field);
             lookup == input.options.end() || lookup->second.ToString().empty()) {
             throw duckdb::InvalidInputException("Missing required field: '%s'", field.c_str());
@@ -147,4 +151,4 @@ void SecretManager::ValidateRequiredFields(const duckdb::CreateSecretInput& inpu
     }
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

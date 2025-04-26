@@ -1,9 +1,9 @@
-#include "flockmtl-test/functions/scalar/test_fusion.hpp"
 #include <flockmtl/functions/scalar/fusion_rrf.hpp>
+#include <gtest/gtest.h>
 
 using namespace duckdb;
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with 2 DOUBLES", "[fusion_rrf][flockmtl]") {
+TEST(FusionRRF, With2Doubles) {
     // Define the column types (2 BIGINT columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::BIGINT, duckdb::LogicalType::BIGINT};
 
@@ -24,11 +24,11 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with 2 DOUBLES", "[fusion_rrf][floc
     const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
 
     // Verify the result
-    REQUIRE(result.size() == 1);
-    REQUIRE(result[0] == 1.0 / 61 + 1.0 / 61);
+    ASSERT_EQ(result.size(), 1);
+    ASSERT_EQ(result[0], 1.0 / 61 + 1.0 / 61);
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with 2 columns", "[fusion_rrf][flockmtl]") {
+TEST(FusionRRF, With2Columns) {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::BIGINT, duckdb::LogicalType::BIGINT};
 
@@ -57,13 +57,13 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with 2 columns", "[fusion_rrf][floc
     // Verify the result
     constexpr std::array<double, 5> expected_results = {(1.0 / 61 + 1.0 / 64), (2.0 / 62), (1.0 / 63 + 1.0 / 61),
                                                         (1.0 / 64 + 1.0 / 65), (1.0 / 65 + 1.0 / 63)};
-    REQUIRE(result.size() == expected_results.size());
+    ASSERT_EQ(result.size(), expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
-        REQUIRE(result[i] == expected_results[i]);
+        ASSERT_EQ(result[i], expected_results[i]);
     }
 }
 
-TEST_CASE("Unit test for flockmtl::FusionRRF with 3 columns", "[fusion_rrf][flockmtl]") {
+TEST(FusionRRF, With3Columns) {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::BIGINT, duckdb::LogicalType::BIGINT,
                                                        duckdb::LogicalType::BIGINT};
@@ -96,17 +96,17 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with 3 columns", "[fusion_rrf][floc
     std::vector<double> expected_results(5);
     for (int i = 0; i < 5; ++i) {
         expected_results[i] =
-            1.0 / (60.0 + bm25_scores[i]) + 1.0 / (60.0 + vs_scores[i]) + 1.0 / (60.0 + random_scores[i]);
+                1.0 / (60.0 + bm25_scores[i]) + 1.0 / (60.0 + vs_scores[i]) + 1.0 / (60.0 + random_scores[i]);
     }
-    REQUIRE(result.size() == expected_results.size());
+    ASSERT_EQ(result.size(), expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
-        REQUIRE(result[i] == expected_results[i]);
+        ASSERT_EQ(result[i], expected_results[i]);
     }
 }
 
 // Entire columns of first place ranking essentially mean the scoring source did not rank anything and should be
 // ignored.
-TEST_CASE("Unit test for flockmtl::FusionRRF with entire column of first place ranking", "[fusion_rrf][flockmtl]") {
+TEST(FusionRRF, WithEntireColumnOfFirstPlaceRanking) {
     // Define the column types (2 DOUBLE columns)
     const duckdb::vector<duckdb::LogicalType> types = {duckdb::LogicalType::BIGINT, duckdb::LogicalType::BIGINT};
 
@@ -133,8 +133,8 @@ TEST_CASE("Unit test for flockmtl::FusionRRF with entire column of first place r
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {1.0 / 63, 1.0 / 61, 1.0 / 65, 1.0 / 62, 1.0 / 64};
-    REQUIRE(result.size() == expected_results.size());
+    ASSERT_EQ(result.size(), expected_results.size());
     for (size_t i = 0; i < expected_results.size(); ++i) {
-        REQUIRE(result[i] == expected_results[i]);
+        ASSERT_EQ(result[i], expected_results[i]);
     }
 }
