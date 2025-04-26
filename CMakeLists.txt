@@ -29,18 +29,15 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION
   target_link_libraries(${EXTENSION_NAME} -lstdc++fs)
 endif()
 
-# Check if we're in debug mode and enable AddressSanitizer
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  message(STATUS "Enabling AddressSanitizer for Debug build")
-  # Enable AddressSanitizer
-  target_compile_options(${EXTENSION_NAME} PRIVATE -fsanitize=address
-                                                   -fno-omit-frame-pointer)
-  target_link_options(${EXTENSION_NAME} PRIVATE -fsanitize=address)
-
-  target_compile_options(${LOADABLE_EXTENSION_NAME}
-                         PRIVATE -fsanitize=address -fno-omit-frame-pointer)
-  target_link_options(${LOADABLE_EXTENSION_NAME} PRIVATE -fsanitize=address)
-endif()
+# Check if we're in debug mode and enable AddressSanitizer if (CMAKE_BUILD_TYPE
+# STREQUAL "Debug") message(STATUS "Enabling AddressSanitizer for Debug build")
+# # Enable AddressSanitizer target_compile_options(${EXTENSION_NAME} PRIVATE
+# -fsanitize=address -fno-omit-frame-pointer)
+# target_link_options(${EXTENSION_NAME} PRIVATE -fsanitize=address)
+#
+# target_compile_options(${LOADABLE_EXTENSION_NAME} PRIVATE -fsanitize=address
+# -fno-omit-frame-pointer) target_link_options(${LOADABLE_EXTENSION_NAME}
+# PRIVATE -fsanitize=address) endif ()
 
 # Link libraries for the static extension
 target_link_libraries(${EXTENSION_NAME} CURL::libcurl
@@ -57,28 +54,6 @@ install(
   LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
   ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")
 
-# ===============================
-# Add Tests
-# ===============================
-
-# Define the test directory
-set(TEST_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test)
-
-# Recursively find all test files in the test directory
-file(GLOB_RECURSE TEST_SOURCES ${TEST_DIR}/*.cpp)
-
-# Find Catch2
-find_package(Catch2 REQUIRED)
-
-# Add an executable for the tests
-add_executable(${TARGET_NAME}_tests ${TEST_SOURCES})
-
-# Include directories for tests
-target_include_directories(${TARGET_NAME}_tests PRIVATE test/include)
-
-# Link the test executable to the extension and the Catch2 framework (used for testing)
-target_link_libraries(${TARGET_NAME}_tests PRIVATE ${EXTENSION_NAME} Catch2::Catch2WithMain)
-
-# Register the tests with CTest (built into CMake)
+# Add the test directory
 enable_testing()
-add_test(NAME ${TARGET_NAME}_tests COMMAND ${TARGET_NAME}_tests)
+add_subdirectory(test)
