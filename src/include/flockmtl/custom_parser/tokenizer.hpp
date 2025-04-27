@@ -37,8 +37,8 @@ public:
     Token GetNextToken();
 
 private:
-    std::string query_;
-    int position_;
+    std::string _query;
+    int _position;
 };
 
 // Utility function to convert TokenType to string

@@ -29,15 +29,18 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION
   target_link_libraries(${EXTENSION_NAME} -lstdc++fs)
 endif()
 
-# Check if we're in debug mode and enable AddressSanitizer if (CMAKE_BUILD_TYPE
-# STREQUAL "Debug") message(STATUS "Enabling AddressSanitizer for Debug build")
-# # Enable AddressSanitizer target_compile_options(${EXTENSION_NAME} PRIVATE
-# -fsanitize=address -fno-omit-frame-pointer)
-# target_link_options(${EXTENSION_NAME} PRIVATE -fsanitize=address)
-#
-# target_compile_options(${LOADABLE_EXTENSION_NAME} PRIVATE -fsanitize=address
-# -fno-omit-frame-pointer) target_link_options(${LOADABLE_EXTENSION_NAME}
-# PRIVATE -fsanitize=address) endif ()
+# Check if we're in debug mode and enable AddressSanitizer
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  message(STATUS "Enabling AddressSanitizer for Debug build")
+  # Enable AddressSanitizer
+  target_compile_options(${EXTENSION_NAME} PRIVATE -fsanitize=address
+                                                   -fno-omit-frame-pointer)
+  target_link_options(${EXTENSION_NAME} PRIVATE -fsanitize=address)
+
+  target_compile_options(${LOADABLE_EXTENSION_NAME}
+                         PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+  target_link_options(${LOADABLE_EXTENSION_NAME} PRIVATE -fsanitize=address)
+endif()
 
 # Link libraries for the static extension
 target_link_libraries(${EXTENSION_NAME} CURL::libcurl
