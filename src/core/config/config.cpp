@@ -1,6 +1,6 @@
 #include "flockmtl/core/config.hpp"
-#include "flockmtl/secret_manager/secret_manager.hpp"
 #include "filesystem.hpp"
+#include "flockmtl/secret_manager/secret_manager.hpp"
 #include <fmt/format.h>
 
 namespace flockmtl {
@@ -66,7 +66,7 @@ void Config::ConfigureLocal(duckdb::DatabaseInstance& db) {
     auto con = Config::GetConnection(&db);
     ConfigureTables(con, ConfigType::LOCAL);
     con.Query(
-        duckdb_fmt::format("ATTACH DATABASE '{}' AS flockmtl_storage;", Config::get_global_storage_path().string()));
+            duckdb_fmt::format("ATTACH DATABASE '{}' AS flockmtl_storage;", Config::get_global_storage_path().string()));
 }
 
 void Config::ConfigureTables(duckdb::Connection& con, const ConfigType type) {
@@ -88,4 +88,4 @@ void Config::Configure(duckdb::DatabaseInstance& db) {
     }
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

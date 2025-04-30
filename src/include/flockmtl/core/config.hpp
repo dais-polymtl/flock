@@ -1,13 +1,14 @@
 #pragma once
 
-#include <fmt/format.h>
 #include "filesystem.hpp"
 #include "flockmtl/core/common.hpp"
 #include "flockmtl/registry/registry.hpp"
+#include <fmt/format.h>
 
 namespace flockmtl {
 
-enum ConfigType { LOCAL, GLOBAL };
+enum ConfigType { LOCAL,
+                  GLOBAL };
 
 class Config {
 public:
@@ -37,4 +38,4 @@ private:
     static void SetupUserDefinedModelsConfig(duckdb::Connection& con, std::string& schema_name);
 };
 
-} // namespace flockmtl
+}// namespace flockmtl

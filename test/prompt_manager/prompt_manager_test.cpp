@@ -3,7 +3,7 @@
 #include <gtest/gtest.h>
 #include <string>
 
-using namespace flockmtl;
+namespace flockmtl {
 using json = nlohmann::json;
 
 // Test cases for PromptManager::ToString<PromptSection>
@@ -80,7 +80,6 @@ TEST(PromptManager, ConstructInputTuplesHeader) {
     EXPECT_THROW(PromptManager::ConstructInputTuplesHeader(tuple, "invalid_format"), std::runtime_error);
 }
 
-
 // Test cases for PromptManager::ConstructSingleInputTuple
 TEST(PromptManager, ConstructSingleInputTuple) {
     json tuple = {{"col1", "string val"}, {"col2", 456}, {"col3", true}};
@@ -138,7 +137,7 @@ TEST(PromptManager, ConstructInputTuples) {
     EXPECT_THROW(PromptManager::ConstructInputTuples(tuples, "invalid_format"), std::runtime_error);
 }
 
-// Test case for empty tuples array
+// Test case for an empty tuples array
 TEST(PromptManager, ConstructInputTuplesEmpty) {
     json empty_tuples = json::array();
 
@@ -157,5 +156,96 @@ TEST(PromptManager, ConstructInputTuplesEmpty) {
     EXPECT_EQ(PromptManager::ConstructInputTuples(empty_tuples, "json"), json_expected);
 }
 
-// Need to add PromptManager::CreatePromptDetails
-// by mocking the database connection and the query execution
+TEST(PromptManager, CreatePromptDetailsOnlyPromptName) {
+    const json prompt_json = {{"prompt_name", "product_summary"}};
+    const auto [prompt_name, prompt, version] = PromptManager::CreatePromptDetails(prompt_json);
+    EXPECT_EQ(prompt_name, "product_summary");
+    EXPECT_EQ(prompt, "Generate a summary with a focus on technical specifications.");
+    EXPECT_EQ(version, 6);
+}
+
+TEST(PromptManager, CreatePromptDetailsLiteralPrompt) {
+    const json prompt_json = {{"prompt", "test_prompt"}};
+    const auto [prompt_name, prompt, version] = PromptManager::CreatePromptDetails(prompt_json);
+    EXPECT_EQ(prompt, "test_prompt");
+    EXPECT_EQ(prompt_name, "");
+    EXPECT_EQ(version, -1);
+}
+
+TEST(PromptManager, CreatePromptDetailsUnvalidArgs) {
+    const json prompt_json = {{"invalid_key", "test_prompt"}};
+    EXPECT_THROW(PromptManager::CreatePromptDetails(prompt_json), std::runtime_error);
+}
+
+// Test with empty JSON object
+TEST(PromptManager, CreatePromptDetailsEmptyJson) {
+    const json empty_json = json::object();
+    EXPECT_THROW(PromptManager::CreatePromptDetails(empty_json), std::runtime_error);
+}
+
+// Test with prompt_name and a specific version
+TEST(PromptManager, CreatePromptDetailsWithExplicitVersion) {
+    const duckdb::DuckDB db("flockmtl_test.db");
+    auto con = Config::GetConnection(&*db.instance);
+
+    const json prompt_json = {
+            {"prompt_name", "product_summary"},
+            {"version", "4"}};
+
+    const auto [prompt_name, prompt, version] = PromptManager::CreatePromptDetails(prompt_json);
+    EXPECT_EQ(prompt_name, "product_summary");
+    EXPECT_EQ(prompt, "Summarize the product with a persuasive tone suitable for a sales page.");
+    EXPECT_EQ(version, 4);
+}
+
+// Test with a non-existent prompt name
+TEST(PromptManager, CreatePromptDetailsNonExistentPrompt) {
+    const duckdb::DuckDB db("flockmtl_test.db");
+    auto con = Config::GetConnection(&*db.instance);
+
+    const json prompt_json = {{"prompt_name", "non_existent_prompt"}};
+    EXPECT_THROW(PromptManager::CreatePromptDetails(prompt_json), std::runtime_error);
+}
+
+// Test with a non-existent version of existing prompt
+TEST(PromptManager, CreatePromptDetailsNonExistentVersion) {
+    const duckdb::DuckDB db("flockmtl_test.db");
+    auto con = Config::GetConnection(&*db.instance);
+
+    const json prompt_json = {
+            {"prompt_name", "product_summary"},
+            {"version", "999"}};
+
+    EXPECT_THROW(PromptManager::CreatePromptDetails(prompt_json), std::runtime_error);
+}
+
+// Test with too many fields in the JSON for a prompt_name case
+TEST(PromptManager, CreatePromptDetailsTooManyFieldsWithPromptName) {
+    const json prompt_json = {
+            {"prompt_name", "product_summary"},
+            {"extra_field", "value"},
+            {"another_field", "value"}};
+
+    EXPECT_THROW(PromptManager::CreatePromptDetails(prompt_json), std::runtime_error);
+}
+
+// Test with too many fields in the JSON for prompt_name with a version case
+TEST(PromptManager, CreatePromptDetailsTooManyFieldsWithVersion) {
+    const json prompt_json = {
+            {"prompt_name", "product_summary"},
+            {"version", "5"},
+            {"extra_field", "value"}};
+
+    EXPECT_THROW(PromptManager::CreatePromptDetails(prompt_json), std::runtime_error);
+}
+
+// Test with multiple fields in a prompt-only case
+TEST(PromptManager, CreatePromptDetailsMultipleFieldsPromptOnly) {
+    const json prompt_json = {
+            {"prompt", "test_prompt"},
+            {"extra_field", "this should be ignored"}};
+    EXPECT_THROW(PromptManager::CreatePromptDetails(prompt_json), std::runtime_error);
+}
+
+
+}// namespace flockmtl

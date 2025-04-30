@@ -98,7 +98,7 @@ public:
 struct PromptDetails {
     std::string prompt_name;
     std::string prompt;
-    int version;
+    int version = -1;
 };
 
 }// namespace flockmtl

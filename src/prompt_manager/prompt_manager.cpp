@@ -131,52 +131,59 @@ std::string PromptManager::ConstructInputTuples(const nlohmann::json& tuples, co
 PromptDetails PromptManager::CreatePromptDetails(const nlohmann::json& prompt_details_json) {
     PromptDetails prompt_details;
 
-    if (prompt_details_json.contains("prompt_name")) {
-        if (!prompt_details_json.contains("version") && prompt_details_json.size() > 1) {
-            throw std::runtime_error(
-                    "The prompt details struct should contain a single key value pair of prompt or "
-                    "prompt_name with prompt version");
-        } else if (prompt_details_json.contains("version") && prompt_details_json.size() > 2) {
-            throw std::runtime_error(
-                    "The prompt details struct should contain a single key value pair of prompt or "
-                    "prompt_name with prompt version");
-        }
-        prompt_details.prompt_name = prompt_details_json["prompt_name"];
-        std::string error_message;
-        std::string version_where_clause;
-        std::string order_by_clause;
-        if (prompt_details_json.contains("version")) {
-            prompt_details.version = std::stoi(prompt_details_json["version"].get<std::string>());
-            version_where_clause = duckdb_fmt::format(" AND version = {}", prompt_details.version);
-            error_message = duckdb_fmt::format("with version {} not found", prompt_details.version);
+    try {
+        if (prompt_details_json.contains("prompt_name")) {
+            if (!prompt_details_json.contains("version") && prompt_details_json.size() > 1) {
+                throw std::runtime_error("");
+            } else if (prompt_details_json.contains("version") && prompt_details_json.size() > 2) {
+                throw std::runtime_error("");
+            }
+            prompt_details.prompt_name = prompt_details_json["prompt_name"];
+            std::string error_message;
+            std::string version_where_clause;
+            std::string order_by_clause;
+            if (prompt_details_json.contains("version")) {
+                prompt_details.version = std::stoi(prompt_details_json["version"].get<std::string>());
+                version_where_clause = duckdb_fmt::format(" AND version = {}", prompt_details.version);
+                error_message = duckdb_fmt::format("with version {} not found", prompt_details.version);
+            } else {
+                order_by_clause = " ORDER BY version DESC LIMIT 1 ";
+                error_message += "not found";
+            }
+            const auto prompt_details_query =
+                    duckdb_fmt::format(" SELECT prompt, version "
+                                       "   FROM flockmtl_storage.flockmtl_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+                                       "  WHERE prompt_name = '{}'"
+                                       " {} "
+                                       " UNION ALL "
+                                       " SELECT prompt, version "
+                                       "   FROM flockmtl_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+                                       "  WHERE prompt_name = '{}'"
+                                       " {} {}",
+                                       prompt_details.prompt_name, version_where_clause, prompt_details.prompt_name,
+                                       version_where_clause, order_by_clause);
+            error_message = duckdb_fmt::format("The provided `{}` prompt " + error_message, prompt_details.prompt_name);
+            auto con = Config::GetConnection();
+            const auto query_result = con.Query(prompt_details_query);
+            if (query_result->RowCount() == 0) {
+                throw std::runtime_error(error_message);
+            }
+            prompt_details.prompt = query_result->GetValue(0, 0).ToString();
+            prompt_details.version = query_result->GetValue(1, 0).GetValue<int32_t>();
+        } else if (prompt_details_json.contains("prompt")) {
+            if (prompt_details_json.size() > 1) {
+                throw std::runtime_error("");
+            }
+            prompt_details.prompt = prompt_details_json["prompt"];
         } else {
-            order_by_clause = " ORDER BY version DESC LIMIT 1 ";
-            error_message += "not found";
+            throw std::runtime_error("");
         }
-        const auto prompt_details_query =
-                duckdb_fmt::format(" SELECT prompt, version "
-                                   "   FROM flockmtl_storage.flockmtl_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
-                                   "  WHERE prompt_name = '{}'"
-                                   " {} "
-                                   " UNION ALL "
-                                   " SELECT prompt, version "
-                                   "   FROM flockmtl_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
-                                   "  WHERE prompt_name = '{}'"
-                                   " {} {}",
-                                   prompt_details.prompt_name, version_where_clause, prompt_details.prompt_name,
-                                   version_where_clause, order_by_clause);
-        error_message = duckdb_fmt::format("The provided `{}` prompt " + error_message, prompt_details.prompt_name);
-        auto con = Config::GetConnection();
-        const auto query_result = con.Query(prompt_details_query);
-        if (query_result->RowCount() == 0) {
-            throw std::runtime_error(error_message);
+    } catch (const std::exception& e) {
+        if (e.what() == std::string("")) {
+            throw std::runtime_error("The prompt details struct should contain a single key value pair of prompt or "
+                                     "prompt_name with prompt version");
         }
-        prompt_details.prompt = query_result->GetValue(0, 0).ToString();
-    } else if (prompt_details_json.contains("prompt")) {
-        prompt_details.prompt = prompt_details_json["prompt"];
-    } else {
-        throw std::runtime_error("The prompt details struct should contain a single key value pair of prompt or "
-                                 "prompt_name with prompt version");
+        throw std::runtime_error(e.what());
     }
     return prompt_details;
 }
