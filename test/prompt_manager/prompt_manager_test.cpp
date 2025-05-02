@@ -156,14 +156,6 @@ TEST(PromptManager, ConstructInputTuplesEmpty) {
     EXPECT_EQ(PromptManager::ConstructInputTuples(empty_tuples, "json"), json_expected);
 }
 
-TEST(PromptManager, CreatePromptDetailsOnlyPromptName) {
-    const json prompt_json = {{"prompt_name", "product_summary"}};
-    const auto [prompt_name, prompt, version] = PromptManager::CreatePromptDetails(prompt_json);
-    EXPECT_EQ(prompt_name, "product_summary");
-    EXPECT_EQ(prompt, "Generate a summary with a focus on technical specifications.");
-    EXPECT_EQ(version, 6);
-}
-
 TEST(PromptManager, CreatePromptDetailsLiteralPrompt) {
     const json prompt_json = {{"prompt", "test_prompt"}};
     const auto [prompt_name, prompt, version] = PromptManager::CreatePromptDetails(prompt_json);
@@ -185,9 +177,6 @@ TEST(PromptManager, CreatePromptDetailsEmptyJson) {
 
 // Test with prompt_name and a specific version
 TEST(PromptManager, CreatePromptDetailsWithExplicitVersion) {
-    const duckdb::DuckDB db("flockmtl_test.db");
-    auto con = Config::GetConnection(&*db.instance);
-
     const json prompt_json = {
             {"prompt_name", "product_summary"},
             {"version", "4"}};
@@ -200,18 +189,12 @@ TEST(PromptManager, CreatePromptDetailsWithExplicitVersion) {
 
 // Test with a non-existent prompt name
 TEST(PromptManager, CreatePromptDetailsNonExistentPrompt) {
-    const duckdb::DuckDB db("flockmtl_test.db");
-    auto con = Config::GetConnection(&*db.instance);
-
     const json prompt_json = {{"prompt_name", "non_existent_prompt"}};
     EXPECT_THROW(PromptManager::CreatePromptDetails(prompt_json), std::runtime_error);
 }
 
 // Test with a non-existent version of existing prompt
 TEST(PromptManager, CreatePromptDetailsNonExistentVersion) {
-    const duckdb::DuckDB db("flockmtl_test.db");
-    auto con = Config::GetConnection(&*db.instance);
-
     const json prompt_json = {
             {"prompt_name", "product_summary"},
             {"version", "999"}};
@@ -247,5 +230,12 @@ TEST(PromptManager, CreatePromptDetailsMultipleFieldsPromptOnly) {
     EXPECT_THROW(PromptManager::CreatePromptDetails(prompt_json), std::runtime_error);
 }
 
+TEST(PromptManager, CreatePromptDetailsOnlyPromptName) {
+    const json prompt_json = {{"prompt_name", "product_summary"}};
+    const auto [prompt_name, prompt, version] = PromptManager::CreatePromptDetails(prompt_json);
+    EXPECT_EQ(prompt_name, "product_summary");
+    EXPECT_EQ(prompt, "Generate a summary with a focus on technical specifications.");
+    EXPECT_EQ(version, 6);
+}
 
 }// namespace flockmtl
