@@ -133,14 +133,4 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.batch_size, 10);
 }
 
-// Test global and local model creation
-// TEST_F(ModelManagerTest, GlobalLocalModelCreation) {
-//     // Note: This test would depend on repository implementation
-//     // Would test:
-//     // 1. Creating a global model
-//     // 2. Creating a local model
-//     // 3. Verifying the proper scope setting
-//     // 4. Toggling between global and local
-// }
-
 }// namespace flockmtl
