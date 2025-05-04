@@ -57,6 +57,12 @@ install(
   LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
   ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")
 
+if(CMAKE_BUILD_TYPE STREQUAL "Coverage")
+  message(STATUS "Enabling code coverage for Debug build")
+  add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
+  add_link_options(-fprofile-instr-generate -fcoverage-mapping)
+endif()
+
 # Add the test directory
 enable_testing()
 add_subdirectory(test)
