@@ -3,21 +3,21 @@
 <br />
 
 <div align="center">
-  <a href="https://dsg-polymtl.github.io/flockmtl/">
+  <a href="https://dais-polymtl.github.io/flockmtl/">
     <img src="docs/static/img/logo-dark.svg" alt="Logo" height="80">
   </a>
   <br /><br />
   <p align="center">
     A DBMS extension that deeply integrates LLM and RAG capabilities directly into OLAP systems to seamlessly mix analytics with semantic analysis.
     <br />
-    <a href="https://dsg-polymtl.github.io/flockmtl/docs/what-is-flockmtl"><strong>Explore the docs »</strong></a>
+    <a href="https://dais-polymtl.github.io/flockmtl/docs/what-is-flockmtl"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://dsg-polymtl.github.io/flockmtl/">Landing Page</a>
+    <a href="https://dais-polymtl.github.io/flockmtl/">Landing Page</a>
     |
-    <a href="https://github.com/dsg-polymtl/flockmtl/issues/new?labels=bug&template=bug-report.md">Report Bug</a>
+    <a href="https://github.com/dais-polymtl/flockmtl/issues/new?labels=bug&template=bug-report.md">Report Bug</a>
     |
-    <a href="https://github.com/dsg-polymtl/flockmtl/issues/new?labels=enhancement&template=feature-request.md">Request Feature</a>
+    <a href="https://github.com/dais-polymtl/flockmtl/issues/new?labels=enhancement&template=feature-request.md">Request Feature</a>
   </p>
 </div>
 
@@ -51,10 +51,10 @@ FlockMTL is an advanced **DuckDB** extension that seamlessly integrates analytic
 
 ## 🔥 Features
 
-- **Declarative SQL Interface**: Perform text generation, classification, summarization, filtering, and embedding generation using SQL queries.  
-- **Multi-Provider Support**: Easily integrate with OpenAI, Azure, and Ollama for your AI needs.  
-- **End-to-End RAG Pipelines**: Enable retrieval and augmentation workflows for enhanced analytics.  
-- **Map and Reduce Functions**: Intuitive APIs for combining semantic tasks and data analytics directly in DuckDB.  
+- **Declarative SQL Interface**: Perform text generation, classification, summarization, filtering, and embedding generation using SQL queries.
+- **Multi-Provider Support**: Easily integrate with OpenAI, Azure, and Ollama for your AI needs.
+- **End-to-End RAG Pipelines**: Enable retrieval and augmentation workflows for enhanced analytics.
+- **Map and Reduce Functions**: Intuitive APIs for combining semantic tasks and data analytics directly in DuckDB.
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
@@ -62,15 +62,15 @@ FlockMTL is an advanced **DuckDB** extension that seamlessly integrates analytic
 
 ### 📝 Prerequisites
 
-1. **DuckDB**: Version 1.1.1 or later. Install it from the official [DuckDB installation guide](https://duckdb.org/docs/installation/).  
+1. **DuckDB**: Version 1.1.1 or later. Install it from the official [DuckDB installation guide](https://duckdb.org/docs/installation/).
 2. **Supported Providers**: Ensure you have credentials or API keys for at least one of the supported providers:
    - OpenAI
    - Azure
-   - Ollama  
-3. **Supported OS**:  
-   - Linux  
-   - macOS  
-   - Windows  
+   - Ollama
+3. **Supported OS**:
+   - Linux
+   - macOS
+   - Windows
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
@@ -79,13 +79,13 @@ FlockMTL is an advanced **DuckDB** extension that seamlessly integrates analytic
 FlockMTL is a **Community Extension** available directly from DuckDB's community catalog.
 
 1. Install the extension:
-    ```sql
-    INSTALL flockmtl FROM community;
-    ```
+   ```sql
+   INSTALL flockmtl FROM community;
+   ```
 2. Load the extension:
-    ```sql
-    LOAD flockmtl;
-    ```
+   ```sql
+   LOAD flockmtl;
+   ```
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
@@ -104,22 +104,22 @@ SELECT llm_complete(
 FROM your_table;
 ```
 
-Explore more usage examples in the [documentation](https://dsg-polymtl.github.io/flockmtl/docs/supported-providers/openai).  
+Explore more usage examples in the [documentation](https://dais-polymtl.github.io/flockmtl/docs/supported-providers/openai).
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
 ## 🛣️ Roadmap
 
-Our roadmap outlines upcoming features and improvements. Stay updated by checking out our [detailed plan](https://github.com/dsg-polymtl/flockmtl/issues/39).
+Our roadmap outlines upcoming features and improvements. Stay updated by checking out our [detailed plan](https://github.com/dais-polymtl/flockmtl/issues/39).
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
-## 🛠️  Feedback and Issues
+## 🛠️ Feedback and Issues
 
-We value your feedback! If you’d like to report an issue or suggest a new feature, please use the links below:  
+We value your feedback! If you’d like to report an issue or suggest a new feature, please use the links below:
 
-- <a href="https://github.com/dsg-polymtl/flockmtl/issues/new?labels=bug&template=bug-report.md">Report a Bug</a>  
-- <a href="https://github.com/dsg-polymtl/flockmtl/issues/new?labels=enhancement&template=feature-request.md">Request a Feature</a>  
+- <a href="https://github.com/dais-polymtl/flockmtl/issues/new?labels=bug&template=bug-report.md">Report a Bug</a>
+- <a href="https://github.com/dais-polymtl/flockmtl/issues/new?labels=enhancement&template=feature-request.md">Request a Feature</a>
 
 For contributing code or other contributions, please refer to our dedicated [Contribution Guidelines](#).
 
@@ -133,6 +133,6 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## ✨ Team
 
-This project is under active development by the [**Data Systems Group (DSG)**](https://github.com/dsg-polymtl) at [**Polytechnique Montréal**](https://www.polymtl.ca/).
+This project is under active development by the [**Data & AI Systems Laboratory (DAIS Lab)**](https://github.com/dais-polymtl) at [**Polytechnique Montréal**](https://www.polymtl.ca/).
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>

@@ -22,7 +22,7 @@ const Hero: React.FC = () => {
                   autoStart: true,
                   loop: true,
                   delay: 50,
-                }}/>
+                }} />
             </span>
           </div>
         </Reveal>
@@ -31,7 +31,7 @@ const Hero: React.FC = () => {
         </p></Reveal>
       </div>
       <div className="grid md:grid-rows-1 grid-rows-2 grid-flow-col md:gap-8 gap-2 py-8 place-items-center">
-        <Button href="https://github.com/dsg-polymtl/flockmtl-duckdb" className="bg-[#ffe7d1] text-[#FF9128] hover:text-[#ffe7d1] hover:bg-[#FF9128]">
+        <Button href="https://github.com/dais-polymtl/flockmtl" className="bg-[#ffe7d1] text-[#FF9128] hover:text-[#ffe7d1] hover:bg-[#FF9128]">
           <FaGithub />Source Code
         </Button>
         <Button href="./docs/what-is-flockmtl" className="text-[#ffe7d1] bg-[#FF9128] hover:bg-[#ffe7d1] hover:text-[#FF9128]">

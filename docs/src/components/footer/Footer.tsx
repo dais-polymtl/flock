@@ -43,7 +43,7 @@ const Footer: React.FC = () => (
       <div className="py-4 mt-12 text-center text-sm flex justify-center">
         <Reveal>
           <div>
-            This project is developed & maintained by the <a href="https://github.com/dsg-polymtl" className="text-[#FF9128] cursor-pointer">Data Systems Group</a> at <a href="https://www.polymtl.ca/" className="text-[#FF9128] cursor-pointer">Polytechnique Montréal</a>.
+            This project is developed & maintained by the <a href="https://github.com/dais-polymtl" className="text-[#FF9128] cursor-pointer">Data & AI Systems Laboratory</a> at <a href="https://www.polymtl.ca/" className="text-[#FF9128] cursor-pointer">Polytechnique Montréal</a>.
             <p>&copy; {new Date().getFullYear()} FlockMTL. All rights reserved.</p>
           </div>
         </Reveal>

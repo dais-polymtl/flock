@@ -1,6 +1,6 @@
 # **FlockMTL** a DBMS extension that deeply integrates LLM and RAG capabilities directly into OLAP systems
 
-> **FlockMTL** is a DBMS extension developed within the Data Systems Group (DSG) at Polytechnique Montreal. It is designed to bring analytics & semantic analysis capabilities directly into your SQL queries, deeply integrating the capabilities of language models and retrieval-augmented generation through a set of map and reduce functions.
+> **FlockMTL** is a DBMS extension developed within the Data & AI Systems Laboratory (DAIS Lab) at Polytechnique Montreal. It is designed to bring analytics & semantic analysis capabilities directly into your SQL queries, deeply integrating the capabilities of language models and retrieval-augmented generation through a set of map and reduce functions.
 
 **FlockMTL** allows users to perform tasks such as text generation, summarization, classification, filtering, fusion, and embedding generation and even end-to-end RAG pipelines within DuckDB.
 
@@ -8,47 +8,47 @@ We believe that relational DBMSs and LLMs are a match made in heaven. We are lea
 
 ## Home
 
-- [FlockMTL Homepage](https://dsg-polymtl.github.io/flockmtl/): Visit the homepage for an overview and additional resources.
+- [FlockMTL Homepage](https://dais-polymtl.github.io/flockmtl/): Visit the homepage for an overview and additional resources.
 
 ## Getting Started
 
 The Getting Started section provides a foundation for understanding and setting up FlockMTL.
 
-- [What is FlockMTL?](https://dsg-polymtl.github.io/flockmtl/docs/what-is-flockmtl): Learn more about the purpose, features, and capabilities of FlockMTL, and how it can benefit your workflows.
-- [Getting Started](https://dsg-polymtl.github.io/flockmtl/docs/getting-started): A step-by-step guide to installing and configuring FlockMTL, including prerequisites and setup instructions.
-    - [OpenAI Provider](https://dsg-polymtl.github.io/flockmtl/docs/getting-started/openai): Instructions for setting up the OpenAI provider, including API key management and configuration.
-    - [Azure Provider](https://dsg-polymtl.github.io/flockmtl/docs/getting-started/azure): Instructions for setting up the Azure provider, including API key management and configuration.
-    - [Ollama Provider](https://dsg-polymtl.github.io/flockmtl/docs/getting-started/ollama): Instructions for setting up the Ollama provider, including API key management and configuration.
+- [What is FlockMTL?](https://dais-polymtl.github.io/flockmtl/docs/what-is-flockmtl): Learn more about the purpose, features, and capabilities of FlockMTL, and how it can benefit your workflows.
+- [Getting Started](https://dais-polymtl.github.io/flockmtl/docs/getting-started): A step-by-step guide to installing and configuring FlockMTL, including prerequisites and setup instructions.
+    - [OpenAI Provider](https://dais-polymtl.github.io/flockmtl/docs/getting-started/openai): Instructions for setting up the OpenAI provider, including API key management and configuration.
+    - [Azure Provider](https://dais-polymtl.github.io/flockmtl/docs/getting-started/azure): Instructions for setting up the Azure provider, including API key management and configuration.
+    - [Ollama Provider](https://dais-polymtl.github.io/flockmtl/docs/getting-started/ollama): Instructions for setting up the Ollama provider, including API key management and configuration.
 
 ## Resource Management
 
 Efficiently manage resources, models, prompts, and secrets to optimize the performance and security of your FlockMTL setup.
 
-- [Resource Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/resource-management): Learn about tools and techniques for managing resources within FlockMTL.
-- [Model Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/models): Handle and configure models to suit your project needs.
-- [Prompt Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/prompts): Create, edit, and optimize prompts for various tasks.
-- [API Keys Management](https://dsg-polymtl.github.io/flockmtl/docs/resource-management/api-keys): Safeguard sensitive data like API keys and credentials with FlockMTL's secure secret management.
+- [Resource Management](https://dais-polymtl.github.io/flockmtl/docs/resource-management/resource-management): Learn about tools and techniques for managing resources within FlockMTL.
+- [Model Management](https://dais-polymtl.github.io/flockmtl/docs/resource-management/models): Handle and configure models to suit your project needs.
+- [Prompt Management](https://dais-polymtl.github.io/flockmtl/docs/resource-management/prompts): Create, edit, and optimize prompts for various tasks.
+- [API Keys Management](https://dais-polymtl.github.io/flockmtl/docs/resource-management/api-keys): Safeguard sensitive data like API keys and credentials with FlockMTL's secure secret management.
 
 ## Scalar Map Functions
 
 Scalar map functions transform individual rows of data with advanced AI operations. These functions are essential for processing text, generating embeddings, and applying filters.
 
-- [Scalar Map Functions](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/): Overview of scalar map functions and their use cases.
-- [LLM Complete](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-complete): Generate text completions for prompts.
-- [LLM Complete JSON](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-complete-json): Output text completions in JSON format for structured applications.
-- [LLM Embedding](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-embedding): Generate vector embeddings for semantic search and similarity.
-- [LLM Filter](https://dsg-polymtl.github.io/flockmtl/docs/scalar-functions/llm-filter): Filter data based on relevance to queries.
+- [Scalar Map Functions](https://dais-polymtl.github.io/flockmtl/docs/scalar-functions/): Overview of scalar map functions and their use cases.
+- [LLM Complete](https://dais-polymtl.github.io/flockmtl/docs/scalar-functions/llm-complete): Generate text completions for prompts.
+- [LLM Complete JSON](https://dais-polymtl.github.io/flockmtl/docs/scalar-functions/llm-complete-json): Output text completions in JSON format for structured applications.
+- [LLM Embedding](https://dais-polymtl.github.io/flockmtl/docs/scalar-functions/llm-embedding): Generate vector embeddings for semantic search and similarity.
+- [LLM Filter](https://dais-polymtl.github.io/flockmtl/docs/scalar-functions/llm-filter): Filter data based on relevance to queries.
 
 ## Aggregate Reduce Functions
 
 Aggregate reduce functions summarize or rearrange data based on AI-powered insights, enabling you to derive key insights efficiently.
 
-- [Aggregate Reduce Functions](https://dsg-polymtl.github.io/flockmtl/docs/aggregate-functions): Introduction to aggregate reduce functions.
-- [LLM First](https://dsg-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-first): Retrieve the most relevant value based on a user query.
-- [LLM Last](https://dsg-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-last): Extract the least relevant value in a dataset based on a user query.
-- [LLM Reduce](https://dsg-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-reduce): Condense datasets using AI-powered reduction.
-- [LLM Rerank](https://dsg-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-rerank): Rank elements based on their relevance to a search query.
+- [Aggregate Reduce Functions](https://dais-polymtl.github.io/flockmtl/docs/aggregate-functions): Introduction to aggregate reduce functions.
+- [LLM First](https://dais-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-first): Retrieve the most relevant value based on a user query.
+- [LLM Last](https://dais-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-last): Extract the least relevant value in a dataset based on a user query.
+- [LLM Reduce](https://dais-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-reduce): Condense datasets using AI-powered reduction.
+- [LLM Rerank](https://dais-polymtl.github.io/flockmtl/docs/aggregate-functions/llm-rerank): Rank elements based on their relevance to a search query.
 
 ## FAQ
 
-- [FAQ](https://dsg-polymtl.github.io/flockmtl/docs/faq): Browse frequently asked questions and find solutions to common issues.
+- [FAQ](https://dais-polymtl.github.io/flockmtl/docs/faq): Browse frequently asked questions and find solutions to common issues.
