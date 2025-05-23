@@ -35,13 +35,13 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::
             batch_size = static_cast<int>(tuples.size());
             do {
                 accumulated_tuples_tokens +=
-                    Tiktoken::GetNumTokens(PromptManager::ConstructNumTuples(static_cast<int>(tuples.size())));
+                        Tiktoken::GetNumTokens(PromptManager::ConstructNumTuples(static_cast<int>(tuples.size())));
                 accumulated_tuples_tokens +=
-                    Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples[start_index]));
+                        Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples));
                 while (accumulated_tuples_tokens < static_cast<unsigned int>(available_tokens) &&
                        start_index < static_cast<int>(tuples.size()) && batch_tuples.size() < batch_size) {
                     const auto num_tokens =
-                        Tiktoken::GetNumTokens(PromptManager::ConstructSingleInputTuple(tuples[start_index]));
+                            Tiktoken::GetNumTokens(PromptManager::ConstructSingleInputTuple(tuples[start_index]));
                     if (accumulated_tuples_tokens + num_tokens > static_cast<unsigned int>(available_tokens)) {
                         break;
                     }
@@ -80,7 +80,7 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::
                 batch_tuples.clear();
                 accumulated_tuples_tokens = 0;
 
-                for (const auto& tuple : response) {
+                for (const auto& tuple: response) {
                     responses.push_back(tuple);
                 }
 
@@ -108,7 +108,7 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::
                     response = new_response;
                 }
                 batch_tuples.clear();
-                for (const auto& tuple : response) {
+                for (const auto& tuple: response) {
                     responses.push_back(tuple);
                 }
             } while (start_index < static_cast<int>(tuples.size()));
@@ -118,4 +118,4 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::
     return responses;
 }
 
-} // namespace flockmtl
+}// namespace flockmtl
