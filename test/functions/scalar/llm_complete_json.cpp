@@ -1,73 +1,80 @@
-#include "flockmtl/functions/scalar/llm_complete.hpp"
+#include "flockmtl/functions/scalar/llm_complete_json.hpp"
 #include "llm_function_test_base.hpp"
 
 namespace flockmtl {
 
-class LLMCompleteTest : public LLMFunctionTestBase<LlmComplete> {
+class LLMCompleteJsonTest : public LLMFunctionTestBase<LlmCompleteJson> {
 protected:
-    static constexpr const char* EXPECTED_RESPONSE = "FlockMTL enhances DuckDB by integrating semantic functions and robust resource management capabilities, enabling advanced analytics and language model operations directly within SQL queries.";
+    static constexpr const char* EXPECTED_JSON_RESPONSE = R"({"explanation": "FlockMTL enhances DuckDB by integrating semantic functions and robust resource management capabilities, enabling advanced analytics and language model operations directly within SQL queries."})";
 
     std::string GetExpectedResponse() const override {
-        return EXPECTED_RESPONSE;
+        return EXPECTED_JSON_RESPONSE;
     }
 
     nlohmann::json GetExpectedJsonResponse() const override {
-        return nlohmann::json{{"tuples", {EXPECTED_RESPONSE}}};
+        return nlohmann::json::parse(EXPECTED_JSON_RESPONSE);
     }
 
     std::string GetFunctionName() const override {
-        return "llm_complete";
+        return "llm_complete_json";
     }
 
     nlohmann::json PrepareExpectedResponseForBatch(const std::vector<std::string>& responses) const override {
-        return nlohmann::json{{"tuples", responses}};
+        nlohmann::json tuples = nlohmann::json::array();
+        for (const auto& response: responses) {
+            tuples.push_back(nlohmann::json::parse(R"({"response": ")" + response + R"("})"));
+        }
+        return nlohmann::json{{"tuples", tuples}};
     }
 
     nlohmann::json PrepareExpectedResponseForLargeInput(size_t input_count) const override {
         nlohmann::json expected_response = {{"tuples", {}}};
         for (size_t i = 0; i < input_count; i++) {
-            expected_response["tuples"].push_back("response " + std::to_string(i));
+            expected_response["tuples"].push_back(nlohmann::json::parse(R"({"response": "response )" + std::to_string(i) + R"("})"));
         }
         return expected_response;
     }
 
     std::string FormatExpectedResult(const nlohmann::json& response) const override {
         if (response.contains("tuples") && response["tuples"].is_array() && !response["tuples"].empty()) {
-            return response["tuples"][0].get<std::string>();
+            return response["tuples"][0].dump();
         }
-        return response.get<std::string>();
+        return response.dump();
     }
 };
 
-// Test llm_complete with SQL queries
-TEST_F(LLMCompleteTest, LLMCompleteWithoutInputColumns) {
+// Test llm_complete_json with SQL queries
+TEST_F(LLMCompleteJsonTest, LLMCompleteJsonWithoutInputColumns) {
+    nlohmann::json expected_response = GetExpectedJsonResponse();
     EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(GetExpectedResponse()));
+            .WillOnce(::testing::Return(expected_response));
 
     auto con = Config::GetConnection();
     const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'},{'prompt': 'Explain the purpose of FlockMTL.'}) AS flockmtl_purpose;");
     ASSERT_EQ(results->RowCount(), 1);
-    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), GetExpectedResponse());
+    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_response.dump());
 }
 
-TEST_F(LLMCompleteTest, LLMCompleteWithInputColumns) {
-    const nlohmann::json expected_response = {{"tuples", {"The capital of Canada is Ottawa."}}};
+TEST_F(LLMCompleteJsonTest, LLMCompleteJsonWithInputColumns) {
+    const nlohmann::json expected_response = {{"tuples", {nlohmann::json::parse(R"({"capital": "Ottawa", "country": "Canada"})")}}};
     EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
             .WillOnce(::testing::Return(expected_response));
 
     auto con = Config::GetConnection();
     const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'},{'prompt': 'What is the capital of France?'}, {'input': 'France'}) AS flockmtl_capital;");
     ASSERT_EQ(results->RowCount(), 1);
-    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_response["tuples"][0]);
+    auto expected_json = expected_response["tuples"][0];
+    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_json.dump());
 }
 
-TEST_F(LLMCompleteTest, ValidateArguments) {
+TEST_F(LLMCompleteJsonTest, ValidateArguments) {
     TestValidateArguments();
 }
 
-TEST_F(LLMCompleteTest, Operation_TwoArguments_SimplePrompt) {
+TEST_F(LLMCompleteJsonTest, Operation_TwoArguments_SimplePrompt) {
+    nlohmann::json expected_response = GetExpectedJsonResponse();
     EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(GetExpectedResponse()));
+            .WillOnce(::testing::Return(expected_response));
 
     duckdb::DataChunk chunk;
     CreateBasicChunk(chunk);
@@ -75,13 +82,13 @@ TEST_F(LLMCompleteTest, Operation_TwoArguments_SimplePrompt) {
     SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
     SetStructStringData(chunk.data[1], {{{"prompt", TEST_PROMPT}}});
 
-    auto results = LlmComplete::Operation(chunk);
+    auto results = LlmCompleteJson::Operation(chunk);
 
     EXPECT_EQ(results.size(), 1);
-    EXPECT_EQ(results[0], GetExpectedResponse());
+    EXPECT_EQ(results[0], expected_response.dump());
 }
 
-TEST_F(LLMCompleteTest, Operation_ThreeArguments_BatchProcessing) {
+TEST_F(LLMCompleteJsonTest, Operation_ThreeArguments_BatchProcessing) {
     const std::vector<std::string> responses = {"response 1", "response 2"};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(responses);
     EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
@@ -101,21 +108,25 @@ TEST_F(LLMCompleteTest, Operation_ThreeArguments_BatchProcessing) {
     SetStructStringData(chunk.data[2], {{{"variable1", "Hello"}, {"variable2", "World"}},
                                         {{"variable1", "Good"}, {"variable2", "Morning"}}});
 
-    auto results = LlmComplete::Operation(chunk);
+    auto results = LlmCompleteJson::Operation(chunk);
 
     EXPECT_EQ(results.size(), 2);
-    EXPECT_EQ(results, expected_response["tuples"]);
+    std::vector<std::string> expected_strings;
+    for (const auto& item: expected_response["tuples"]) {
+        expected_strings.push_back(item.dump());
+    }
+    EXPECT_EQ(results, expected_strings);
 }
 
-TEST_F(LLMCompleteTest, Operation_InvalidArguments_ThrowsException) {
+TEST_F(LLMCompleteJsonTest, Operation_InvalidArguments_ThrowsException) {
     TestOperationInvalidArguments();
 }
 
-TEST_F(LLMCompleteTest, Operation_EmptyPrompt_HandlesGracefully) {
+TEST_F(LLMCompleteJsonTest, Operation_EmptyPrompt_HandlesGracefully) {
     TestOperationEmptyPrompt();
 }
 
-TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
+TEST_F(LLMCompleteJsonTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
@@ -144,10 +155,14 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     SetStructStringData(chunk.data[2], large_input);
 
-    const auto results = LlmComplete::Operation(chunk);
+    const auto results = LlmCompleteJson::Operation(chunk);
 
     EXPECT_EQ(results.size(), input_count);
-    EXPECT_EQ(results, expected_response["tuples"]);
+    std::vector<std::string> expected_strings;
+    for (const auto& item: expected_response["tuples"]) {
+        expected_strings.push_back(item.dump());
+    }
+    EXPECT_EQ(results, expected_strings);
 }
 
 }// namespace flockmtl
