@@ -32,13 +32,13 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
     do {
         accumulated_tuples_tokens = Tiktoken::GetNumTokens(batch_tuples.dump());
         accumulated_tuples_tokens +=
-            Tiktoken::GetNumTokens(PromptManager::ConstructNumTuples(static_cast<int>(tuples.size())));
+                Tiktoken::GetNumTokens(PromptManager::ConstructNumTuples(static_cast<int>(tuples.size())));
         accumulated_tuples_tokens +=
-            Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples[start_index]));
+                Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples));
         while (accumulated_tuples_tokens < static_cast<unsigned int>(available_tokens) &&
                start_index < static_cast<int>(tuples.size())) {
             const auto num_tokens =
-                Tiktoken::GetNumTokens(PromptManager::ConstructSingleInputTuple(tuples[start_index]));
+                    Tiktoken::GetNumTokens(PromptManager::ConstructSingleInputTuple(tuples[start_index]));
             if (accumulated_tuples_tokens + num_tokens > static_cast<unsigned int>(available_tokens)) {
                 break;
             }
@@ -58,22 +58,27 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
 void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
                                      duckdb::Vector& result, idx_t count, idx_t offset,
                                      AggregateFunctionType function_type) {
-    auto states_vector = duckdb::FlatVector::GetData<AggregateFunctionState*>(states);
+    const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
     auto function_instance = AggregateFunctionBase::GetInstance<LlmFirstOrLast>();
     function_instance->function_type = function_type;
+
     for (idx_t i = 0; i < count; i++) {
         auto idx = i + offset;
-        auto state_ptr = states_vector[idx];
-        auto state = function_instance->state_map[state_ptr];
-        auto tuples_with_ids = nlohmann::json::array();
-        for (auto j = 0; j < static_cast<int>(state->value.size()); j++) {
-            auto tuple_with_id = state->value[j];
-            tuple_with_id["flockmtl_tuple_id"] = j;
-            tuples_with_ids.push_back(tuple_with_id);
+        auto* state = states_vector[idx];
+
+        if (state && state->value) {
+            auto tuples_with_ids = nlohmann::json::array();
+            for (auto j = 0; j < static_cast<int>(state->value->size()); j++) {
+                auto tuple_with_id = (*state->value)[j];
+                tuple_with_id["flockmtl_tuple_id"] = j;
+                tuples_with_ids.push_back(tuple_with_id);
+            }
+            auto response = function_instance->Evaluate(tuples_with_ids);
+            result.SetValue(idx, response.dump());
+        } else {
+            result.SetValue(idx, "{}");// Empty JSON object for null/empty states
         }
-        auto response = function_instance->Evaluate(tuples_with_ids);
-        result.SetValue(idx, response.dump());
     }
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

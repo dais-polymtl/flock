@@ -33,13 +33,13 @@ nlohmann::json LlmReduce::ReduceLoop(const std::vector<nlohmann::json>& tuples,
     do {
         accumulated_tuples_tokens = Tiktoken::GetNumTokens(batch_tuples.dump());
         accumulated_tuples_tokens +=
-            Tiktoken::GetNumTokens(PromptManager::ConstructNumTuples(static_cast<int>(tuples.size())));
+                Tiktoken::GetNumTokens(PromptManager::ConstructNumTuples(static_cast<int>(tuples.size())));
         accumulated_tuples_tokens +=
-            Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples[start_index]));
+                Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples));
         while (accumulated_tuples_tokens < static_cast<unsigned int>(available_tokens) &&
                start_index < static_cast<int>(tuples.size())) {
             const auto num_tokens =
-                Tiktoken::GetNumTokens(PromptManager::ConstructSingleInputTuple(tuples[start_index]));
+                    Tiktoken::GetNumTokens(PromptManager::ConstructSingleInputTuple(tuples[start_index]));
             if (accumulated_tuples_tokens + num_tokens > static_cast<unsigned int>(available_tokens)) {
                 break;
             }
@@ -59,17 +59,20 @@ nlohmann::json LlmReduce::ReduceLoop(const std::vector<nlohmann::json>& tuples,
 void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
                                 duckdb::Vector& result, idx_t count, idx_t offset,
                                 const AggregateFunctionType function_type) {
-    auto states_vector = duckdb::FlatVector::GetData<AggregateFunctionState*>(states);
+    const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
     auto function_instance = AggregateFunctionBase::GetInstance<LlmReduce>();
     for (idx_t i = 0; i < count; i++) {
         auto idx = i + offset;
-        auto state_ptr = states_vector[idx];
-        auto state = function_instance->state_map[state_ptr];
+        auto* state = states_vector[idx];
 
-        auto response = function_instance->ReduceLoop(state->value, function_type);
-        result.SetValue(idx, response.get<std::string>());
+        if (state && state->value) {
+            auto response = function_instance->ReduceLoop(*state->value, function_type);
+            result.SetValue(idx, response.get<std::string>());
+        } else {
+            result.SetValue(idx, "");// Empty result for null/empty states
+        }
     }
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

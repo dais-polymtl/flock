@@ -6,7 +6,7 @@ int LlmRerank::GetAvailableTokens() {
     int num_tokens_meta_and_reduce_query = 0;
     num_tokens_meta_and_reduce_query += Tiktoken::GetNumTokens(user_query);
     num_tokens_meta_and_reduce_query +=
-        Tiktoken::GetNumTokens(PromptManager::GetTemplate(AggregateFunctionType::RERANK));
+            Tiktoken::GetNumTokens(PromptManager::GetTemplate(AggregateFunctionType::RERANK));
 
     auto model_context_size = model.GetModelDetails().context_window;
     if (num_tokens_meta_and_reduce_query > model_context_size) {
@@ -20,7 +20,7 @@ int LlmRerank::GetAvailableTokens() {
 std::vector<int> LlmRerank::RerankBatch(const nlohmann::json& tuples) {
     nlohmann::json data;
     auto prompt =
-        PromptManager::Render(user_query, tuples, AggregateFunctionType::RERANK, model.GetModelDetails().tuple_format);
+            PromptManager::Render(user_query, tuples, AggregateFunctionType::RERANK, model.GetModelDetails().tuple_format);
     auto response = model.CallComplete(prompt);
     return response["ranking"].get<std::vector<int>>();
 };
@@ -42,9 +42,8 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
         batch_size = half_batch;
         accumulated_rows_tokens = Tiktoken::GetNumTokens(window_tuples.dump());
         accumulated_rows_tokens +=
-            Tiktoken::GetNumTokens(PromptManager::ConstructNumTuples(static_cast<int>(tuples.size())));
-        accumulated_rows_tokens +=
-            Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples[start_index]));
+                Tiktoken::GetNumTokens(PromptManager::ConstructNumTuples(static_cast<int>(tuples.size())));
+        accumulated_rows_tokens += Tiktoken::GetNumTokens(PromptManager::ConstructInputTuplesHeader(tuples));
         while (available_tokens - accumulated_rows_tokens > 0 && start_index >= 0) {
             auto num_tokens = Tiktoken::GetNumTokens(PromptManager::ConstructSingleInputTuple(tuples[start_index]));
             if (accumulated_rows_tokens + num_tokens > static_cast<unsigned int>(available_tokens)) {
@@ -65,7 +64,7 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
 
         auto ranked_indices = RerankBatch(indexed_tuples);
 
-        half_batch = batch_size / 2;
+        half_batch = batch_size / 2 + 1;
         next_tuples = nlohmann::json::array();
         for (auto i = 0; i < half_batch; i++) {
             next_tuples.push_back(window_tuples[ranked_indices[i]]);
@@ -77,20 +76,24 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
 
 void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, duckdb::Vector& result,
                          idx_t count, idx_t offset) {
-    auto states_vector = duckdb::FlatVector::GetData<AggregateFunctionState*>(states);
+    const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
     auto function_instance = AggregateFunctionBase::GetInstance<LlmRerank>();
+
     for (idx_t i = 0; i < count; i++) {
         auto idx = i + offset;
-        auto state_ptr = states_vector[idx];
-        auto state = function_instance->state_map[state_ptr];
+        auto* state = states_vector[idx];
 
-        auto tuples_with_ids = nlohmann::json::array();
-        for (auto j = 0; j < static_cast<int>(state->value.size()); j++) {
-            tuples_with_ids.push_back(state->value[j]);
+        if (state && state->value) {
+            auto tuples_with_ids = nlohmann::json::array();
+            for (auto j = 0; j < static_cast<int>(state->value->size()); j++) {
+                tuples_with_ids.push_back((*state->value)[j]);
+            }
+            auto reranked_tuples = function_instance->SlidingWindow(tuples_with_ids);
+            result.SetValue(idx, reranked_tuples.dump());
+        } else {
+            result.SetValue(idx, "[]");// Empty result for null/empty states
         }
-        auto reranked_tuples = function_instance->SlidingWindow(tuples_with_ids);
-        result.SetValue(idx, reranked_tuples.dump());
     }
 }
 
-} // namespace flockmtl
+}// namespace flockmtl
