@@ -28,14 +28,17 @@ public:
                         idx_t count) {
         AggregateFunctionBase::Combine<LlmReduce>(source, target, aggr_input_data, count);
     }
+    static void Destroy(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, idx_t count) {
+        AggregateFunctionBase::Destroy<LlmReduce>(states, aggr_input_data, count);
+    }
     static void FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
                                 duckdb::Vector& result, idx_t count, idx_t offset,
                                 const AggregateFunctionType function_type);
-    template <AggregateFunctionType function_type>
+    template<AggregateFunctionType function_type>
     static void Finalize(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, duckdb::Vector& result,
                          idx_t count, idx_t offset) {
         FinalizeResults(states, aggr_input_data, result, count, offset, function_type);
     };
 };
 
-} // namespace flockmtl
+}// namespace flockmtl

@@ -27,8 +27,11 @@ public:
                         idx_t count) {
         AggregateFunctionBase::Combine<LlmRerank>(source, target, aggr_input_data, count);
     }
+    static void Destroy(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, idx_t count) {
+        AggregateFunctionBase::Destroy<LlmRerank>(states, aggr_input_data, count);
+    }
     static void Finalize(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, duckdb::Vector& result,
                          idx_t count, idx_t offset);
 };
 
-} // namespace flockmtl
+}// namespace flockmtl
