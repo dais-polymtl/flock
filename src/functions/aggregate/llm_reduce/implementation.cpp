@@ -68,7 +68,11 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
 
         if (state && state->value) {
             auto response = function_instance->ReduceLoop(*state->value, function_type);
-            result.SetValue(idx, response.get<std::string>());
+            if (function_type == AggregateFunctionType::REDUCE) {
+                result.SetValue(idx, response.get<std::string>());
+            } else if (function_type == AggregateFunctionType::REDUCE_JSON) {
+                result.SetValue(idx, response.dump());
+            }
         } else {
             result.SetValue(idx, "");// Empty result for null/empty states
         }
