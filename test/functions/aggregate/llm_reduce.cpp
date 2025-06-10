@@ -121,18 +121,6 @@ TEST_F(LLMReduceTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     auto con = Config::GetConnection();
 
-    // Create test table with many rows
-    con.Query("CREATE TABLE test_large_dataset (id INTEGER, description VARCHAR);");
-
-    std::string insert_query = "INSERT INTO test_large_dataset VALUES ";
-    for (size_t i = 0; i < input_count; i++) {
-        if (i > 0) insert_query += ", ";
-        insert_query += "(" + std::to_string(i) + ", 'Product description " + std::to_string(i) + "')";
-    }
-    insert_query += ";";
-
-    con.Query(insert_query);
-
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
                                             "{'model_name': 'gpt-4o'}, "

@@ -45,6 +45,7 @@ protected:
 
     void TearDown() override {
         Model::ResetMockProvider();
+        mock_provider = nullptr;
     }
 
     // Helper to create struct types with common patterns
