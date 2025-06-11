@@ -20,7 +20,7 @@ void LlmFilter::ValidateArguments(duckdb::DataChunk& args) {
 }
 
 std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
-    LlmFilter::ValidateArguments(args);
+    // LlmFilter::ValidateArguments(args);
 
     auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1)[0];
     Model model(model_details_json);

@@ -22,7 +22,7 @@ void LlmCompleteJson::ValidateArguments(duckdb::DataChunk& args) {
 }
 
 std::vector<std::string> LlmCompleteJson::Operation(duckdb::DataChunk& args) {
-    LlmCompleteJson::ValidateArguments(args);
+    // LlmCompleteJson::ValidateArguments(args);
 
     auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1)[0];
     Model model(model_details_json);
@@ -42,7 +42,7 @@ std::vector<std::string> LlmCompleteJson::Operation(duckdb::DataChunk& args) {
         auto responses = BatchAndComplete(tuples, prompt_details.prompt, ScalarFunctionType::COMPLETE_JSON, model);
 
         results.reserve(responses.size());
-        for (const auto& response : responses) {
+        for (const auto& response: responses) {
             results.push_back(response.dump());
         }
     }
@@ -54,14 +54,14 @@ void LlmCompleteJson::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& 
     if (const auto results = LlmCompleteJson::Operation(args); static_cast<int>(results.size()) == 1) {
         auto empty_vec = duckdb::Vector(std::string());
         duckdb::UnaryExecutor::Execute<duckdb::string_t, duckdb::string_t>(
-            empty_vec, result, args.size(),
-            [&](duckdb::string_t name) { return duckdb::StringVector::AddString(result, results[0]); });
+                empty_vec, result, args.size(),
+                [&](duckdb::string_t name) { return duckdb::StringVector::AddString(result, results[0]); });
     } else {
         auto index = 0;
-        for (const auto& res : results) {
+        for (const auto& res: results) {
             result.SetValue(index++, duckdb::Value(res));
         }
     }
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

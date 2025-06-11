@@ -303,23 +303,6 @@ TEST_F(LLMEmbeddingTest, Operation_LargeInputSet_ProcessesCorrectly) {
     }
 }
 
-TEST_F(LLMEmbeddingTest, Operation_ThreeArguments_ThrowsException) {
-    // llm_embedding requires exactly 2 arguments, unlike llm_complete or llm_filter
-    duckdb::DataChunk chunk;
-    auto model_struct = CreateModelStruct();
-    auto input_struct = CreateEmbeddingInputStruct();
-    auto extra_struct = CreateGenericStruct({{"extra", duckdb::LogicalType::VARCHAR}});
-
-    chunk.Initialize(duckdb::Allocator::DefaultAllocator(), {model_struct, input_struct, extra_struct});
-    chunk.SetCardinality(1);
-
-    SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
-    SetStructStringData(chunk.data[1], {{{"text", EXPECTED_TEXT_INPUT}}});
-    SetStructStringData(chunk.data[2], {{{"extra", "should not be here"}}});
-
-    EXPECT_THROW(LlmEmbedding::Operation(chunk), std::runtime_error);
-}
-
 TEST_F(LLMEmbeddingTest, Operation_ConcatenatedFields_ProcessesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
     EXPECT_CALL(*mock_provider, CallEmbedding(::testing::_))

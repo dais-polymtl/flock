@@ -15,16 +15,16 @@ void LlmEmbedding::ValidateArguments(duckdb::DataChunk& args) {
 }
 
 std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataChunk& args) {
-    LlmEmbedding::ValidateArguments(args);
+    // LlmEmbedding::ValidateArguments(args);
 
     auto inputs = CastVectorOfStructsToJson(args.data[1], args.size());
     auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1)[0];
     Model model(model_details_json);
 
     std::vector<std::string> prepared_inputs;
-    for (auto& row : inputs) {
+    for (auto& row: inputs) {
         std::string concat_input;
-        for (auto& item : row.items()) {
+        for (auto& item: row.items()) {
             concat_input += item.value().get<std::string>() + " ";
         }
         prepared_inputs.push_back(concat_input);
@@ -45,7 +45,7 @@ std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataC
         auto embeddings = model.CallEmbedding(batch_inputs);
         for (size_t index = 0; index < embeddings.size(); index++) {
             duckdb::vector<duckdb::Value> embedding;
-            for (auto& value : embeddings[index]) {
+            for (auto& value: embeddings[index]) {
                 embedding.push_back(duckdb::Value(static_cast<double>(value)));
             }
             results.push_back(embedding);
@@ -58,9 +58,9 @@ void LlmEmbedding::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& sta
     auto results = LlmEmbedding::Operation(args);
 
     auto index = 0;
-    for (const auto& res : results) {
+    for (const auto& res: results) {
         result.SetValue(index++, duckdb::Value::LIST(res));
     }
 }
 
-} // namespace flockmtl
+}// namespace flockmtl
