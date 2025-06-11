@@ -20,7 +20,7 @@ void LlmFilter::ValidateArguments(duckdb::DataChunk& args) {
 }
 
 std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
-    LlmFilter::ValidateArguments(args);
+    // LlmFilter::ValidateArguments(args);
 
     auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1)[0];
     Model model(model_details_json);
@@ -33,9 +33,9 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
 
     std::vector<std::string> results;
     results.reserve(responses.size());
-    for (const auto& response : responses) {
+    for (const auto& response: responses) {
         if (response.is_null()) {
-            results.emplace_back("True");
+            results.emplace_back("true");
             continue;
         }
         results.push_back(response.dump());
@@ -48,9 +48,9 @@ void LlmFilter::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state,
     const auto results = LlmFilter::Operation(args);
 
     auto index = 0;
-    for (const auto& res : results) {
+    for (const auto& res: results) {
         result.SetValue(index++, duckdb::Value(res));
     }
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

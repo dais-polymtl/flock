@@ -1,19 +1,19 @@
 #pragma once
 
-#include <tuple>
-#include <vector>
-#include <string>
-#include <utility>
-#include <nlohmann/json.hpp>
 #include "fmt/format.h"
+#include <nlohmann/json.hpp>
+#include <string>
+#include <tuple>
+#include <utility>
+#include <vector>
 
+#include "duckdb/main/connection.hpp"
 #include "flockmtl/core/config.hpp"
-#include "flockmtl/model_manager/repository.hpp"
-#include "flockmtl/model_manager/providers/adapters/openai.hpp"
 #include "flockmtl/model_manager/providers/adapters/azure.hpp"
 #include "flockmtl/model_manager/providers/adapters/ollama.hpp"
+#include "flockmtl/model_manager/providers/adapters/openai.hpp"
 #include "flockmtl/model_manager/providers/handlers/ollama.hpp"
-#include "duckdb/main/connection.hpp"
+#include "flockmtl/model_manager/repository.hpp"
 
 namespace flockmtl {
 
@@ -25,13 +25,22 @@ public:
     nlohmann::json CallEmbedding(const std::vector<std::string>& inputs);
     ModelDetails GetModelDetails();
 
+    static void SetMockProvider(const std::shared_ptr<IProvider>& mock_provider) {
+        mock_provider_ = mock_provider;
+    }
+    static void ResetMockProvider() {
+        mock_provider_ = nullptr;
+    }
+
 private:
-    std::shared_ptr<IProvider> provider_;
+    std::shared_ptr<IProvider>
+            provider_;
     ModelDetails model_details_;
+    inline static std::shared_ptr<IProvider> mock_provider_ = nullptr;
     void ConstructProvider();
     void LoadModelDetails(const nlohmann::json& model_json);
     std::tuple<std::string, std::string, int32_t, int32_t> GetQueriedModel(const std::string& model_name);
     std::string GetSecret(const std::string& secret_name);
 };
 
-} // namespace flockmtl
+}// namespace flockmtl

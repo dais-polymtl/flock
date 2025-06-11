@@ -174,6 +174,9 @@ PromptDetails PromptManager::CreatePromptDetails(const nlohmann::json& prompt_de
             if (prompt_details_json.size() > 1) {
                 throw std::runtime_error("");
             }
+            if (prompt_details_json["prompt"].get<std::string>().empty()) {
+                throw std::runtime_error("The prompt cannot be empty");
+            }
             prompt_details.prompt = prompt_details_json["prompt"];
         } else {
             throw std::runtime_error("");
