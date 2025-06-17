@@ -4,16 +4,16 @@
 name: Main Extension Distribution Pipeline
 on:
   push:
-    branches:
-    #      - main
-    paths:
-      - .github/workflows/_extension_deploy.yml
-      - .github/workflows/MainDistributionPipeline.yml
-      - duckdb/**
-      - extension-ci-tools/**
-      - src/**
-      - CMakelists.txt
-      - extension_config.cmake
+  #    branches:
+  #      - main
+#    paths:
+#      - .github/workflows/_extension_deploy.yml
+#      - .github/workflows/MainDistributionPipeline.yml
+#      - duckdb/**
+#      - extension-ci-tools/**
+#      - src/**
+#      - CMakelists.txt
+#      - extension_config.cmake
 
 
 concurrency:
