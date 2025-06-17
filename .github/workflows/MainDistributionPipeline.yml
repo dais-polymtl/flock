@@ -37,7 +37,7 @@ jobs:
       duckdb_version: v1.3.0
       ci_tools_version: v1.3.0
       extension_name: flockmtl
-      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh;linux_amd64;linux_amd64_gcc4;linux_arm64;linux_amd64_musl;osx_amd64;osx_arm64'
+      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh;linux_amd64;linux_amd64_gcc4;linux_arm64;linux_amd64_musl;osx_amd64;osx_arm64;windows_amd64'
 
 #  duckdb-stable-deploy:
 #    name: Deploy extension binaries
