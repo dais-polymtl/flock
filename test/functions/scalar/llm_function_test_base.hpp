@@ -1,6 +1,5 @@
 #pragma once
 
-#include "flockmtl/core/config.hpp"
 #include "flockmtl/model_manager/model.hpp"
 #include "flockmtl/model_manager/providers/adapters/openai.hpp"
 #include "nlohmann/json.hpp"
