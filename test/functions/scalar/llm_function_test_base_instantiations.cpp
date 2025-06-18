@@ -26,14 +26,14 @@ void LLMFunctionTestBase<FunctionClass>::TearDown() {
 template<typename FunctionClass>
 duckdb::LogicalType LLMFunctionTestBase<FunctionClass>::CreateModelStruct() {
     duckdb::child_list_t<duckdb::LogicalType> fields = {
-            {"model_name", duckdb::LogicalType::VARCHAR}};
+            {"model_name", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}};
     return duckdb::LogicalType::STRUCT(fields);
 }
 
 template<typename FunctionClass>
 duckdb::LogicalType LLMFunctionTestBase<FunctionClass>::CreatePromptStruct() {
     duckdb::child_list_t<duckdb::LogicalType> fields = {
-            {"prompt", duckdb::LogicalType::VARCHAR}};
+            {"prompt", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}};
     return duckdb::LogicalType::STRUCT(fields);
 }
 
@@ -41,7 +41,7 @@ template<typename FunctionClass>
 duckdb::LogicalType LLMFunctionTestBase<FunctionClass>::CreateInputStruct(const std::vector<std::string>& field_names) {
     duckdb::child_list_t<duckdb::LogicalType> fields;
     for (const auto& name: field_names) {
-        fields.emplace_back(name, duckdb::LogicalType::VARCHAR);
+        fields.emplace_back(name, duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR));
     }
     return duckdb::LogicalType::STRUCT(fields);
 }
@@ -91,8 +91,8 @@ void LLMFunctionTestBase<FunctionClass>::TestValidateArguments() {
     {
         // Valid case with 2 arguments (both structs) - for functions like llm_complete
         duckdb::DataChunk chunk;
-        auto model_struct = CreateGenericStruct({{"provider", duckdb::LogicalType::VARCHAR}, {"model", duckdb::LogicalType::VARCHAR}});
-        auto prompt_struct = CreateGenericStruct({{"text", duckdb::LogicalType::VARCHAR}});
+        auto model_struct = CreateGenericStruct({{"provider", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}, {"model", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}});
+        auto prompt_struct = CreateGenericStruct({{"text", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}});
 
         chunk.Initialize(duckdb::Allocator::DefaultAllocator(), {model_struct, prompt_struct});
         chunk.SetCardinality(1);
@@ -109,9 +109,9 @@ void LLMFunctionTestBase<FunctionClass>::TestValidateArguments() {
     {
         // Valid case with 3 arguments (all structs) - for functions like llm_filter
         duckdb::DataChunk chunk;
-        auto model_struct = CreateGenericStruct({{"provider", duckdb::LogicalType::VARCHAR}});
-        auto prompt_struct = CreateGenericStruct({{"text", duckdb::LogicalType::VARCHAR}});
-        auto input_struct = CreateGenericStruct({{"variables", duckdb::LogicalType::VARCHAR}});
+        auto model_struct = CreateGenericStruct({{"provider", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}});
+        auto prompt_struct = CreateGenericStruct({{"text", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}});
+        auto input_struct = CreateGenericStruct({{"variables", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}});
 
         chunk.Initialize(duckdb::Allocator::DefaultAllocator(), {model_struct, prompt_struct, input_struct});
         chunk.SetCardinality(1);
@@ -126,11 +126,11 @@ void LLMFunctionTestBase<FunctionClass>::TestValidateArguments() {
     };
 
     std::vector<InvalidTestCase> invalid_cases = {
-            {"too few arguments (1 argument)", {CreateGenericStruct({{"field", duckdb::LogicalType::VARCHAR}})}},
-            {"too many arguments (4 arguments)", {CreateGenericStruct({{"field", duckdb::LogicalType::VARCHAR}}), CreateGenericStruct({{"field", duckdb::LogicalType::VARCHAR}}), CreateGenericStruct({{"field", duckdb::LogicalType::VARCHAR}}), CreateGenericStruct({{"field", duckdb::LogicalType::VARCHAR}})}},
-            {"first argument is not a struct", {duckdb::LogicalType::VARCHAR, CreateGenericStruct({{"field", duckdb::LogicalType::VARCHAR}})}},
-            {"second argument is not a struct", {CreateGenericStruct({{"field", duckdb::LogicalType::VARCHAR}}), duckdb::LogicalType::INTEGER}},
-            {"third argument exists but is not a struct", {CreateGenericStruct({{"field", duckdb::LogicalType::VARCHAR}}), CreateGenericStruct({{"field", duckdb::LogicalType::VARCHAR}}), duckdb::LogicalType::BOOLEAN}}};
+            {"too few arguments (1 argument)", {CreateGenericStruct({{"field", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}})}},
+            {"too many arguments (4 arguments)", {CreateGenericStruct({{"field", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}}), CreateGenericStruct({{"field", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}}), CreateGenericStruct({{"field", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}}), CreateGenericStruct({{"field", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}})}},
+            {"first argument is not a struct", {duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR), CreateGenericStruct({{"field", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}})}},
+            {"second argument is not a struct", {CreateGenericStruct({{"field", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}}), duckdb::LogicalType::INTEGER}},
+            {"third argument exists but is not a struct", {CreateGenericStruct({{"field", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}}), CreateGenericStruct({{"field", duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)}}), duckdb::LogicalType::BOOLEAN}}};
 
     for (const auto& test_case: invalid_cases) {
         SCOPED_TRACE("Testing: " + test_case.description);
@@ -145,7 +145,7 @@ void LLMFunctionTestBase<FunctionClass>::TestValidateArguments() {
 template<typename FunctionClass>
 void LLMFunctionTestBase<FunctionClass>::TestOperationInvalidArguments() {
     duckdb::DataChunk chunk;
-    chunk.Initialize(duckdb::Allocator::DefaultAllocator(), {duckdb::LogicalType::VARCHAR});
+    chunk.Initialize(duckdb::Allocator::DefaultAllocator(), {duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)});
     chunk.SetCardinality(1);
 
     EXPECT_THROW(FunctionClass::Operation(chunk), std::runtime_error);
