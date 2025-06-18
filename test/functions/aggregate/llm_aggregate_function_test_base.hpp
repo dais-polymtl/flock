@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../mock_provider.hpp"
 #include "flockmtl/core/config.hpp"
 #include "flockmtl/functions/aggregate/aggregate.hpp"
 #include "flockmtl/model_manager/model.hpp"
@@ -12,16 +13,6 @@
 #include <string>
 
 namespace flockmtl {
-
-// Mock class for OpenAI API to avoid real API calls during tests
-class MockOpenAIProvider : public OpenAIProvider {
-public:
-    explicit MockOpenAIProvider() : OpenAIProvider(ModelDetails()) {}
-
-    // Override the API call methods for testing
-    MOCK_METHOD(nlohmann::json, CallComplete, (const std::string& prompt, bool json_response), (override));
-    MOCK_METHOD(nlohmann::json, CallEmbedding, (const std::vector<std::string>& inputs), (override));
-};
 
 // Base template class for LLM aggregate function tests
 template<typename FunctionClass>
