@@ -12,9 +12,9 @@ on:
       - duckdb/**
       - extension-ci-tools/**
       - src/**
+      - test/**
       - CMakelists.txt
       - extension_config.cmake
-
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
