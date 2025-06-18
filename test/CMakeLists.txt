@@ -3,17 +3,13 @@ find_package(GTest CONFIG REQUIRED)
 file(GLOB_RECURSE TEST_SOURCES *.cpp)
 list(REMOVE_ITEM TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/test_main.cpp")
 
-# Exclude mock_provider files
-file(GLOB_RECURSE MOCK_PROVIDER_FILES "*mock_provider*")
-if(MOCK_PROVIDER_FILES)
-  list(REMOVE_ITEM TEST_SOURCES ${MOCK_PROVIDER_FILES})
-endif()
-
-# Exclude llm files in the scalar folder
-file(GLOB LLM_SCALAR_FILES
-     "${CMAKE_CURRENT_SOURCE_DIR}/functions/scalar/llm*.cpp")
-if(LLM_SCALAR_FILES)
-  list(REMOVE_ITEM TEST_SOURCES ${LLM_SCALAR_FILES})
+# Exclude specific llm files in the scalar folder (but keep llm_embedding and
+# llm_filter)
+file(GLOB LLM_SCALAR_FILES_TO_EXCLUDE
+     "${CMAKE_CURRENT_SOURCE_DIR}/functions/scalar/llm_complete.cpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/functions/scalar/llm_complete_json.cpp")
+if(LLM_SCALAR_FILES_TO_EXCLUDE)
+  list(REMOVE_ITEM TEST_SOURCES ${LLM_SCALAR_FILES_TO_EXCLUDE})
 endif()
 
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/flockmtl_test.db
