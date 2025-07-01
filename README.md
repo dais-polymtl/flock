@@ -8,7 +8,7 @@
   </a>
   <br /><br />
   <p align="center">
-    A DBMS extension that deeply integrates LLM and RAG capabilities directly into OLAP systems to seamlessly mix analytics with semantic analysis.
+    A multimodal querying DBMS extension that deeply integrates LLM and RAG capabilities directly into OLAP systems.
     <br />
     <a href="https://dais-polymtl.github.io/flockmtl/docs/what-is-flockmtl"><strong>Explore the docs »</strong></a>
     <br />
@@ -46,6 +46,19 @@
 ## 📜 About The Project
 
 FlockMTL is an advanced **DuckDB** extension that seamlessly integrates analytics with semantic analysis through declarative SQL queries. Designed for modern data analysis needs, FlockMTL empowers users to work with structured and unstructured data, combining OLAP workflows with the capabilities of **LLMs** (Large Language Models) and **RAG** (Retrieval-Augmented Generation) pipelines.
+
+To cite the project:
+```
+@article{DBLP:journals/corr/abs-2504-01157,
+  author       = {Anas Dorbani and Sunny Yasser and Jimmy Lin and Amine Mhedhbi},
+  title        = {Beyond Quacking: Deep Integration of Language Models and {RAG} into DuckDB},
+  journal      = {CoRR},
+  volume       = {abs/2504.01157},
+  year         = {2025},
+  url          = {https://doi.org/10.48550/arXiv.2504.01157},
+  doi          = {10.48550/ARXIV.2504.01157}
+}
+```
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
