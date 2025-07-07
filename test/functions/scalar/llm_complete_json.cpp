@@ -43,7 +43,6 @@ protected:
     }
 };
 
-// Test llm_complete_json with SQL queries
 TEST_F(LLMCompleteJsonTest, LLMCompleteJsonWithoutInputColumns) {
     nlohmann::json expected_response = GetExpectedJsonResponse();
     EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
