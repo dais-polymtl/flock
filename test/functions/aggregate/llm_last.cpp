@@ -6,7 +6,7 @@ namespace flockmtl {
 class LLMLastTest : public LLMAggregateTestBase<LlmFirstOrLast> {
 protected:
     // The LLM response (for mocking) - for llm_last, it should select the last index
-    static constexpr const char* LLM_RESPONSE = R"({"selected": 0})";
+    static constexpr const char* LLM_RESPONSE = R"({"items":[0]})";
     // The expected function output (selected data from the last position)
     static constexpr const char* EXPECTED_RESPONSE = R"({"product_description":"High-performance running shoes with advanced cushioning"})";
 
@@ -41,7 +41,7 @@ protected:
 
 // Test llm_last with SQL queries without GROUP BY
 TEST_F(LLMLastTest, LLMLastWithoutGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(GetExpectedJsonResponse()));
 
     auto con = Config::GetConnection();
@@ -59,7 +59,7 @@ TEST_F(LLMLastTest, LLMLastWithoutGroupBy) {
 
 // Test llm_last with SQL queries with GROUP BY
 TEST_F(LLMLastTest, LLMLastWithGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .Times(3)
             .WillRepeatedly(::testing::Return(GetExpectedJsonResponse()));
 
@@ -95,7 +95,7 @@ TEST_F(LLMLastTest, Operation_InvalidArguments_ThrowsException) {
 TEST_F(LLMLastTest, Operation_MultipleInputs_ProcessesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .Times(3)
             .WillRepeatedly(::testing::Return(expected_response));
 
@@ -122,7 +122,7 @@ TEST_F(LLMLastTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .Times(100)
             .WillRepeatedly(::testing::Return(expected_response));
 

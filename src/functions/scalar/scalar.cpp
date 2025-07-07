@@ -7,9 +7,7 @@ nlohmann::json ScalarFunctionBase::Complete(const nlohmann::json& tuples, const 
     nlohmann::json data;
     const auto prompt = PromptManager::Render(user_prompt, tuples, function_type, model.GetModelDetails().tuple_format);
     OutputType output_type = OutputType::STRING;
-    if (function_type == ScalarFunctionType::COMPLETE_JSON) {
-        output_type = OutputType::OBJECT;
-    } else if (function_type == ScalarFunctionType::FILTER) {
+    if (function_type == ScalarFunctionType::FILTER) {
         output_type = OutputType::BOOL;
     }
     auto response = model.CallComplete(prompt, true, output_type);

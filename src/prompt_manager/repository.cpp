@@ -17,8 +17,6 @@ std::string INSTRUCTIONS::Get(AggregateFunctionType option) {
 template<>
 std::string RESPONSE_FORMAT::Get(const ScalarFunctionType option) {
     switch (option) {
-        case ScalarFunctionType::COMPLETE_JSON:
-            return RESPONSE_FORMAT::COMPLETE_JSON;
         case ScalarFunctionType::COMPLETE:
             return RESPONSE_FORMAT::COMPLETE;
         case ScalarFunctionType::FILTER:
@@ -33,8 +31,6 @@ std::string RESPONSE_FORMAT::Get(const AggregateFunctionType option) {
     switch (option) {
         case AggregateFunctionType::REDUCE:
             return RESPONSE_FORMAT::REDUCE;
-        case AggregateFunctionType::REDUCE_JSON:
-            return RESPONSE_FORMAT::REDUCE_JSON;
         case AggregateFunctionType::RERANK:
             return RESPONSE_FORMAT::RERANK;
         case AggregateFunctionType::FIRST:

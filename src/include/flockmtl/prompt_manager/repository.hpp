@@ -11,13 +11,11 @@ enum class PromptSection { USER_PROMPT,
                            INSTRUCTIONS };
 
 enum class AggregateFunctionType { REDUCE,
-                                   REDUCE_JSON,
                                    FIRST,
                                    LAST,
                                    RERANK };
 
-enum class ScalarFunctionType { COMPLETE_JSON,
-                                COMPLETE,
+enum class ScalarFunctionType { COMPLETE,
                                 FILTER };
 
 enum class TupleFormat { XML,
@@ -57,9 +55,6 @@ public:
 class RESPONSE_FORMAT {
 public:
     // Scalar Functions
-    static constexpr auto COMPLETE_JSON =
-            "You should return the responses to the user's prompt for each tuple in a "
-            "JSON format that contains the necessary columns for the answer.";
     static constexpr auto COMPLETE =
             "You should return the responses to the user's prompt for each tuple in plain text. Ensure no tuple is "
             "missed.";
@@ -70,10 +65,6 @@ public:
     // Aggregate Functions
     static constexpr auto REDUCE =
             "Return a single, coherent output that synthesizes the most relevant information from the tuples provided.";
-    static constexpr auto REDUCE_JSON =
-            "Return a single, coherent output that synthesizes the most relevant information from the tuples provided."
-            "Respond in the following JSON format where the summarized content should be in JSON format that contains "
-            "the necessary columns for the answer.";
     static constexpr auto FIRST_OR_LAST =
             "Identify the {{RELEVANCE}} relevant tuple based on the provided user prompt from the list of tuples. "
             "Output the index of this single tuple";

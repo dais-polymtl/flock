@@ -15,7 +15,7 @@ public:
     explicit MockOpenAIProvider(const ModelDetails& model_details) : OpenAIProvider(model_details) {}
 
     // Override the API call methods for testing
-    MOCK_METHOD(nlohmann::json, CallComplete, (const std::string& prompt, bool json_response), (override));
+    MOCK_METHOD(nlohmann::json, CallComplete, (const std::string& prompt, bool json_response, OutputType output_type), (override));
     MOCK_METHOD(nlohmann::json, CallEmbedding, (const std::vector<std::string>& inputs), (override));
 };
 
@@ -25,7 +25,7 @@ public:
     explicit MockAzureProvider(const ModelDetails& model_details) : AzureProvider(model_details) {}
 
     // Override the API call methods for testing
-    MOCK_METHOD(nlohmann::json, CallComplete, (const std::string& prompt, bool json_response), (override));
+    MOCK_METHOD(nlohmann::json, CallComplete, (const std::string& prompt, bool json_response, OutputType output_type), (override));
     MOCK_METHOD(nlohmann::json, CallEmbedding, (const std::vector<std::string>& inputs), (override));
 };
 
@@ -35,7 +35,7 @@ public:
     explicit MockOllamaProvider(const ModelDetails& model_details) : OllamaProvider(model_details) {}
 
     // Override the API call methods for testing
-    MOCK_METHOD(nlohmann::json, CallComplete, (const std::string& prompt, bool json_response), (override));
+    MOCK_METHOD(nlohmann::json, CallComplete, (const std::string& prompt, bool json_response, OutputType output_type), (override));
     MOCK_METHOD(nlohmann::json, CallEmbedding, (const std::vector<std::string>& inputs), (override));
 };
 
@@ -47,7 +47,7 @@ TEST(ModelProvidersTest, OpenAIProviderTest) {
     model_details.provider_name = "openai";
     model_details.context_window = 128000;
     model_details.max_output_tokens = 8000;
-    model_details.temperature = 0.7;
+    model_details.model_parameters = {{"temperature", 0.7}};
     model_details.secret = {{"api_key", "test_api_key"}};
 
     // Create a mock provider
@@ -57,7 +57,7 @@ TEST(ModelProvidersTest, OpenAIProviderTest) {
     const std::string test_prompt = "Test prompt for completion";
     const json expected_complete_response = {{"response", "This is a test response"}};
 
-    EXPECT_CALL(mock_provider, CallComplete(test_prompt, true))
+    EXPECT_CALL(mock_provider, CallComplete(test_prompt, true, OutputType::STRING))
             .WillOnce(::testing::Return(expected_complete_response));
 
     // Set up mock behavior for CallEmbedding
@@ -68,7 +68,7 @@ TEST(ModelProvidersTest, OpenAIProviderTest) {
             .WillOnce(::testing::Return(expected_embedding_response));
 
     // Test the mocked methods
-    auto complete_result = mock_provider.CallComplete(test_prompt, true);
+    auto complete_result = mock_provider.CallComplete(test_prompt, true, OutputType::STRING);
     EXPECT_EQ(complete_result, expected_complete_response);
 
     auto embedding_result = mock_provider.CallEmbedding(test_inputs);
@@ -83,7 +83,7 @@ TEST(ModelProvidersTest, AzureProviderTest) {
     model_details.provider_name = "azure";
     model_details.context_window = 128000;
     model_details.max_output_tokens = 8000;
-    model_details.temperature = 0.7;
+    model_details.model_parameters = {{"temperature", 0.7}};
     model_details.secret = {
             {"api_key", "test_api_key"},
             {"resource_name", "test_resource"},
@@ -96,7 +96,7 @@ TEST(ModelProvidersTest, AzureProviderTest) {
     const std::string test_prompt = "Test prompt for completion";
     const json expected_complete_response = {{"response", "This is a test response from Azure"}};
 
-    EXPECT_CALL(mock_provider, CallComplete(test_prompt, true))
+    EXPECT_CALL(mock_provider, CallComplete(test_prompt, true, OutputType::STRING))
             .WillOnce(::testing::Return(expected_complete_response));
 
     // Set up mock behavior for CallEmbedding
@@ -107,7 +107,7 @@ TEST(ModelProvidersTest, AzureProviderTest) {
             .WillOnce(::testing::Return(expected_embedding_response));
 
     // Test the mocked methods
-    auto complete_result = mock_provider.CallComplete(test_prompt, true);
+    auto complete_result = mock_provider.CallComplete(test_prompt, true, OutputType::STRING);
     EXPECT_EQ(complete_result, expected_complete_response);
 
     auto embedding_result = mock_provider.CallEmbedding(test_inputs);
@@ -122,7 +122,7 @@ TEST(ModelProvidersTest, OllamaProviderTest) {
     model_details.provider_name = "ollama";
     model_details.context_window = 128000;
     model_details.max_output_tokens = 8000;
-    model_details.temperature = 0.7;
+    model_details.model_parameters = {{"temperature", 0.7}};
     model_details.secret = {{"api_url", "http://localhost:11434"}};
 
     // Create a mock provider
@@ -132,7 +132,7 @@ TEST(ModelProvidersTest, OllamaProviderTest) {
     const std::string test_prompt = "Test prompt for Ollama completion";
     const json expected_complete_response = {{"response", "This is a test response from Ollama"}};
 
-    EXPECT_CALL(mock_provider, CallComplete(test_prompt, true))
+    EXPECT_CALL(mock_provider, CallComplete(test_prompt, true, OutputType::STRING))
             .WillOnce(::testing::Return(expected_complete_response));
 
     // Set up mock behavior for CallEmbedding
@@ -143,7 +143,7 @@ TEST(ModelProvidersTest, OllamaProviderTest) {
             .WillOnce(::testing::Return(expected_embedding_response));
 
     // Test the mocked methods
-    auto complete_result = mock_provider.CallComplete(test_prompt, true);
+    auto complete_result = mock_provider.CallComplete(test_prompt, true, OutputType::STRING);
     EXPECT_EQ(complete_result, expected_complete_response);
 
     auto embedding_result = mock_provider.CallEmbedding(test_inputs);

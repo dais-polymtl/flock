@@ -1,5 +1,4 @@
 add_subdirectory(llm_complete)
-add_subdirectory(llm_complete_json)
 add_subdirectory(llm_filter)
 add_subdirectory(fusion_combanz)
 add_subdirectory(fusion_combmed)

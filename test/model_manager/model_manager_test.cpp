@@ -37,7 +37,7 @@ TEST_F(ModelManagerTest, ModelInitialization) {
             {"provider", "openai"},
             {"context_window", "128000"},
             {"max_output_tokens", "8000"},
-            {"temperature", "0.7"}};
+            {"model_parameters", "{\"temperature\": 0.7}"}};
 
     EXPECT_NO_THROW({
         Model model(model_config);
@@ -47,7 +47,7 @@ TEST_F(ModelManagerTest, ModelInitialization) {
         EXPECT_EQ(details.provider_name, "openai");
         EXPECT_EQ(details.context_window, 128000);
         EXPECT_EQ(details.max_output_tokens, 8000);
-        EXPECT_FLOAT_EQ(details.temperature, 0.7f);
+        EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
     });
 }
 
@@ -116,7 +116,7 @@ TEST_F(ModelManagerTest, GetModelDetails) {
             {"provider", "openai"},
             {"context_window", "128000"},
             {"max_output_tokens", "8000"},
-            {"temperature", "0.7"},
+            {"model_parameters", "{\"temperature\": 0.7}"},
             {"tuple_format", "XML"},
             {"batch_size", "10"}};
 
@@ -128,7 +128,7 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.provider_name, "openai");
     EXPECT_EQ(details.context_window, 128000);
     EXPECT_EQ(details.max_output_tokens, 8000);
-    EXPECT_FLOAT_EQ(details.temperature, 0.7f);
+    EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
     EXPECT_EQ(details.tuple_format, "XML");
     EXPECT_EQ(details.batch_size, 10);
 }

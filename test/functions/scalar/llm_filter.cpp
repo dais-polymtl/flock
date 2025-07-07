@@ -13,7 +13,7 @@ protected:
     }
 
     nlohmann::json GetExpectedJsonResponse() const override {
-        return nlohmann::json{{"tuples", {true}}};
+        return nlohmann::json{{"items", {true}}};
     }
 
     std::string GetFunctionName() const override {
@@ -21,36 +21,36 @@ protected:
     }
 
     nlohmann::json PrepareExpectedResponseForBatch(const std::vector<std::string>& responses) const override {
-        nlohmann::json expected_response = {{"tuples", {}}};
+        nlohmann::json expected_response = {{"items", {}}};
         for (const auto& response: responses) {
             // Convert string response to boolean for filter responses
             bool filter_result = (response == "True" || response == "true" || response == "1");
-            expected_response["tuples"].push_back(filter_result);
+            expected_response["items"].push_back(filter_result);
         }
         return expected_response;
     }
 
     // Helper method to handle vector of booleans
     nlohmann::json PrepareExpectedResponseForBatch(const std::vector<bool>& responses) const {
-        nlohmann::json expected_response = {{"tuples", {}}};
+        nlohmann::json expected_response = {{"items", {}}};
         for (const auto& response: responses) {
-            expected_response["tuples"].push_back(response);
+            expected_response["items"].push_back(response);
         }
         return expected_response;
     }
 
     nlohmann::json PrepareExpectedResponseForLargeInput(size_t input_count) const override {
-        nlohmann::json expected_response = {{"tuples", {}}};
+        nlohmann::json expected_response = {{"items", {}}};
         for (size_t i = 0; i < input_count; i++) {
             // Alternate between true and false for testing
-            expected_response["tuples"].push_back(i % 2 == 0);
+            expected_response["items"].push_back(i % 2 == 0);
         }
         return expected_response;
     }
 
     std::string FormatExpectedResult(const nlohmann::json& response) const override {
-        if (response.contains("tuples") && response["tuples"].is_array() && !response["tuples"].empty()) {
-            bool result = response["tuples"][0].get<bool>();
+        if (response.contains("items") && response["items"].is_array() && !response["items"].empty()) {
+            bool result = response["items"][0].get<bool>();
             return result ? "true" : "false";
         }
         return response.dump();
@@ -59,8 +59,8 @@ protected:
 
 // Test llm_filter with SQL queries
 TEST_F(LLMFilterTest, LLMFilterWithInputColumns) {
-    const nlohmann::json expected_response = {{"tuples", {true}}};
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    const nlohmann::json expected_response = {{"items", {true}}};
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillRepeatedly(::testing::Return(expected_response));
 
     auto con = Config::GetConnection();
@@ -70,8 +70,8 @@ TEST_F(LLMFilterTest, LLMFilterWithInputColumns) {
 }
 
 TEST_F(LLMFilterTest, LLMFilterWithMultipleInputs) {
-    const nlohmann::json expected_response = {{"tuples", {false}}};
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    const nlohmann::json expected_response = {{"items", {false}}};
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(expected_response));
 
     auto con = Config::GetConnection();
@@ -85,8 +85,8 @@ TEST_F(LLMFilterTest, ValidateArguments) {
 }
 
 TEST_F(LLMFilterTest, Operation_ThreeArguments_RequiredStructure) {
-    const nlohmann::json expected_response = {{"tuples", {true}}};
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    const nlohmann::json expected_response = {{"items", {true}}};
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(expected_response));
 
     duckdb::DataChunk chunk;
@@ -110,7 +110,7 @@ TEST_F(LLMFilterTest, Operation_ThreeArguments_RequiredStructure) {
 TEST_F(LLMFilterTest, Operation_BatchProcessing) {
     const std::vector<bool> filter_responses = {true, false};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(filter_responses);
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(expected_response));
 
     duckdb::DataChunk chunk;
@@ -131,7 +131,7 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing) {
 
     EXPECT_EQ(results.size(), 2);
     std::vector<std::string> expected_results;
-    for (const auto& item: expected_response["tuples"]) {
+    for (const auto& item: expected_response["items"]) {
         bool bool_val = item.get<bool>();
         expected_results.push_back(bool_val ? "true" : "false");
     }
@@ -142,7 +142,7 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing_StringVector) {
     // Test with vector of strings (for compatibility with base class interface)
     const std::vector<std::string> filter_responses = {"true", "false"};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(filter_responses);
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(expected_response));
 
     duckdb::DataChunk chunk;
@@ -163,7 +163,7 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing_StringVector) {
 
     EXPECT_EQ(results.size(), 2);
     std::vector<std::string> expected_results;
-    for (const auto& item: expected_response["tuples"]) {
+    for (const auto& item: expected_response["items"]) {
         bool bool_val = item.get<bool>();
         expected_results.push_back(bool_val ? "true" : "false");
     }
@@ -183,7 +183,7 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(expected_response));
 
     duckdb::DataChunk chunk;
@@ -211,7 +211,7 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     EXPECT_EQ(results.size(), input_count);
     std::vector<std::string> expected_strings;
-    for (const auto& item: expected_response["tuples"]) {
+    for (const auto& item: expected_response["items"]) {
         expected_strings.push_back(item.get<bool>() ? "true" : "false");
     }
     EXPECT_EQ(results, expected_strings);
@@ -231,7 +231,7 @@ TEST_F(LLMFilterTest, Operation_TwoArguments_ThrowsException) {
 TEST_F(LLMFilterTest, Operation_NullResponse_HandlesAsTrue) {
     // Test that null responses from the model are handled as "True"
     const nlohmann::json expected_response = nlohmann::json(nullptr);
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(expected_response));
 
     duckdb::DataChunk chunk;

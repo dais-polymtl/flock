@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
 

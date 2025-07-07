@@ -20,9 +20,6 @@ nlohmann::json LlmReduce::ReduceBatch(const nlohmann::json& tuples, const Aggreg
     nlohmann::json data;
     const auto prompt = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
     OutputType output_type = OutputType::STRING;
-    if (function_type == AggregateFunctionType::REDUCE_JSON) {
-        output_type = OutputType::OBJECT;
-    }
     auto response = model.CallComplete(prompt, true, output_type);
     return response["items"][0];
 };
@@ -72,9 +69,9 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
 
         if (state && state->value) {
             auto response = function_instance->ReduceLoop(*state->value, function_type);
-            if (function_type == AggregateFunctionType::REDUCE) {
+            if (response.is_string()) {
                 result.SetValue(idx, response.get<std::string>());
-            } else if (function_type == AggregateFunctionType::REDUCE_JSON) {
+            } else {
                 result.SetValue(idx, response.dump());
             }
         } else {

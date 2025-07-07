@@ -7,8 +7,8 @@ namespace flockmtl {
 class LLMRerankTest : public LLMAggregateTestBase<LlmRerank> {
 protected:
     // The LLM response (for mocking) - returns ranking indices
-    static constexpr const char* LLM_RESPONSE_WITHOUT_GROUP_BY = R"({"ranking": [0, 1, 2]})";
-    static constexpr const char* LLM_RESPONSE_WITH_GROUP_BY = R"({"ranking": [0]})";
+    static constexpr const char* LLM_RESPONSE_WITHOUT_GROUP_BY = R"({"items":[0, 1, 2]})";
+    static constexpr const char* LLM_RESPONSE_WITH_GROUP_BY = R"({"items":[0]})";
     // The expected function output (reranked data as JSON array)
     static constexpr const char* EXPECTED_RESPONSE = R"([{"product_description":"High-performance running shoes with advanced cushioning"},{"product_description":"Professional business shoes"},{"product_description":"Casual sneakers for everyday wear"}])";
 
@@ -31,13 +31,13 @@ protected:
     nlohmann::json PrepareExpectedResponseForBatch(const std::vector<std::string>& responses) const override {
         std::vector<int> ranking_indices(responses.size());
         std::iota(ranking_indices.begin(), ranking_indices.end(), 0);
-        return nlohmann::json{{"ranking", ranking_indices}};
+        return nlohmann::json{{"items", ranking_indices}};
     }
 
     nlohmann::json PrepareExpectedResponseForLargeInput(size_t input_count) const override {
         std::vector<int> ranking_indices(input_count);
         std::iota(ranking_indices.begin(), ranking_indices.end(), 0);
-        return nlohmann::json{{"ranking", ranking_indices}};
+        return nlohmann::json{{"items", ranking_indices}};
     }
 
     std::string FormatExpectedResult(const nlohmann::json& response) const override {
@@ -47,7 +47,7 @@ protected:
 
 // Test llm_rerank with SQL queries without GROUP BY
 TEST_F(LLMRerankTest, LLMRerankWithoutGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(GetExpectedJsonResponse()));
 
     auto con = Config::GetConnection();
@@ -69,7 +69,7 @@ TEST_F(LLMRerankTest, LLMRerankWithoutGroupBy) {
 
 // Test llm_rerank with SQL queries with GROUP BY
 TEST_F(LLMRerankTest, LLMRerankWithGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .Times(3)
             .WillRepeatedly(::testing::Return(nlohmann::json::parse(LLM_RESPONSE_WITH_GROUP_BY)));
 
@@ -105,7 +105,7 @@ TEST_F(LLMRerankTest, Operation_InvalidArguments_ThrowsException) {
 TEST_F(LLMRerankTest, Operation_MultipleInputs_ProcessesCorrectly) {
     const nlohmann::json expected_response = nlohmann::json::parse(LLM_RESPONSE_WITH_GROUP_BY);
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .Times(3)
             .WillRepeatedly(::testing::Return(expected_response));
 
@@ -132,7 +132,7 @@ TEST_F(LLMRerankTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillRepeatedly(::testing::Return(expected_response));
 
     auto con = Config::GetConnection();

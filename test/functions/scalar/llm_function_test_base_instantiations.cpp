@@ -1,5 +1,4 @@
 #include "flockmtl/functions/scalar/llm_complete.hpp"
-#include "flockmtl/functions/scalar/llm_complete_json.hpp"
 #include "flockmtl/functions/scalar/llm_embedding.hpp"
 #include "flockmtl/functions/scalar/llm_filter.hpp"
 #include "llm_function_test_base.hpp"
@@ -185,7 +184,6 @@ void LLMFunctionTestBase<FunctionClass>::TestOperationEmptyPrompt() {
 
 // Explicit instantiations for all used function classes
 template class LLMFunctionTestBase<LlmComplete>;
-template class LLMFunctionTestBase<LlmCompleteJson>;
 template class LLMFunctionTestBase<LlmEmbedding>;
 template class LLMFunctionTestBase<LlmFilter>;
 

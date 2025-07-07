@@ -9,7 +9,6 @@ public:
     static void Register(duckdb::DatabaseInstance& db);
 
 private:
-    static void RegisterLlmCompleteJson(duckdb::DatabaseInstance& db);
     static void RegisterLlmComplete(duckdb::DatabaseInstance& db);
     static void RegisterLlmEmbedding(duckdb::DatabaseInstance& db);
     static void RegisterLlmFilter(duckdb::DatabaseInstance& db);
@@ -20,4 +19,4 @@ private:
     static void RegisterFusionCombSUM(duckdb::DatabaseInstance& db);
 };
 
-} // namespace flockmtl
+}// namespace flockmtl
