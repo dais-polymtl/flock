@@ -33,7 +33,11 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
     if (args.ColumnCount() == 2) {
         auto template_str = prompt_details.prompt;
         auto response = model.CallComplete(template_str, false);
-        results.push_back(response.get<std::string>());
+        if (response.is_string()) {
+            results.push_back(response.get<std::string>());
+        } else {
+            results.push_back(response.dump());
+        }
     } else {
         auto tuples = CastVectorOfStructsToJson(args.data[2], args.size());
 
