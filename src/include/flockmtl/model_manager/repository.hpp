@@ -13,10 +13,10 @@ struct ModelDetails {
     std::string model;
     int32_t context_window;
     int32_t max_output_tokens;
-    float temperature;
     std::unordered_map<std::string, std::string> secret;
     std::string tuple_format;
     int batch_size;
+    nlohmann::json model_parameters;
 };
 
 const std::string OLLAMA = "ollama";

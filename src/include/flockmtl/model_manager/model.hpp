@@ -21,7 +21,8 @@ class Model {
 public:
     explicit Model(const nlohmann::json& model_json);
     explicit Model() = default;
-    nlohmann::json CallComplete(const std::string& prompt, const bool json_response = true);
+    nlohmann::json CallComplete(const std::string& prompt, bool json_response = true,
+                                OutputType output_type = OutputType::STRING);
     nlohmann::json CallEmbedding(const std::vector<std::string>& inputs);
     ModelDetails GetModelDetails();
 

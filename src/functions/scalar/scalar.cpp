@@ -6,8 +6,14 @@ nlohmann::json ScalarFunctionBase::Complete(const nlohmann::json& tuples, const 
                                             ScalarFunctionType function_type, Model& model) {
     nlohmann::json data;
     const auto prompt = PromptManager::Render(user_prompt, tuples, function_type, model.GetModelDetails().tuple_format);
-    auto response = model.CallComplete(prompt);
-    return response["tuples"];
+    OutputType output_type = OutputType::STRING;
+    if (function_type == ScalarFunctionType::COMPLETE_JSON) {
+        output_type = OutputType::OBJECT;
+    } else if (function_type == ScalarFunctionType::FILTER) {
+        output_type = OutputType::BOOL;
+    }
+    auto response = model.CallComplete(prompt, true, output_type);
+    return response["items"];
 };
 
 nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::json>& tuples,

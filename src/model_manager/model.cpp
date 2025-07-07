@@ -31,8 +31,7 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     model_details_.max_output_tokens = model_json.contains("max_output_tokens")
                                                ? std::stoi(model_json.at("max_output_tokens").get<std::string>())
                                                : std::get<3>(query_result);
-    model_details_.temperature =
-            model_json.contains("temperature") ? std::stof(model_json.at("temperature").get<std::string>()) : 0;
+    model_details_.model_parameters = model_json.contains("model_parameters") ? nlohmann::json::parse(model_json.at("model_parameters").get<std::string>()) : nlohmann::json();
     model_details_.tuple_format =
             model_json.contains("tuple_format") ? model_json.at("tuple_format").get<std::string>() : "XML";
     model_details_.batch_size =
@@ -95,8 +94,8 @@ void Model::ConstructProvider() {
 
 ModelDetails Model::GetModelDetails() { return model_details_; }
 
-nlohmann::json Model::CallComplete(const std::string& prompt, bool json_response) {
-    return provider_->CallComplete(prompt, json_response);
+nlohmann::json Model::CallComplete(const std::string& prompt, const bool json_response, const OutputType output_type) {
+    return provider_->CallComplete(prompt, json_response, output_type);
 }
 
 nlohmann::json Model::CallEmbedding(const std::vector<std::string>& inputs) { return provider_->CallEmbedding(inputs); }

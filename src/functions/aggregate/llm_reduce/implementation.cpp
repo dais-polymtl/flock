@@ -19,8 +19,12 @@ int LlmReduce::GetAvailableTokens(const AggregateFunctionType& function_type) {
 nlohmann::json LlmReduce::ReduceBatch(const nlohmann::json& tuples, const AggregateFunctionType& function_type) {
     nlohmann::json data;
     const auto prompt = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
-    auto response = model.CallComplete(prompt);
-    return response["output"];
+    OutputType output_type = OutputType::STRING;
+    if (function_type == AggregateFunctionType::REDUCE_JSON) {
+        output_type = OutputType::OBJECT;
+    }
+    auto response = model.CallComplete(prompt, true, output_type);
+    return response["items"][0];
 };
 
 nlohmann::json LlmReduce::ReduceLoop(const std::vector<nlohmann::json>& tuples,

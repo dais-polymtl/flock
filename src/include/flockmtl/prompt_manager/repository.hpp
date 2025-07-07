@@ -59,37 +59,26 @@ public:
     // Scalar Functions
     static constexpr auto COMPLETE_JSON =
             "You should return the responses to the user's prompt for each tuple in a "
-            "JSON format that contains the necessary columns for the answer.\n\nThe tool should respond in JSON format:\n\n"
-            "```json\n{\"tuples\": [{<response>},{<response>}, ..., {<response>}]}\n```";
+            "JSON format that contains the necessary columns for the answer.";
     static constexpr auto COMPLETE =
             "You should return the responses to the user's prompt for each tuple in plain text. Ensure no tuple is "
-            "missed.\n"
-            "Respond in the following JSON format:\n\n"
-            "```json\n{\"tuples\": [\"<response>\", \"<response>\", ..., \"<response>\"]}\n```";
+            "missed.";
     static constexpr auto FILTER =
             "You should return the responses to the user's prompt for each tuple in a "
-            "BOOL format that would be true/false.\n\tThe tool should respond in JSON format as "
-            "follows:\n\n```json\n{\"tuples\": [<bool_response>, <bool_response>, ... , <bool_response>]}\n```";
+            "BOOL format that would be true/false.";
 
     // Aggregate Functions
     static constexpr auto REDUCE =
-            "Return a single, coherent output that synthesizes the most relevant information from the tuples provided. "
-            "Respond in the following JSON format. **Do not add explanations or additional words beyond the summarized "
-            "content.**\n\nResponse Format:\n\n```json\n{\n  \"output\": <summarized content here>\n}\n```";
+            "Return a single, coherent output that synthesizes the most relevant information from the tuples provided.";
     static constexpr auto REDUCE_JSON =
-            "Return a single, coherent output that synthesizes the most relevant information from the tuples provided. "
+            "Return a single, coherent output that synthesizes the most relevant information from the tuples provided."
             "Respond in the following JSON format where the summarized content should be in JSON format that contains "
-            "the necessary columns for the answer. **Do not add explanations or additional words beyond the summarized "
-            "content.**\n\nResponse Format:\n\n```json\n{\n  \"output\": {<summarized content here>}\n}\n```";
+            "the necessary columns for the answer.";
     static constexpr auto FIRST_OR_LAST =
-            "Identify the {{RELEVANCE}} relevant tuple based on the provided user prompt from the list of tuples. Output "
-            "the index of this single tuple as a JSON object in the following format:\n\n```json\n{\n  \"selected\": "
-            "flockmtl_tuple_id\n}\n```";
+            "Identify the {{RELEVANCE}} relevant tuple based on the provided user prompt from the list of tuples. "
+            "Output the index of this single tuple";
     static constexpr auto RERANK =
-            "Rank the tuples in descending order of relevance according to the user prompt. Output the response strictly "
-            "as a JSON object in the following format:\n\n```json\n{\n  \"ranking\": [flockmtl_tuple_id1, "
-            "flockmtl_tuple_id2, flockmtl_tuple_id3, ...]\n}\n```\n\nInclude all tuple IDs in the response, listed without "
-            "any additional text or explanation.";
+            "Rank the tuples in descending order of relevance according to the user prompt. Return the index of each tuple in the order of their relevance.";
 
     template<typename FunctionType>
     static std::string Get(const FunctionType option);

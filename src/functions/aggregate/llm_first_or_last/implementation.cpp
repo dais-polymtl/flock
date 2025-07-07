@@ -19,8 +19,8 @@ int LlmFirstOrLast::GetAvailableTokens() {
 int LlmFirstOrLast::GetFirstOrLastTupleId(const nlohmann::json& tuples) {
     nlohmann::json data;
     const auto prompt = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
-    auto response = model.CallComplete(prompt);
-    return response["selected"].get<int>();
+    auto response = model.CallComplete(prompt, true, OutputType::INTEGER);
+    return response["items"][0];
 }
 
 nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {

@@ -41,7 +41,11 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
 
         results.reserve(responses.size());
         for (const auto& response: responses) {
-            results.push_back(response.get<std::string>());
+            if (response.is_string()) {
+                results.push_back(response.get<std::string>());
+            } else {
+                results.push_back(response.dump());
+            }
         }
     }
     return results;
