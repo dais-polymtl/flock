@@ -23,7 +23,7 @@ Models are stored in a table with the following structure:
 | **Model Name**      | Unique identifier for the model                                                     |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                       |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`)                             |
-| **Model Arguments** | JSON configuration parameters such as `context_window` size and `max_output_tokens` |
+| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, and `model_parameters` (which itself is a JSON object for all model params) are allowed. <br> <br>**tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. |
 
 ## 2. Management Commands
 
@@ -42,13 +42,95 @@ GET MODEL 'model_name';
 - Create a new user-defined model
 
 ```sql
-CREATE MODEL('model_name', 'model', 'provider', {"context_window": 128000, "max_output_tokens": 8000})
+-- User-defined model (only tuple_format, batch_size, and model_parameters allowed in JSON)
+-- tuple_format can be "JSON", "XML", or "Markdown"
+CREATE MODEL(
+    'model_name',
+    'model',
+    'provider'
+);
+CREATE MODEL(
+    'model_name',
+    'model',
+    'provider',
+    {
+        "tuple_format": "JSON",
+        "batch_size": 8,
+        "model_parameters": {
+            "temperature": 0.2,
+            "top_p": 0.95
+        }
+    }
+);
+CREATE MODEL(
+    'model_name',
+    'model',
+    'provider',
+    {
+        "tuple_format": "XML",
+        "batch_size": 8,
+        "model_parameters": {
+            "n": 3,
+            "frequency_penalty": 0.1
+        }
+    }
+);
+CREATE MODEL(
+    'model_name',
+    'model',
+    'provider',
+    {
+        "tuple_format": "Markdown",
+        "batch_size": 8
+    }
+);
 ```
 
 - Modify an existing user-defined model
 
 ```sql
-UPDATE MODEL('model_name', 'model', 'provider', {"context_window": 128000, "max_output_tokens": 8000});
+-- Update user-defined model (same JSON rules as CREATE)
+-- tuple_format can be "JSON", "XML", or "Markdown"
+UPDATE MODEL(
+    'model_name',
+    'model',
+    'provider'
+);
+UPDATE MODEL(
+    'model_name',
+    'model',
+    'provider',
+    {
+        "tuple_format": "JSON",
+        "batch_size": 8,
+        "model_parameters": {
+            "temperature": 0.2,
+            "top_p": 0.95
+        }
+    }
+);
+UPDATE MODEL(
+    'model_name',
+    'model',
+    'provider',
+    {
+        "tuple_format": "XML",
+        "batch_size": 8,
+        "model_parameters": {
+            "n": 3,
+            "frequency_penalty": 0.1
+        }
+    }
+);
+UPDATE MODEL(
+    'model_name',
+    'model',
+    'provider',
+    {
+        "tuple_format": "Markdown",
+        "batch_size": 8
+    }
+);
 ```
 
 - Remove a user-defined model
@@ -92,14 +174,128 @@ LOCAL is optional.
 - Create a global model:
 
 ```sql
-CREATE GLOBAL MODEL('model_name', 'model_type', 'provider', {"context_window": 128000, "max_output_tokens": 8000})
+CREATE GLOBAL MODEL(
+    'model_name',
+    'model_type',
+    'provider'
+);
+CREATE GLOBAL MODEL(
+    'model_name',
+    'model_type',
+    'provider',
+    {
+        "tuple_format": "JSON",
+        "batch_size": 8,
+        "model_parameters": {
+            "temperature": 0.2,
+            "top_p": 0.95
+        }
+    }
+);
+CREATE GLOBAL MODEL(
+    'model_name',
+    'model_type',
+    'provider',
+    {
+        "tuple_format": "XML",
+        "batch_size": 8
+    }
+);
+CREATE GLOBAL MODEL(
+    'model_name',
+    'model_type',
+    'provider',
+    {
+        "tuple_format": "Markdown"
+    }
+);
 ```
 
 - Create a local model (default if no type is specified):
 
 ```sql
-CREATE LOCAL MODEL('model_name', 'model_type', 'provider', {"context_window": 128000, "max_output_tokens": 8000})
-CREATE MODEL('model_name', 'model_type', 'provider', {"context_window": 128000, "max_output_tokens": 8000})
+CREATE LOCAL MODEL(
+    'model_name',
+    'model_type',
+    'provider'
+);
+CREATE LOCAL MODEL(
+    'model_name',
+    'model_type',
+    'provider',
+    {
+        "tuple_format": "JSON",
+        "batch_size": 8,
+        "model_parameters": {
+            "temperature": 0.2
+        }
+    }
+);
+CREATE LOCAL MODEL(
+    'model_name',
+    'model_type',
+    'provider',
+    {
+        "tuple_format": "XML",
+        "batch_size": 8,
+        "model_parameters": {
+            "n": 3
+        }
+    }
+);
+CREATE LOCAL MODEL(
+    'model_name',
+    'model_type',
+    'provider',
+    {
+        "tuple_format": "Markdown",
+        "batch_size": 8,
+        "model_parameters": {
+            "top_p": 0.95
+        }
+    }
+);
+CREATE MODEL(
+    'model_name',
+    'model_type',
+    'provider'
+);
+CREATE MODEL(
+    'model_name',
+    'model_type',
+    'provider',
+    {
+        "tuple_format": "JSON",
+        "batch_size": 8,
+        "model_parameters": {
+            "temperature": 0.2
+        }
+    }
+);
+CREATE MODEL(
+    'model_name',
+    'model_type',
+    'provider',
+    {
+        "tuple_format": "XML",
+        "batch_size": 8,
+        "model_parameters": {
+            "n": 3
+        }
+    }
+);
+CREATE MODEL(
+    'model_name',
+    'model_type',
+    'provider',
+    {
+        "tuple_format": "Markdown",
+        "batch_size": 8,
+        "model_parameters": {
+            "top_p": 0.95
+        }
+    }
+);
 ```
 
 ### Toggle Model State
