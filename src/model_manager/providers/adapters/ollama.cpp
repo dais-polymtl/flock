@@ -7,10 +7,7 @@ nlohmann::json OllamaProvider::CallComplete(const std::string& prompt, const boo
 
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {{"model", model_details_.model},
-                                      {"prompt", prompt},
-                                      {"options", {
-                                                          {"num_ctx", model_details_.max_output_tokens},
-                                                  }}};
+                                      {"prompt", prompt}};
 
     if (!model_details_.model_parameters.empty()) {
         request_payload.update(model_details_.model_parameters);

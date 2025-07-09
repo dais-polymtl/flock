@@ -40,7 +40,7 @@ private:
     inline static std::shared_ptr<IProvider> mock_provider_ = nullptr;
     void ConstructProvider();
     void LoadModelDetails(const nlohmann::json& model_json);
-    std::tuple<std::string, std::string, int32_t, int32_t> GetQueriedModel(const std::string& model_name);
+    static std::tuple<std::string, std::string, nlohmann::basic_json<>> GetQueriedModel(const std::string& model_name);
     std::string GetSecret(const std::string& secret_name);
 };
 

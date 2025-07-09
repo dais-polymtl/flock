@@ -8,8 +8,7 @@ nlohmann::json AzureProvider::CallComplete(const std::string& prompt, const bool
                                                 model_details_.model, model_details_.secret["api_version"], true);
 
     // Create a JSON request payload with the provided parameters
-    nlohmann::json request_payload = {{"messages", {{{"role", "user"}, {"content", prompt}}}},
-                                      {"max_tokens", model_details_.max_output_tokens}};
+    nlohmann::json request_payload = {{"messages", {{{"role", "user"}, {"content", prompt}}}}};
 
     if (!model_details_.model_parameters.empty()) {
         request_payload.update(model_details_.model_parameters);

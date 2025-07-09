@@ -8,7 +8,6 @@ class LlmRerank : public AggregateFunctionBase {
 public:
     explicit LlmRerank() = default;
 
-    int GetAvailableTokens();
     nlohmann::json SlidingWindow(nlohmann::json& tuples);
     std::vector<int> RerankBatch(const nlohmann::json& tuples);
 

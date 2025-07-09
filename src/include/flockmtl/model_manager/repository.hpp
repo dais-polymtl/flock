@@ -12,8 +12,6 @@ struct ModelDetails {
     std::string provider_name;
     std::string model_name;
     std::string model;
-    int32_t context_window;
-    int32_t max_output_tokens;
     std::unordered_map<std::string, std::string> secret;
     std::string tuple_format;
     int batch_size;

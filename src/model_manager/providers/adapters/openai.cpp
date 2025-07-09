@@ -11,8 +11,7 @@ nlohmann::json OpenAIProvider::CallComplete(const std::string& prompt, bool json
 
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {{"model", model_details_.model},
-                                      {"messages", {{{"role", "user"}, {"content", prompt}}}},
-                                      {"max_tokens", model_details_.max_output_tokens}};
+                                      {"messages", {{{"role", "user"}, {"content", prompt}}}}};
 
     if (!model_details_.model_parameters.empty()) {
         request_payload.update(model_details_.model_parameters);

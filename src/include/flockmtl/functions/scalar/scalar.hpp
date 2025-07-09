@@ -4,10 +4,9 @@
 #include <nlohmann/json.hpp>
 
 #include "flockmtl/core/common.hpp"
-#include "flockmtl/model_manager/model.hpp"
-#include "flockmtl/model_manager/tiktoken.hpp"
-#include "flockmtl/prompt_manager/prompt_manager.hpp"
 #include "flockmtl/functions/batch_response_builder.hpp"
+#include "flockmtl/model_manager/model.hpp"
+#include "flockmtl/prompt_manager/prompt_manager.hpp"
 
 namespace flockmtl {
 
@@ -26,4 +25,4 @@ public:
                                            Model& model);
 };
 
-} // namespace flockmtl
+}// namespace flockmtl
