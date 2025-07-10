@@ -102,6 +102,7 @@ void ModelParser::ParseCreateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
         if (token.type != TokenType::PARENTHESIS) {
             throw std::runtime_error("Expected closing parenthesis ')' after model_args.");
         }
+    } else if (token.type == TokenType::PARENTHESIS && token.value == ")") {
     } else {
         throw std::runtime_error("Expected closing parenthesis ')' or JSON after provider_name.");
     }

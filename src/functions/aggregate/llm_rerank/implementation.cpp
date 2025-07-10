@@ -11,11 +11,11 @@ std::vector<int> LlmRerank::RerankBatch(const nlohmann::json& tuples) {
 };
 
 nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
-    int num_tuples = tuples.size();
+    const auto num_tuples = static_cast<int>(tuples.size());
     auto window_tuples = nlohmann::json::array();
     auto next_tuples = nlohmann::json::array();
     auto start_index = num_tuples - 1;
-    auto batch_size = model.GetModelDetails().batch_size;
+    auto batch_size = std::min(model.GetModelDetails().batch_size, num_tuples);
 
     if (batch_size <= 0) {
         throw std::runtime_error("Batch size must be greater than zero");
