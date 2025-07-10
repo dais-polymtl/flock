@@ -20,7 +20,7 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::
     const auto llm_template = PromptManager::GetTemplate(function_type);
 
     const auto model_details = model.GetModelDetails();
-    auto batch_size = std::min(model.GetModelDetails().batch_size, static_cast<int>(tuples.size()));
+    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, static_cast<int>(tuples.size()));
 
     auto responses = nlohmann::json::array();
 

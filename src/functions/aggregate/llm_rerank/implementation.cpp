@@ -15,7 +15,7 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
     auto window_tuples = nlohmann::json::array();
     auto next_tuples = nlohmann::json::array();
     auto start_index = num_tuples - 1;
-    auto batch_size = std::min(model.GetModelDetails().batch_size, num_tuples);
+    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, num_tuples);
 
     if (batch_size <= 0) {
         throw std::runtime_error("Batch size must be greater than zero");
