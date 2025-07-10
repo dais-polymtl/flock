@@ -105,6 +105,19 @@ TEST(ModelParserTest, ParseInvalidDeleteModel) {
  *                 Update Model                  *
  **************************************************/
 
+TEST(ModelParserTest, ParseUpdateModelWithoutModelArgs) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider')", statement));
+    ASSERT_NE(statement, nullptr);
+    auto create_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
+    ASSERT_NE(create_stmt, nullptr);
+    EXPECT_EQ(create_stmt->model_name, "test_model");
+    EXPECT_EQ(create_stmt->new_model, "new_model_data");
+    EXPECT_EQ(create_stmt->provider_name, "new_provider");
+    EXPECT_EQ(create_stmt->new_model_args.size(), 0);
+}
+
 TEST(ModelParserTest, ParseUpdateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;

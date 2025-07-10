@@ -22,18 +22,18 @@ void Config::SetupDefaultModelsConfig(duckdb::Connection& con, std::string& sche
                                      " model_name VARCHAR NOT NULL PRIMARY KEY, "
                                      " model VARCHAR NOT NULL, "
                                      " provider_name VARCHAR NOT NULL, "
-                                     " model_args JSON NOT NULL "
+                                     " model_args JSON DEFAULT '{{}}'"
                                      " ); ",
                                      schema_name, table_name));
 
         con.Query(duckdb_fmt::format(
-                "INSERT INTO {}.{} (model_name, model, provider_name, model_args) "
+                "INSERT INTO {}.{} (model_name, model, provider_name) "
                 "VALUES "
-                "('default', 'gpt-4o-mini', 'openai', '{}'), "
-                "('gpt-4o-mini', 'gpt-4o-mini', 'openai', '{}'), "
-                "('gpt-4o', 'gpt-4o', 'openai', '{}'), "
-                "('text-embedding-3-large', 'text-embedding-3-large', 'openai', '{}'), "
-                "('text-embedding-3-small', 'text-embedding-3-small', 'openai', '{}');",
+                "('default', 'gpt-4o-mini', 'openai'), "
+                "('gpt-4o-mini', 'gpt-4o-mini', 'openai'), "
+                "('gpt-4o', 'gpt-4o', 'openai'), "
+                "('text-embedding-3-large', 'text-embedding-3-large', 'openai'), "
+                "('text-embedding-3-small', 'text-embedding-3-small', 'openai');",
                 schema_name, table_name));
     }
 }
