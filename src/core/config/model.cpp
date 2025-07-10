@@ -1,5 +1,5 @@
-#include "flockmtl/core/config.hpp"
 #include "filesystem.hpp"
+#include "flockmtl/core/config.hpp"
 
 namespace flockmtl {
 
@@ -22,22 +22,19 @@ void Config::SetupDefaultModelsConfig(duckdb::Connection& con, std::string& sche
                                      " model_name VARCHAR NOT NULL PRIMARY KEY, "
                                      " model VARCHAR NOT NULL, "
                                      " provider_name VARCHAR NOT NULL, "
-                                     " model_args JSON NOT NULL "
+                                     " model_args JSON DEFAULT '{{}}'"
                                      " ); ",
                                      schema_name, table_name));
 
         con.Query(duckdb_fmt::format(
-            " INSERT INTO {}.{} (model_name, model, provider_name, model_args) "
-            " VALUES "
-            " ('default', 'gpt-4o-mini', 'openai', '{{\"context_window\":128000,\"max_output_tokens\":16384}}'),"
-            " ('gpt-4o-mini', 'gpt-4o-mini', 'openai', '{{\"context_window\":128000,\"max_output_tokens\":16384}}'),"
-            " ('gpt-4o', 'gpt-4o', 'openai', '{{\"context_window\":128000,\"max_output_tokens\":16384}}'),"
-            " ('text-embedding-3-large', 'text-embedding-3-large', 'openai', "
-            " '{{\"context_window\":{},\"max_output_tokens\":{}}}'),"
-            " ('text-embedding-3-small', 'text-embedding-3-small', 'openai', "
-            " '{{\"context_window\":{},\"max_output_tokens\":{}}}')",
-            schema_name, table_name, Config::default_context_window, Config::default_max_output_tokens,
-            Config::default_context_window, Config::default_max_output_tokens));
+                "INSERT INTO {}.{} (model_name, model, provider_name) "
+                "VALUES "
+                "('default', 'gpt-4o-mini', 'openai'), "
+                "('gpt-4o-mini', 'gpt-4o-mini', 'openai'), "
+                "('gpt-4o', 'gpt-4o', 'openai'), "
+                "('text-embedding-3-large', 'text-embedding-3-large', 'openai'), "
+                "('text-embedding-3-small', 'text-embedding-3-small', 'openai');",
+                schema_name, table_name));
     }
 }
 
@@ -69,4 +66,4 @@ void Config::ConfigModelTable(duckdb::Connection& con, std::string& schema_name,
     SetupUserDefinedModelsConfig(con, schema_name);
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

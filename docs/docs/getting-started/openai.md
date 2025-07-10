@@ -30,7 +30,7 @@ CREATE MODEL(
    'QuackingModel',
    'gpt-4o', 
    'openai', 
-   {"context_window": 128000, "max_output_tokens": 8400}
+   {"tuple_format": "json", "batch_size": 32, "model_parameters": {"temperature": 0.7}}
 );
 ```
 
@@ -61,7 +61,7 @@ CREATE MODEL(
    'QuackingModel',
    'gpt-4o', 
    'openai', 
-   {"context_window": 128000, "max_output_tokens": 8400}
+   {"tuple_format": "json", "batch_size": 32, "model_parameters": {"temperature": 0.7}}
 );
 ```
 

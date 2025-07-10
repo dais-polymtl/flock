@@ -18,13 +18,11 @@ FlockMTL offers a suite of semantic functions that allow users to perform variou
 
 - **Scalar Map Functions**:
     - [`llm_complete`](/docs/scalar-functions/llm-complete): Generates text completions using a specified language model.
-    - [`llm_complete_json`](/docs/scalar-functions/llm-complete-json): Produces JSON-formatted text completions.
     - [`llm_filter`](/docs/scalar-functions/llm-filter): Filters data based on language model evaluations, returning boolean values.
     - [`llm_embedding`](/docs/scalar-functions/llm-embedding): Generates embeddings for input text, useful for semantic similarity tasks.
 
 - **Aggregate Reduce Functions**:
     - [`llm_reduce`](/docs/aggregate-functions/llm-reduce): Aggregates multiple inputs into a single output using a language model.
-    - [`llm_reduce_json`](/docs/aggregate-functions/llm-reduce-json): Similar to `llm_reduce`, but outputs JSON-formatted results.
     - [`llm_rerank`](/docs/aggregate-functions/llm-rerank): Reorders query results based on relevance scores from a language model.
     - [`llm_first`](/docs/aggregate-functions/llm-first): Selects the top-ranked result after reranking.
     - [`llm_last`](/docs/aggregate-functions/llm-last): Selects the bottom-ranked result after reranking.
@@ -44,7 +42,9 @@ FlockMTL also provides functions that support hybrid search. Namely, the followi
 
 These functions enable users to combine the strengths of different scoring methods, such as BM25 and embedding scores, to produce the best-fit results, and even create end-to-end RAG pipelines.
 
-We believe that relational DBMSs and LLMs are a match made in heaven. We are leaning on the tradition of declarative interfaces to unburden users from lower-level implementation details. Users can query both structured and unstructred datasets while combining analytics and semantic analysis directly within SQL.
+## Structured Output
+
+FlockMTL provides [**structured output**](/docs/structured-output) capabilities that allow users to obtain predictable, schema-compliant JSON responses from Large Language Models. This feature works with all FlockMTL LLM functions and supports both OpenAI and Ollama providers, ensuring consistent data formats for downstream processing.
 
 ## Resource Management
 

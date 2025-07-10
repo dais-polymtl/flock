@@ -3,7 +3,6 @@
 namespace flockmtl {
 
 void ScalarRegistry::Register(duckdb::DatabaseInstance& db) {
-    RegisterLlmCompleteJson(db);
     RegisterLlmComplete(db);
     RegisterLlmEmbedding(db);
     RegisterLlmFilter(db);
@@ -14,4 +13,4 @@ void ScalarRegistry::Register(duckdb::DatabaseInstance& db) {
     RegisterFusionCombSUM(db);
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

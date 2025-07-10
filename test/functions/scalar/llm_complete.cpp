@@ -12,7 +12,7 @@ protected:
     }
 
     nlohmann::json GetExpectedJsonResponse() const override {
-        return nlohmann::json{{"tuples", {EXPECTED_RESPONSE}}};
+        return nlohmann::json{{"items", {EXPECTED_RESPONSE}}};
     }
 
     std::string GetFunctionName() const override {
@@ -20,20 +20,20 @@ protected:
     }
 
     nlohmann::json PrepareExpectedResponseForBatch(const std::vector<std::string>& responses) const override {
-        return nlohmann::json{{"tuples", responses}};
+        return nlohmann::json{{"items", responses}};
     }
 
     nlohmann::json PrepareExpectedResponseForLargeInput(size_t input_count) const override {
-        nlohmann::json expected_response = {{"tuples", {}}};
+        nlohmann::json expected_response = {{"items", {}}};
         for (size_t i = 0; i < input_count; i++) {
-            expected_response["tuples"].push_back("response " + std::to_string(i));
+            expected_response["items"].push_back("response " + std::to_string(i));
         }
         return expected_response;
     }
 
     std::string FormatExpectedResult(const nlohmann::json& response) const override {
-        if (response.contains("tuples") && response["tuples"].is_array() && !response["tuples"].empty()) {
-            return response["tuples"][0].get<std::string>();
+        if (response.contains("items") && response["items"].is_array() && !response["items"].empty()) {
+            return response["items"][0].get<std::string>();
         }
         return response.get<std::string>();
     }
@@ -41,7 +41,7 @@ protected:
 
 // Test llm_complete with SQL queries
 TEST_F(LLMCompleteTest, LLMCompleteWithoutInputColumns) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(GetExpectedResponse()));
 
     auto con = Config::GetConnection();
@@ -51,14 +51,14 @@ TEST_F(LLMCompleteTest, LLMCompleteWithoutInputColumns) {
 }
 
 TEST_F(LLMCompleteTest, LLMCompleteWithInputColumns) {
-    const nlohmann::json expected_response = {{"tuples", {"The capital of Canada is Ottawa."}}};
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    const nlohmann::json expected_response = {{"items", {"The capital of Canada is Ottawa."}}};
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(expected_response));
 
     auto con = Config::GetConnection();
     const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'},{'prompt': 'What is the capital of France?'}, {'input': 'France'}) AS flockmtl_capital;");
     ASSERT_EQ(results->RowCount(), 1);
-    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_response["tuples"][0]);
+    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_response["items"][0]);
 }
 
 TEST_F(LLMCompleteTest, ValidateArguments) {
@@ -66,7 +66,7 @@ TEST_F(LLMCompleteTest, ValidateArguments) {
 }
 
 TEST_F(LLMCompleteTest, Operation_TwoArguments_SimplePrompt) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(GetExpectedResponse()));
 
     duckdb::DataChunk chunk;
@@ -84,7 +84,7 @@ TEST_F(LLMCompleteTest, Operation_TwoArguments_SimplePrompt) {
 TEST_F(LLMCompleteTest, Operation_ThreeArguments_BatchProcessing) {
     const std::vector<std::string> responses = {"response 1", "response 2"};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(responses);
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(expected_response));
 
     duckdb::DataChunk chunk;
@@ -104,7 +104,7 @@ TEST_F(LLMCompleteTest, Operation_ThreeArguments_BatchProcessing) {
     auto results = LlmComplete::Operation(chunk);
 
     EXPECT_EQ(results.size(), 2);
-    EXPECT_EQ(results, expected_response["tuples"]);
+    EXPECT_EQ(results, expected_response["items"]);
 }
 
 TEST_F(LLMCompleteTest, Operation_InvalidArguments_ThrowsException) {
@@ -120,7 +120,7 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(expected_response));
 
     duckdb::DataChunk chunk;
@@ -147,7 +147,7 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
     const auto results = LlmComplete::Operation(chunk);
 
     EXPECT_EQ(results.size(), input_count);
-    EXPECT_EQ(results, expected_response["tuples"]);
+    EXPECT_EQ(results, expected_response["items"]);
 }
 
 }// namespace flockmtl

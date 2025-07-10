@@ -2,7 +2,7 @@
 
 namespace flockmtl {
 
-nlohmann::json OpenAIProvider::CallComplete(const std::string& prompt, bool json_response) {
+nlohmann::json OpenAIProvider::CallComplete(const std::string& prompt, bool json_response, OutputType output_type) {
     auto base_url = std::string("");
     if (const auto it = model_details_.secret.find("base_url"); it != model_details_.secret.end()) {
         base_url = it->second;
@@ -11,13 +11,31 @@ nlohmann::json OpenAIProvider::CallComplete(const std::string& prompt, bool json
 
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {{"model", model_details_.model},
-                                      {"messages", {{{"role", "user"}, {"content", prompt}}}},
-                                      {"max_tokens", model_details_.max_output_tokens},
-                                      {"temperature", model_details_.temperature}};
+                                      {"messages", {{{"role", "user"}, {"content", prompt}}}}};
 
-    // Conditionally add "response_format" if json_response is true
+    if (!model_details_.model_parameters.empty()) {
+        request_payload.update(model_details_.model_parameters);
+    }
+
     if (json_response) {
-        request_payload["response_format"] = {{"type", "json_object"}};
+        if (model_details_.model_parameters.contains("response_format")) {
+            auto schema = model_details_.model_parameters["response_format"]["json_schema"]["schema"];
+            auto strict = model_details_.model_parameters["response_format"]["strict"];
+            request_payload["response_format"] = {
+                    {"type", "json_schema"},
+                    {"json_schema",
+                     {{"name", "flockmtl_response"},
+                      {"strict", strict},
+                      {"schema", {{"type", "object"}, {"properties", {{"items", {{"type", "array"}, {"items", schema}}}}}, {"required", {"items"}}, {"additionalProperties", false}}}}}};
+        } else {
+            request_payload["response_format"] = {
+                    {"type", "json_schema"},
+                    {"json_schema",
+                     {{"name", "flockmtl_response"},
+                      {"strict", false},
+                      {"schema", {{"type", "object"}, {"properties", {{"items", {{"type", "array"}, {"items", {{"type", GetOutputTypeString(output_type)}}}}}}}}}}}};
+            ;
+        }
     }
 
     // Make a request to the OpenAI API
@@ -37,8 +55,8 @@ nlohmann::json OpenAIProvider::CallComplete(const std::string& prompt, bool json
     if (completion["choices"][0]["message"]["refusal"] != nullptr) {
         // Handle refusal error
         throw std::runtime_error(
-            duckdb_fmt::format("The request was refused due to OpenAI's safety system.{{\"refusal\": \"{}\"}}",
-                               completion["choices"][0]["message"]["refusal"].get<std::string>()));
+                duckdb_fmt::format("The request was refused due to OpenAI's safety system.{{\"refusal\": \"{}\"}}",
+                                   completion["choices"][0]["message"]["refusal"].get<std::string>()));
     }
 
     // Check if the model's output included restricted content
@@ -65,8 +83,8 @@ nlohmann::json OpenAIProvider::CallEmbedding(const std::vector<std::string>& inp
 
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {
-        {"model", model_details_.model},
-        {"input", inputs},
+            {"model", model_details_.model},
+            {"input", inputs},
     };
 
     // Make a request to the OpenAI API
@@ -79,11 +97,11 @@ nlohmann::json OpenAIProvider::CallEmbedding(const std::vector<std::string>& inp
     }
 
     auto embeddings = nlohmann::json::array();
-    for (auto& item : completion["data"]) {
+    for (auto& item: completion["data"]) {
         embeddings.push_back(item["embedding"]);
     }
 
     return embeddings;
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

@@ -6,7 +6,7 @@ namespace flockmtl {
 class LLMFirstTest : public LLMAggregateTestBase<LlmFirstOrLast> {
 protected:
     // The LLM response (for mocking)
-    static constexpr const char* LLM_RESPONSE = R"({"selected": 0})";
+    static constexpr const char* LLM_RESPONSE = R"({"items":[0]})";
     // The expected function output (selected data)
     static constexpr const char* EXPECTED_RESPONSE = R"({"product_description":"High-performance running shoes with advanced cushioning"})";
 
@@ -27,11 +27,11 @@ protected:
     }
 
     nlohmann::json PrepareExpectedResponseForBatch(const std::vector<std::string>& responses) const override {
-        return nlohmann::json{{"selected", 0}};
+        return nlohmann::json{{"items", {0}}};
     }
 
     nlohmann::json PrepareExpectedResponseForLargeInput(size_t input_count) const override {
-        return nlohmann::json{{"selected", 0}};
+        return nlohmann::json{{"items", {0}}};
     }
 
     std::string FormatExpectedResult(const nlohmann::json& response) const override {
@@ -41,7 +41,7 @@ protected:
 
 // Test llm_first with SQL queries without GROUP BY
 TEST_F(LLMFirstTest, LLMFirstWithoutGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillOnce(::testing::Return(GetExpectedJsonResponse()));
 
     auto con = Config::GetConnection();
@@ -59,7 +59,7 @@ TEST_F(LLMFirstTest, LLMFirstWithoutGroupBy) {
 
 // Test llm_first with SQL queries with GROUP BY
 TEST_F(LLMFirstTest, LLMFirstWithGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .Times(3)
             .WillRepeatedly(::testing::Return(GetExpectedJsonResponse()));
 
@@ -95,7 +95,7 @@ TEST_F(LLMFirstTest, Operation_InvalidArguments_ThrowsException) {
 TEST_F(LLMFirstTest, Operation_MultipleInputs_ProcessesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .Times(3)
             .WillRepeatedly(::testing::Return(expected_response));
 
@@ -122,7 +122,7 @@ TEST_F(LLMFirstTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
             .WillRepeatedly(::testing::Return(expected_response));
 
     auto con = Config::GetConnection();

@@ -81,7 +81,7 @@ CREATE GLOBAL MODEL(
     'product_review_model',
     'gpt-4o',
     'openai',
-    {"context_window": 128000, "max_output_tokens": 16384}
+    {"tuple_format": "json", "batch_size": 32, "model_parameters": {"temperature": 0.7}}
 );
 """)
 

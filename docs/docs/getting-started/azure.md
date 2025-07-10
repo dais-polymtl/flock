@@ -35,7 +35,7 @@ CREATE MODEL(
    'QuackingModel',
    'gpt-4o',
    'azure',
-   {"context_window": 128000, "max_output_tokens": 16384}
+   {"tuple_format": "json", "batch_size": 32, "model_parameters": {"temperature": 0.7}}
 );
 ```
 - Now you simply use FlockMTL with Azure provider. Here's a small query to run to test if everything is working:

@@ -25,21 +25,17 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         secret_name = model_json["secret_name"].get<std::string>();
     }
     model_details_.secret = SecretManager::GetSecret(secret_name);
-    model_details_.context_window = model_json.contains("context_window")
-                                            ? std::stoi(model_json.at("context_window").get<std::string>())
-                                            : std::get<2>(query_result);
-    model_details_.max_output_tokens = model_json.contains("max_output_tokens")
-                                               ? std::stoi(model_json.at("max_output_tokens").get<std::string>())
-                                               : std::get<3>(query_result);
-    model_details_.temperature =
-            model_json.contains("temperature") ? std::stof(model_json.at("temperature").get<std::string>()) : 0;
+    model_details_.model_parameters = model_json.contains("model_parameters") ? nlohmann::json::parse(model_json.at("model_parameters").get<std::string>()) : std::get<2>(query_result)["model_parameters"];
+
     model_details_.tuple_format =
-            model_json.contains("tuple_format") ? model_json.at("tuple_format").get<std::string>() : "XML";
+            model_json.contains("tuple_format") ? model_json.at("tuple_format").get<std::string>() : std::get<2>(query_result).contains("tuple_format") ? std::get<2>(query_result).at("tuple_format").get<std::string>()
+                                                                                                                                                        : "XML";
     model_details_.batch_size =
-            model_json.contains("batch_size") ? std::stoi(model_json.at("batch_size").get<std::string>()) : 0;
+            model_json.contains("batch_size") ? std::stoi(model_json.at("batch_size").get<std::string>()) : std::get<2>(query_result).contains("batch_size") ? std::stoi(std::get<2>(query_result).at("batch_size").get<std::string>())
+                                                                                                                                                             : 2048;
 }
 
-std::tuple<std::string, std::string, int32_t, int32_t> Model::GetQueriedModel(const std::string& model_name) {
+std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedModel(const std::string& model_name) {
     const std::string query =
             duckdb_fmt::format(" SELECT model, provider_name, model_args "
                                " FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
@@ -69,7 +65,7 @@ std::tuple<std::string, std::string, int32_t, int32_t> Model::GetQueriedModel(co
     auto provider_name = query_result->GetValue(1, 0).ToString();
     auto model_args = nlohmann::json::parse(query_result->GetValue(2, 0).ToString());
 
-    return {model, provider_name, model_args["context_window"], model_args["max_output_tokens"]};
+    return {model, provider_name, model_args};
 }
 
 void Model::ConstructProvider() {
@@ -95,8 +91,8 @@ void Model::ConstructProvider() {
 
 ModelDetails Model::GetModelDetails() { return model_details_; }
 
-nlohmann::json Model::CallComplete(const std::string& prompt, bool json_response) {
-    return provider_->CallComplete(prompt, json_response);
+nlohmann::json Model::CallComplete(const std::string& prompt, const bool json_response, const OutputType output_type) {
+    return provider_->CallComplete(prompt, json_response, output_type);
 }
 
 nlohmann::json Model::CallEmbedding(const std::vector<std::string>& inputs) { return provider_->CallEmbedding(inputs); }

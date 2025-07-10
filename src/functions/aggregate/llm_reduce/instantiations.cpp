@@ -12,7 +12,5 @@ template void AggregateFunctionBase::Combine<LlmReduce>(duckdb::Vector&, duckdb:
                                                         idx_t);
 template void LlmReduce::Finalize<AggregateFunctionType::REDUCE>(duckdb::Vector&, duckdb::AggregateInputData&,
                                                                  duckdb::Vector&, idx_t, idx_t);
-template void LlmReduce::Finalize<AggregateFunctionType::REDUCE_JSON>(duckdb::Vector&, duckdb::AggregateInputData&,
-                                                                      duckdb::Vector&, idx_t, idx_t);
 
-} // namespace flockmtl
+}// namespace flockmtl

@@ -9,47 +9,48 @@ using namespace flockmtl;
  *                 Create Model                  *
  **************************************************/
 
-TEST(ModelParserTest, ParseCreateModel) {
+TEST(ModelParserTest, ParseCreateModelWithoutModelArgs) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"context_window\": 512, \"max_output_tokens\": 128})", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider')", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["context_window"], 512);
-    EXPECT_EQ(create_stmt->model_args["max_output_tokens"], 128);
+    EXPECT_EQ(create_stmt->model_args.size(), 0);
 }
 
 TEST(ModelParserTest, ParseCreateGlobalModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE GLOBAL MODEL ('test_model', 'model_data', 'provider', {\"context_window\": 512, \"max_output_tokens\": 128})", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE GLOBAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}})", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["context_window"], 512);
-    EXPECT_EQ(create_stmt->model_args["max_output_tokens"], 128);
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
+    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "flockmtl_storage.");
 }
 
 TEST(ModelParserTest, ParseCreateLocalModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE LOCAL MODEL ('test_model', 'model_data', 'provider', {\"context_window\": 512, \"max_output_tokens\": 128})", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE LOCAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}})", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["context_window"], 512);
-    EXPECT_EQ(create_stmt->model_args["max_output_tokens"], 128);
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
+    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "");
 }
 
@@ -57,6 +58,27 @@ TEST(ModelParserTest, ParseInvalidCreateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
     EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data')", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseCreateModelWithArgs) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}})", statement));
+    ASSERT_NE(statement, nullptr);
+    auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
+    ASSERT_NE(create_stmt, nullptr);
+    EXPECT_EQ(create_stmt->model_name, "test_model");
+    EXPECT_EQ(create_stmt->model, "model_data");
+    EXPECT_EQ(create_stmt->provider_name, "provider");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
+    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+}
+
+TEST(ModelParserTest, ParseCreateModelWithInvalidArgs) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"invalid_key\": \"value\"})", statement), std::runtime_error);
 }
 
 /**************************************************
@@ -83,18 +105,32 @@ TEST(ModelParserTest, ParseInvalidDeleteModel) {
  *                 Update Model                  *
  **************************************************/
 
+TEST(ModelParserTest, ParseUpdateModelWithoutModelArgs) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider')", statement));
+    ASSERT_NE(statement, nullptr);
+    auto create_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
+    ASSERT_NE(create_stmt, nullptr);
+    EXPECT_EQ(create_stmt->model_name, "test_model");
+    EXPECT_EQ(create_stmt->new_model, "new_model_data");
+    EXPECT_EQ(create_stmt->provider_name, "new_provider");
+    EXPECT_EQ(create_stmt->new_model_args.size(), 0);
+}
+
 TEST(ModelParserTest, ParseUpdateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"context_window\": 1024, \"max_output_tokens\": 256})", statement));
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_parameters\": {\"param2\": \"value2\"}})", statement));
     ASSERT_NE(statement, nullptr);
     const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
     EXPECT_EQ(update_stmt->model_name, "test_model");
     EXPECT_EQ(update_stmt->new_model, "new_model_data");
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
-    EXPECT_EQ(update_stmt->new_model_args["context_window"], 1024);
-    EXPECT_EQ(update_stmt->new_model_args["max_output_tokens"], 256);
+    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], "xml");
+    EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
+    EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
 }
 
 TEST(ModelParserTest, ParseUpdateModelScopeToGlobal) {
@@ -117,6 +153,21 @@ TEST(ModelParserTest, ParseUpdateModelScopeToLocal) {
     ASSERT_NE(update_stmt, nullptr);
     EXPECT_EQ(update_stmt->model_name, "test_model");
     EXPECT_EQ(update_stmt->catalog, "");
+}
+
+TEST(ModelParserTest, ParseUpdateModelWithArgs) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_parameters\": {\"param2\": \"value2\"}})", statement));
+    ASSERT_NE(statement, nullptr);
+    const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
+    ASSERT_NE(update_stmt, nullptr);
+    EXPECT_EQ(update_stmt->model_name, "test_model");
+    EXPECT_EQ(update_stmt->new_model, "new_model_data");
+    EXPECT_EQ(update_stmt->provider_name, "new_provider");
+    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], "xml");
+    EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
+    EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
 }
 
 TEST(ModelParserTest, ParseInvalidUpdateModel) {

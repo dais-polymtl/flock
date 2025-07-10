@@ -12,7 +12,7 @@ public:
     explicit MockOpenAIProvider() : OpenAIProvider(ModelDetails()) {}
 
     // Override the API call methods for testing
-    MOCK_METHOD(nlohmann::json, CallComplete, (const std::string& prompt, bool json_response), (override));
+    MOCK_METHOD(nlohmann::json, CallComplete, (const std::string& prompt, bool json_response, OutputType output_type), (override));
     MOCK_METHOD(nlohmann::json, CallEmbedding, (const std::vector<std::string>& inputs), (override));
 };
 

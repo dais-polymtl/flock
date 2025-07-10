@@ -2,23 +2,24 @@
 
 namespace flockmtl {
 
-nlohmann::json OllamaProvider::CallComplete(const std::string& prompt, const bool json_response) {
+nlohmann::json OllamaProvider::CallComplete(const std::string& prompt, const bool json_response, OutputType output_type) {
     auto ollama_model_manager_uptr = std::make_unique<OllamaModelManager>(model_details_.secret["api_url"], true);
 
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {{"model", model_details_.model},
-                                      {"prompt", prompt},
-                                      {"stream", false},
-                                      {"options",
-                                       {
-                                           {"temperature", model_details_.temperature},
-                                           {"num_ctx", model_details_.max_output_tokens},
-                                       }},
-                                      {"keep_alive", -1}};
+                                      {"prompt", prompt}};
 
-    // Conditionally add "response_format" if json_response is true
+    if (!model_details_.model_parameters.empty()) {
+        request_payload.update(model_details_.model_parameters);
+    }
+
     if (json_response) {
-        request_payload["format"] = "json";
+        if (model_details_.model_parameters.contains("format")) {
+            auto schema = model_details_.model_parameters["format"];
+            request_payload["format"] = {{"type", "object"}, {"properties", {"items", {{"type", "array"}, {"items", schema}}}}};
+        } else {
+            request_payload["format"] = {{"type", "object"}, {"properties", {"items", {{"type", "array"}, {"items", {{"type", GetOutputTypeString(output_type)}}}}}}};
+        }
     }
 
     nlohmann::json completion;
@@ -48,11 +49,11 @@ nlohmann::json OllamaProvider::CallEmbedding(const std::vector<std::string>& inp
     auto ollama_model_manager_uptr = std::make_unique<OllamaModelManager>(model_details_.secret["api_url"], true);
 
     auto embeddings = nlohmann::json::array();
-    for (const auto& input : inputs) {
+    for (const auto& input: inputs) {
         // Create a JSON request payload with the provided parameters
         nlohmann::json request_payload = {
-            {"model", model_details_.model},
-            {"prompt", input},
+                {"model", model_details_.model},
+                {"prompt", input},
         };
 
         nlohmann::json completion;
@@ -67,4 +68,4 @@ nlohmann::json OllamaProvider::CallEmbedding(const std::vector<std::string>& inp
     return embeddings;
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

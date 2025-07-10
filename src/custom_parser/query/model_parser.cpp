@@ -80,27 +80,31 @@ void ModelParser::ParseCreateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
     std::string provider_name = token.value;
 
     token = tokenizer.NextToken();
-    if (token.type != TokenType::SYMBOL || token.value != ",") {
-        throw std::runtime_error("Expected comma ',' after provider_name.");
-    }
-
-    token = tokenizer.NextToken();
-    if (token.type != TokenType::JSON || token.value.empty()) {
-        throw std::runtime_error("Expected json value for the model_args.");
-    }
-    auto model_args = nlohmann::json::parse(token.value);
-    const std::set<std::string> expected_keys = {"context_window", "max_output_tokens"};
-    std::set<std::string> json_keys;
-    for (auto it = model_args.begin(); it != model_args.end(); ++it) {
-        json_keys.insert(it.key());
-    }
-    if (json_keys != expected_keys) {
-        throw std::runtime_error("Expected keys: context_window, max_output_tokens in model_args.");
-    }
-
-    token = tokenizer.NextToken();
-    if (token.type != TokenType::PARENTHESIS || token.value != ")") {
-        throw std::runtime_error("Expected closing parenthesis ')' after max_output_tokens.");
+    nlohmann::json model_args = nlohmann::json::object();
+    // The JSON argument is optional. If present, extract tuple_format, batch_size, and model_parameters (all optional).
+    if (token.type == TokenType::SYMBOL || token.value == ",") {
+        token = tokenizer.NextToken();
+        try {
+            nlohmann::json input_args = nlohmann::json::parse(token.value);
+            // Only allow tuple_format, batch_size, model_parameters
+            for (auto it = input_args.begin(); it != input_args.end(); ++it) {
+                const std::string& key = it.key();
+                if (key == "tuple_format" || key == "batch_size" || key == "model_parameters") {
+                    model_args[key] = it.value();
+                } else {
+                    throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, and model_parameters are allowed.");
+                }
+            }
+        } catch (const std::exception& e) {
+            throw std::runtime_error(std::string("Failed to parse model_args JSON: ") + e.what());
+        }
+        token = tokenizer.NextToken();
+        if (token.type != TokenType::PARENTHESIS) {
+            throw std::runtime_error("Expected closing parenthesis ')' after model_args.");
+        }
+    } else if (token.type == TokenType::PARENTHESIS && token.value == ")") {
+    } else {
+        throw std::runtime_error("Expected closing parenthesis ')' or JSON after provider_name.");
     }
 
     token = tokenizer.NextToken();
@@ -170,7 +174,7 @@ void ModelParser::ParseUpdateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
             statement = std::move(update_statement);
         } else {
             throw std::runtime_error(
-                "Unexpected characters after the closing parenthesis. Only a semicolon is allowed.");
+                    "Unexpected characters after the closing parenthesis. Only a semicolon is allowed.");
         }
 
     } else {
@@ -207,27 +211,31 @@ void ModelParser::ParseUpdateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
         auto provider_name = token.value;
 
         token = tokenizer.NextToken();
-        if (token.type != TokenType::SYMBOL || token.value != ",") {
-            throw std::runtime_error("Expected comma ',' after provider_name.");
-        }
-
-        token = tokenizer.NextToken();
-        if (token.type != TokenType::JSON || token.value.empty()) {
-            throw std::runtime_error("Expected json value for the model_args.");
-        }
-        auto new_model_args = nlohmann::json::parse(token.value);
-        const std::set<std::string> expected_keys = {"context_window", "max_output_tokens"};
-        std::set<std::string> json_keys;
-        for (auto it = new_model_args.begin(); it != new_model_args.end(); ++it) {
-            json_keys.insert(it.key());
-        }
-        if (json_keys != expected_keys) {
-            throw std::runtime_error("Expected keys: context_window, max_output_tokens in model_args.");
-        }
-
-        token = tokenizer.NextToken();
-        if (token.type != TokenType::PARENTHESIS || token.value != ")") {
-            throw std::runtime_error("Expected closing parenthesis ')' after new max_output_tokens.");
+        nlohmann::json new_model_args = nlohmann::json::object();
+        if (token.type == TokenType::SYMBOL || token.value == ",") {
+            token = tokenizer.NextToken();
+            try {
+                nlohmann::json input_args = nlohmann::json::parse(token.value);
+                // Only allow tuple_format, batch_size, model_parameters
+                for (auto it = input_args.begin(); it != input_args.end(); ++it) {
+                    const std::string& key = it.key();
+                    if (key == "tuple_format" || key == "batch_size" || key == "model_parameters") {
+                        new_model_args[key] = it.value();
+                    } else {
+                        throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, and model_parameters are allowed.");
+                    }
+                }
+            } catch (const std::exception& e) {
+                throw std::runtime_error(std::string("Failed to parse model_args JSON: ") + e.what());
+            }
+            token = tokenizer.NextToken();
+            if (token.type != TokenType::PARENTHESIS) {
+                throw std::runtime_error("Expected closing parenthesis ')' after model_args.");
+            }
+        } else if (token.type == TokenType::PARENTHESIS) {
+            // No model_args provided, just closing parenthesis
+        } else {
+            throw std::runtime_error("Expected closing parenthesis ')' or JSON after provider_name.");
         }
 
         token = tokenizer.NextToken();
@@ -240,7 +248,7 @@ void ModelParser::ParseUpdateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
             statement = std::move(update_statement);
         } else {
             throw std::runtime_error(
-                "Unexpected characters after the closing parenthesis. Only a semicolon is allowed.");
+                    "Unexpected characters after the closing parenthesis. Only a semicolon is allowed.");
         }
     }
 }
@@ -277,134 +285,134 @@ std::string ModelParser::ToSQL(const QueryStatement& statement) const {
     std::string query;
 
     switch (statement.type) {
-    case StatementType::CREATE_MODEL: {
-        const auto& create_stmt = static_cast<const CreateModelStatement&>(statement);
-        auto con = Config::GetConnection();
-        auto result = con.Query(duckdb_fmt::format(
-            " SELECT model_name"
-            "  FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE"
-            " WHERE model_name = '{}'"
-            " UNION ALL "
-            " SELECT model_name "
-            "   FROM {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
-            "  WHERE model_name = '{}';",
-            create_stmt.model_name, create_stmt.catalog.empty() ? "flockmtl_storage." : "", create_stmt.model_name));
-        if (result->RowCount() != 0) {
-            throw std::runtime_error(duckdb_fmt::format("Model '{}' already exist.", create_stmt.model_name));
+        case StatementType::CREATE_MODEL: {
+            const auto& create_stmt = static_cast<const CreateModelStatement&>(statement);
+            auto con = Config::GetConnection();
+            auto result = con.Query(duckdb_fmt::format(
+                    " SELECT model_name"
+                    "  FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE"
+                    " WHERE model_name = '{}'"
+                    " UNION ALL "
+                    " SELECT model_name "
+                    "   FROM {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                    "  WHERE model_name = '{}';",
+                    create_stmt.model_name, create_stmt.catalog.empty() ? "flockmtl_storage." : "", create_stmt.model_name));
+            if (result->RowCount() != 0) {
+                throw std::runtime_error(duckdb_fmt::format("Model '{}' already exist.", create_stmt.model_name));
+            }
+
+            query = duckdb_fmt::format(" INSERT INTO "
+                                       " {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                       " (model_name, model, provider_name, model_args) "
+                                       " VALUES ('{}', '{}', '{}', '{}');",
+                                       create_stmt.catalog, create_stmt.model_name, create_stmt.model,
+                                       create_stmt.provider_name, create_stmt.model_args.dump());
+            break;
         }
+        case StatementType::DELETE_MODEL: {
+            const auto& delete_stmt = static_cast<const DeleteModelStatement&>(statement);
+            auto con = Config::GetConnection();
 
-        query = duckdb_fmt::format(" INSERT INTO "
-                                   " {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                   " (model_name, model, provider_name, model_args) "
-                                   " VALUES ('{}', '{}', '{}', '{}');",
-                                   create_stmt.catalog, create_stmt.model_name, create_stmt.model,
-                                   create_stmt.provider_name, create_stmt.model_args.dump());
-        break;
-    }
-    case StatementType::DELETE_MODEL: {
-        const auto& delete_stmt = static_cast<const DeleteModelStatement&>(statement);
-        auto con = Config::GetConnection();
-
-        con.Query(duckdb_fmt::format(" DELETE FROM flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                     "  WHERE model_name = '{}';",
-                                     delete_stmt.model_name));
-
-        query = duckdb_fmt::format(" DELETE FROM "
-                                   " flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                   "  WHERE model_name = '{}';",
-                                   delete_stmt.model_name, delete_stmt.model_name);
-        break;
-    }
-    case StatementType::UPDATE_MODEL: {
-        const auto& update_stmt = static_cast<const UpdateModelStatement&>(statement);
-        auto con = Config::GetConnection();
-        // get the location of the model_name if local or global
-        auto result = con.Query(
-            duckdb_fmt::format(" SELECT model_name, 'global' AS scope "
-                               "   FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
-                               "  WHERE model_name = '{}'"
-                               " UNION ALL "
-                               " SELECT model_name, 'local' AS scope "
-                               "   FROM flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
-                               "  WHERE model_name = '{}';",
-                               update_stmt.model_name, update_stmt.model_name, update_stmt.model_name));
-
-        if (result->RowCount() == 0) {
-            throw std::runtime_error(duckdb_fmt::format("Model '{}' doesn't exist.", update_stmt.model_name));
-        }
-
-        auto catalog = result->GetValue(1, 0).ToString() == "global" ? "flockmtl_storage." : "";
-
-        query = duckdb_fmt::format(" UPDATE {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                   "    SET model = '{}', provider_name = '{}', "
-                                   " model_args = '{}' WHERE model_name = '{}'; ",
-                                   catalog, update_stmt.new_model, update_stmt.provider_name,
-                                   update_stmt.new_model_args.dump(), update_stmt.model_name);
-        break;
-    }
-    case StatementType::UPDATE_MODEL_SCOPE: {
-        const auto& update_stmt = static_cast<const UpdateModelScopeStatement&>(statement);
-        auto con = Config::GetConnection();
-        auto result =
-            con.Query(duckdb_fmt::format(" SELECT model_name "
-                                         "   FROM {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+            con.Query(duckdb_fmt::format(" DELETE FROM flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
                                          "  WHERE model_name = '{}';",
-                                         update_stmt.catalog, update_stmt.model_name));
-        if (result->RowCount() != 0) {
-            throw std::runtime_error(
-                duckdb_fmt::format("Model '{}' already exist in {} storage.", update_stmt.model_name,
-                                   update_stmt.catalog == "flockmtl_storage." ? "global" : "local"));
+                                         delete_stmt.model_name));
+
+            query = duckdb_fmt::format(" DELETE FROM "
+                                       " flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                       "  WHERE model_name = '{}';",
+                                       delete_stmt.model_name, delete_stmt.model_name);
+            break;
+        }
+        case StatementType::UPDATE_MODEL: {
+            const auto& update_stmt = static_cast<const UpdateModelStatement&>(statement);
+            auto con = Config::GetConnection();
+            // get the location of the model_name if local or global
+            auto result = con.Query(
+                    duckdb_fmt::format(" SELECT model_name, 'global' AS scope "
+                                       "   FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                                       "  WHERE model_name = '{}'"
+                                       " UNION ALL "
+                                       " SELECT model_name, 'local' AS scope "
+                                       "   FROM flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                                       "  WHERE model_name = '{}';",
+                                       update_stmt.model_name, update_stmt.model_name, update_stmt.model_name));
+
+            if (result->RowCount() == 0) {
+                throw std::runtime_error(duckdb_fmt::format("Model '{}' doesn't exist.", update_stmt.model_name));
+            }
+
+            auto catalog = result->GetValue(1, 0).ToString() == "global" ? "flockmtl_storage." : "";
+
+            query = duckdb_fmt::format(" UPDATE {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                       "    SET model = '{}', provider_name = '{}', "
+                                       " model_args = '{}' WHERE model_name = '{}'; ",
+                                       catalog, update_stmt.new_model, update_stmt.provider_name,
+                                       update_stmt.new_model_args.dump(), update_stmt.model_name);
+            break;
+        }
+        case StatementType::UPDATE_MODEL_SCOPE: {
+            const auto& update_stmt = static_cast<const UpdateModelScopeStatement&>(statement);
+            auto con = Config::GetConnection();
+            auto result =
+                    con.Query(duckdb_fmt::format(" SELECT model_name "
+                                                 "   FROM {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                                                 "  WHERE model_name = '{}';",
+                                                 update_stmt.catalog, update_stmt.model_name));
+            if (result->RowCount() != 0) {
+                throw std::runtime_error(
+                        duckdb_fmt::format("Model '{}' already exist in {} storage.", update_stmt.model_name,
+                                           update_stmt.catalog == "flockmtl_storage." ? "global" : "local"));
+            }
+
+            con.Query(duckdb_fmt::format("INSERT INTO {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                         "(model_name, model, provider_name, model_args) "
+                                         "SELECT model_name, model, provider_name, model_args "
+                                         "FROM {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                         "WHERE model_name = '{}'; ",
+                                         update_stmt.catalog,
+                                         update_stmt.catalog == "flockmtl_storage." ? "" : "flockmtl_storage.",
+                                         update_stmt.model_name));
+
+            query = duckdb_fmt::format("DELETE FROM {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                       "WHERE model_name = '{}'; ",
+                                       update_stmt.catalog == "flockmtl_storage." ? "" : "flockmtl_storage.",
+                                       update_stmt.model_name);
+            break;
+        }
+        case StatementType::GET_MODEL: {
+            const auto& get_stmt = static_cast<const GetModelStatement&>(statement);
+            query = duckdb_fmt::format("SELECT 'global' AS scope, * "
+                                       "FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE "
+                                       "WHERE model_name = '{}' "
+                                       "UNION ALL "
+                                       "SELECT 'global' AS scope, * "
+                                       "FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                       "WHERE model_name = '{}'"
+                                       "UNION ALL "
+                                       "SELECT 'local' AS scope, * "
+                                       "FROM flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                       "WHERE model_name = '{}';",
+                                       get_stmt.model_name, get_stmt.model_name, get_stmt.model_name, get_stmt.model_name);
+            break;
         }
 
-        con.Query(duckdb_fmt::format("INSERT INTO {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                     "(model_name, model, provider_name, model_args) "
-                                     "SELECT model_name, model, provider_name, model_args "
-                                     "FROM {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                     "WHERE model_name = '{}'; ",
-                                     update_stmt.catalog,
-                                     update_stmt.catalog == "flockmtl_storage." ? "" : "flockmtl_storage.",
-                                     update_stmt.model_name));
-
-        query = duckdb_fmt::format("DELETE FROM {}flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                   "WHERE model_name = '{}'; ",
-                                   update_stmt.catalog == "flockmtl_storage." ? "" : "flockmtl_storage.",
-                                   update_stmt.model_name);
-        break;
-    }
-    case StatementType::GET_MODEL: {
-        const auto& get_stmt = static_cast<const GetModelStatement&>(statement);
-        query = duckdb_fmt::format("SELECT 'global' AS scope, * "
-                                   "FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE "
-                                   "WHERE model_name = '{}' "
-                                   "UNION ALL "
-                                   "SELECT 'global' AS scope, * "
-                                   "FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                   "WHERE model_name = '{}'"
-                                   "UNION ALL "
-                                   "SELECT 'local' AS scope, * "
-                                   "FROM flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                   "WHERE model_name = '{}';",
-                                   get_stmt.model_name, get_stmt.model_name, get_stmt.model_name, get_stmt.model_name);
-        break;
-    }
-
-    case StatementType::GET_ALL_MODEL: {
-        query = duckdb_fmt::format(" SELECT 'global' AS scope, * "
-                                   " FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE"
-                                   " UNION ALL "
-                                   " SELECT 'global' AS scope, * "
-                                   " FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
-                                   " UNION ALL "
-                                   " SELECT 'local' AS scope, * "
-                                   " FROM flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE;",
-                                   Config::get_global_storage_path().string());
-        break;
-    }
-    default:
-        throw std::runtime_error("Unknown statement type.");
+        case StatementType::GET_ALL_MODEL: {
+            query = duckdb_fmt::format(" SELECT 'global' AS scope, * "
+                                       " FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE"
+                                       " UNION ALL "
+                                       " SELECT 'global' AS scope, * "
+                                       " FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                                       " UNION ALL "
+                                       " SELECT 'local' AS scope, * "
+                                       " FROM flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE;",
+                                       Config::get_global_storage_path().string());
+            break;
+        }
+        default:
+            throw std::runtime_error("Unknown statement type.");
     }
 
     return query;
 }
 
-} // namespace flockmtl
+}// namespace flockmtl

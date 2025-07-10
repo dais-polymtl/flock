@@ -11,7 +11,6 @@ public:
 public:
     explicit LlmFirstOrLast() = default;
 
-    int GetAvailableTokens();
     int GetFirstOrLastTupleId(const nlohmann::json& tuples);
     nlohmann::json Evaluate(nlohmann::json& tuples);
 

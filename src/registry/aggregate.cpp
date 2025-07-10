@@ -7,7 +7,6 @@ void AggregateRegistry::Register(duckdb::DatabaseInstance& db) {
     RegisterLlmLast(db);
     RegisterLlmRerank(db);
     RegisterLlmReduce(db);
-    RegisterLlmReduceJson(db);
 }
 
-} // namespace flockmtl
+}// namespace flockmtl
