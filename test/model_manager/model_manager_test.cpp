@@ -45,8 +45,6 @@ TEST_F(ModelManagerTest, ModelInitialization) {
         EXPECT_EQ(details.model_name, "gpt-4o-test");
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
-        EXPECT_EQ(details.context_window, 128000);
-        EXPECT_EQ(details.max_output_tokens, 8000);
         EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
     });
 }
@@ -63,8 +61,6 @@ TEST_F(ModelManagerTest, ModelInitializationMinimal) {
         EXPECT_EQ(details.model_name, "gpt-4o-test");
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
-        EXPECT_EQ(details.context_window, 128000);
-        EXPECT_EQ(details.max_output_tokens, 8000);
     });
 }
 
@@ -126,8 +122,6 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.model_name, "gpt-4o-test");
     EXPECT_EQ(details.model, "gpt-4o");
     EXPECT_EQ(details.provider_name, "openai");
-    EXPECT_EQ(details.context_window, 128000);
-    EXPECT_EQ(details.max_output_tokens, 8000);
     EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
     EXPECT_EQ(details.tuple_format, "XML");
     EXPECT_EQ(details.batch_size, 10);

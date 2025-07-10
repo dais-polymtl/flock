@@ -45,8 +45,6 @@ TEST(ModelProvidersTest, OpenAIProviderTest) {
     model_details.model_name = "test_model";
     model_details.model = "gpt-4";
     model_details.provider_name = "openai";
-    model_details.context_window = 128000;
-    model_details.max_output_tokens = 8000;
     model_details.model_parameters = {{"temperature", 0.7}};
     model_details.secret = {{"api_key", "test_api_key"}};
 
@@ -81,8 +79,6 @@ TEST(ModelProvidersTest, AzureProviderTest) {
     model_details.model_name = "test_model";
     model_details.model = "gpt-4";
     model_details.provider_name = "azure";
-    model_details.context_window = 128000;
-    model_details.max_output_tokens = 8000;
     model_details.model_parameters = {{"temperature", 0.7}};
     model_details.secret = {
             {"api_key", "test_api_key"},
@@ -120,8 +116,6 @@ TEST(ModelProvidersTest, OllamaProviderTest) {
     model_details.model_name = "test_model";
     model_details.model = "llama3";
     model_details.provider_name = "ollama";
-    model_details.context_window = 128000;
-    model_details.max_output_tokens = 8000;
     model_details.model_parameters = {{"temperature", 0.7}};
     model_details.secret = {{"api_url", "http://localhost:11434"}};
 
