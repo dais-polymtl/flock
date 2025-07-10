@@ -35,8 +35,8 @@ TEST_F(ModelManagerTest, ModelInitialization) {
             {"model_name", "gpt-4o-test"},
             {"model", "gpt-4o"},
             {"provider", "openai"},
-            {"context_window", "128000"},
-            {"max_output_tokens", "8000"},
+            {"tuple_format", "json"},
+            {"batch_size", "32"},
             {"model_parameters", "{\"temperature\": 0.7}"}};
 
     EXPECT_NO_THROW({
@@ -46,6 +46,8 @@ TEST_F(ModelManagerTest, ModelInitialization) {
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
         EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
+        EXPECT_EQ(details.tuple_format, "json");
+        EXPECT_EQ(details.batch_size, 32);
     });
 }
 
@@ -110,8 +112,6 @@ TEST_F(ModelManagerTest, GetModelDetails) {
             {"model_name", "gpt-4o-test"},
             {"model", "gpt-4o"},
             {"provider", "openai"},
-            {"context_window", "128000"},
-            {"max_output_tokens", "8000"},
             {"model_parameters", "{\"temperature\": 0.7}"},
             {"tuple_format", "XML"},
             {"batch_size", "10"}};

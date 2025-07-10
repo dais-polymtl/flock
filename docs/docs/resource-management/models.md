@@ -5,10 +5,7 @@ sidebar_position: 1
 
 # Models Management
 
-The **Models Management** section provides guidance on how to manage and configure models for **analytics and semantic
-analysis tasks** within FlockMTL. These tasks involve processing and analyzing text, embeddings, and other data types
-using pre-configured models, either system-defined or user-defined, based on specific use cases. Each database is
-configured with its own model management table during the initial load.
+The **Models Management** section provides guidance on how to manage and configure models for **analytics and semantic analysis tasks** within FlockMTL. These tasks involve processing and analyzing text, embeddings, and other data types using pre-configured models, either system-defined or user-defined, based on specific use cases. Each database is configured with its own model management table during the initial load.
 
 import TOCInline from '@theme/TOCInline';
 
@@ -44,11 +41,6 @@ GET MODEL 'model_name';
 ```sql
 -- User-defined model (only tuple_format, batch_size, and model_parameters allowed in JSON)
 -- tuple_format can be "JSON", "XML", or "Markdown"
-CREATE MODEL(
-    'model_name',
-    'model',
-    'provider'
-);
 CREATE MODEL(
     'model_name',
     'model',
@@ -139,35 +131,9 @@ UPDATE MODEL(
 DELETE MODEL 'model_name';
 ```
 
-## 3. SQL Query Examples
+## 3. Global and Local Models
 
-### Semantic Text Completion
-
-```sql
-SELECT llm_complete(
-    {'model_name': 'gpt-4'},
-    {'prompt_name': 'product-description'},
-    {'input_text': product_description}
-) AS generated_description
-FROM products;
-```
-
-### Semantic Search
-
-```sql
-SELECT llm_complete(
-    {'model_name': 'semantic_search_model'},
-    {'prompt_name': 'search-query'},
-    {'search_query': query}
-) AS search_results
-FROM search_data;
-```
-
-## 4. Global and Local Models
-
-Model creation is database specific if you want it to be available irrespective of the database then make it a GLOBAL
-mode. Note that previously, the creation was specific to the running database, which is LOCAL by default and the keyword
-LOCAL is optional.
+Model creation is database specific. If you want it to be available irrespective of the database, use the GLOBAL keyword. LOCAL is the default if not specified.
 
 ### Create Models
 
@@ -298,8 +264,6 @@ CREATE MODEL(
 );
 ```
 
-### Toggle Model State
-
 - Toggle a model's state between global and local:
 
 ```sql
@@ -307,4 +271,28 @@ UPDATE MODEL 'model_name' TO GLOBAL;
 UPDATE MODEL 'model_name' TO LOCAL;
 ```
 
-All the other queries remain the same for both global and local prompts.
+All other queries remain the same for both global and local models.
+
+## 4. SQL Query Examples
+
+### Semantic Text Completion
+
+```sql
+SELECT llm_complete(
+    {'model_name': 'gpt-4'},
+    {'prompt_name': 'product-description'},
+    {'input_text': product_description}
+) AS generated_description
+FROM products;
+```
+
+### Semantic Search
+
+```sql
+SELECT llm_complete(
+    {'model_name': 'semantic_search_model'},
+    {'prompt_name': 'search-query'},
+    {'search_query': query}
+) AS search_results
+FROM search_data;
+```
