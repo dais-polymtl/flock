@@ -12,7 +12,7 @@ int LlmFirstOrLast::GetFirstOrLastTupleId(const nlohmann::json& tuples) {
 nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
     auto batch_tuples = nlohmann::json::array();
     int start_index = 0;
-    auto batch_size = std::min(model.GetModelDetails().batch_size, static_cast<int>(tuples.size()));
+    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, static_cast<int>(tuples.size()));
 
     if (batch_size <= 0) {
         throw std::runtime_error("Batch size must be greater than zero");
