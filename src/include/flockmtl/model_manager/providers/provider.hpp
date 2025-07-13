@@ -3,6 +3,7 @@
 #include "fmt/format.h"
 #include <nlohmann/json.hpp>
 
+#include "flockmtl/model_manager/providers/handlers/handler.hpp"
 #include "flockmtl/model_manager/repository.hpp"
 
 namespace flockmtl {
@@ -17,6 +18,7 @@ enum class OutputType {
 class IProvider {
 public:
     ModelDetails model_details_;
+    std::unique_ptr<IModelProviderHandler> model_handler_;
 
     explicit IProvider(const ModelDetails& model_details) : model_details_(model_details) {};
     virtual ~IProvider() = default;

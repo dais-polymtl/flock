@@ -3,8 +3,6 @@
 namespace flockmtl {
 
 nlohmann::json OllamaProvider::CallComplete(const std::string& prompt, const bool json_response, OutputType output_type) {
-    auto ollama_model_manager_uptr = std::make_unique<OllamaModelManager>(model_details_.secret["api_url"], true);
-
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {{"model", model_details_.model},
                                       {"prompt", prompt}};
@@ -24,7 +22,7 @@ nlohmann::json OllamaProvider::CallComplete(const std::string& prompt, const boo
 
     nlohmann::json completion;
     try {
-        completion = ollama_model_manager_uptr->CallComplete(request_payload);
+        completion = model_handler_->CallComplete(request_payload);
     } catch (const std::exception& e) {
         throw std::runtime_error(duckdb_fmt::format("Error in making request to Ollama API: {}", e.what()));
     }
@@ -46,8 +44,6 @@ nlohmann::json OllamaProvider::CallComplete(const std::string& prompt, const boo
 }
 
 nlohmann::json OllamaProvider::CallEmbedding(const std::vector<std::string>& inputs) {
-    auto ollama_model_manager_uptr = std::make_unique<OllamaModelManager>(model_details_.secret["api_url"], true);
-
     auto embeddings = nlohmann::json::array();
     for (const auto& input: inputs) {
         // Create a JSON request payload with the provided parameters
@@ -58,7 +54,7 @@ nlohmann::json OllamaProvider::CallEmbedding(const std::vector<std::string>& inp
 
         nlohmann::json completion;
         try {
-            completion = ollama_model_manager_uptr->CallEmbedding(request_payload);
+            completion = model_handler_->CallEmbedding(request_payload);
         } catch (const std::exception& e) {
             throw std::runtime_error(duckdb_fmt::format("Error in making request to Ollama API: {}", e.what()));
         }

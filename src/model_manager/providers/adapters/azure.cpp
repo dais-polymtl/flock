@@ -3,10 +3,6 @@
 namespace flockmtl {
 
 nlohmann::json AzureProvider::CallComplete(const std::string& prompt, const bool json_response, OutputType output_type) {
-    auto azure_model_manager_uptr =
-            std::make_unique<AzureModelManager>(model_details_.secret["api_key"], model_details_.secret["resource_name"],
-                                                model_details_.model, model_details_.secret["api_version"], true);
-
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {{"messages", {{{"role", "user"}, {"content", prompt}}}}};
 
@@ -36,7 +32,7 @@ nlohmann::json AzureProvider::CallComplete(const std::string& prompt, const bool
     }
 
     // Make a request to the Azure API
-    auto completion = azure_model_manager_uptr->CallComplete(request_payload);
+    auto completion = model_handler_->CallComplete(request_payload);
 
     // Check if the conversation was too long for the context window
     if (completion["choices"][0]["finish_reason"] == "length") {
@@ -68,10 +64,6 @@ nlohmann::json AzureProvider::CallComplete(const std::string& prompt, const bool
 }
 
 nlohmann::json AzureProvider::CallEmbedding(const std::vector<std::string>& inputs) {
-    auto azure_model_manager_uptr =
-            std::make_unique<AzureModelManager>(model_details_.secret["api_key"], model_details_.secret["resource_name"],
-                                                model_details_.model, model_details_.secret["api_version"], true);
-
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {
             {"model", model_details_.model},
@@ -79,7 +71,7 @@ nlohmann::json AzureProvider::CallEmbedding(const std::vector<std::string>& inpu
     };
 
     // Make a request to the Azure API
-    auto completion = azure_model_manager_uptr->CallEmbedding(request_payload);
+    auto completion = model_handler_->CallEmbedding(request_payload);
 
     // Check if the conversation was too long for the context window
     if (completion["choices"][0]["finish_reason"] == "length") {

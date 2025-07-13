@@ -3,12 +3,6 @@
 namespace flockmtl {
 
 nlohmann::json OpenAIProvider::CallComplete(const std::string& prompt, bool json_response, OutputType output_type) {
-    auto base_url = std::string("");
-    if (const auto it = model_details_.secret.find("base_url"); it != model_details_.secret.end()) {
-        base_url = it->second;
-    }
-    auto openai = openai::OpenAI(model_details_.secret["api_key"], "", true, base_url);
-
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {{"model", model_details_.model},
                                       {"messages", {{{"role", "user"}, {"content", prompt}}}}};
@@ -41,7 +35,7 @@ nlohmann::json OpenAIProvider::CallComplete(const std::string& prompt, bool json
     // Make a request to the OpenAI API
     nlohmann::json completion;
     try {
-        completion = openai.chat.create(request_payload);
+        completion = model_handler_->CallComplete(request_payload);
     } catch (const std::exception& e) {
         throw std::runtime_error("Error in making request to OpenAI API: " + std::string(e.what()));
     }
@@ -79,7 +73,6 @@ nlohmann::json OpenAIProvider::CallEmbedding(const std::vector<std::string>& inp
     if (const auto it = model_details_.secret.find("base_url"); it != model_details_.secret.end()) {
         base_url = it->second;
     }
-    auto openai = openai::OpenAI(model_details_.secret["api_key"], "", true, base_url);
 
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {
@@ -88,7 +81,7 @@ nlohmann::json OpenAIProvider::CallEmbedding(const std::vector<std::string>& inp
     };
 
     // Make a request to the OpenAI API
-    auto completion = openai.embedding.create(request_payload);
+    auto completion = model_handler_->CallEmbedding(request_payload);
 
     // Check if the conversation was too long for the context window
     if (completion["choices"][0]["finish_reason"] == "length") {

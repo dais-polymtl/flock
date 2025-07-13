@@ -3,6 +3,7 @@
 
 #include "session.hpp"
 
+#include "flockmtl/model_manager/providers/handlers/handler.hpp"
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
@@ -10,7 +11,7 @@
 
 namespace flockmtl {
 
-class OllamaModelManager {
+class OllamaModelManager : public IModelProviderHandler {
 public:
     OllamaModelManager(const std::string& url, const bool throw_exception)
         : _session("Ollama", throw_exception), _throw_exception(throw_exception), _url(url) {}
@@ -56,7 +57,7 @@ public:
         auto response = _session.validOllamaModelsJson(url);
         auto json = nlohmann::json::parse(response.text);
         bool res = false;
-        for (const auto& model : json["models"]) {
+        for (const auto& model: json["models"]) {
             if (model.contains("name")) {
                 const auto& available_model = model["name"].get<std::string>();
                 res |= available_model.find(user_model_name) != std::string::npos;
@@ -77,7 +78,7 @@ private:
             trigger_error(response.error_message);
         }
 
-        nlohmann::json json {};
+        nlohmann::json json{};
         if (isJson(response.text)) {
 
             json = nlohmann::json::parse(response.text);
@@ -101,14 +102,15 @@ private:
         if (json.count("error")) {
             auto reason = json["error"].dump();
             trigger_error(reason);
-            std::cerr << ">> response error :\n" << json.dump(2) << "\n";
+            std::cerr << ">> response error :\n"
+                      << json.dump(2) << "\n";
         }
     }
 
     bool isJson(const std::string& data) {
         bool rc = true;
         try {
-            auto json = nlohmann::json::parse(data); // throws if no json
+            auto json = nlohmann::json::parse(data);// throws if no json
         } catch (std::exception&) {
             rc = false;
         }
@@ -122,5 +124,5 @@ private:
     }
 };
 
-} // namespace flockmtl
+}// namespace flockmtl
 #endif
