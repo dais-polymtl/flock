@@ -99,8 +99,10 @@ const std::vector<std::vector<double>> LLMEmbeddingTest::EXPECTED_EMBEDDINGS = {
 // Test llm_embedding with SQL queries
 TEST_F(LLMEmbeddingTest, LLMEmbeddingWithTextInput) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
-    EXPECT_CALL(*mock_provider, CallEmbedding(::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
     const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'text-embedding-3-small'}, {'text': 'This is a test document'}) AS embedding;");
@@ -114,8 +116,10 @@ TEST_F(LLMEmbeddingTest, LLMEmbeddingWithTextInput) {
 
 TEST_F(LLMEmbeddingTest, LLMEmbeddingWithMultipleTextFields) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
-    EXPECT_CALL(*mock_provider, CallEmbedding(::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
     const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'text-embedding-3-small'}, {'title': 'Document Title', 'content': 'Document content here'}) AS embedding;");
@@ -164,8 +168,10 @@ TEST_F(LLMEmbeddingTest, ValidateArguments) {
 
 TEST_F(LLMEmbeddingTest, Operation_TwoArguments_RequiredStructure) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
-    EXPECT_CALL(*mock_provider, CallEmbedding(::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     duckdb::DataChunk chunk;
     CreateEmbeddingChunk(chunk);
@@ -187,8 +193,10 @@ TEST_F(LLMEmbeddingTest, Operation_TwoArguments_RequiredStructure) {
 TEST_F(LLMEmbeddingTest, Operation_BatchProcessing) {
     const std::vector<std::vector<double>> batch_embeddings = {{0.1, 0.2, 0.3, 0.4, 0.5}, {0.2, 0.3, 0.4, 0.5, 0.6}};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(batch_embeddings);
-    EXPECT_CALL(*mock_provider, CallEmbedding(::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     duckdb::DataChunk chunk;
     CreateEmbeddingChunk(chunk, 2);
@@ -217,8 +225,10 @@ TEST_F(LLMEmbeddingTest, Operation_BatchProcessing) {
 
 TEST_F(LLMEmbeddingTest, Operation_MultipleInputFields) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
-    EXPECT_CALL(*mock_provider, CallEmbedding(::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     duckdb::DataChunk chunk;
     auto model_struct = CreateModelStruct();
@@ -269,8 +279,10 @@ TEST_F(LLMEmbeddingTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, CallEmbedding(::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     duckdb::DataChunk chunk;
     CreateEmbeddingChunk(chunk, input_count);
@@ -305,8 +317,10 @@ TEST_F(LLMEmbeddingTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
 TEST_F(LLMEmbeddingTest, Operation_ConcatenatedFields_ProcessesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
-    EXPECT_CALL(*mock_provider, CallEmbedding(::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     duckdb::DataChunk chunk;
     auto model_struct = CreateModelStruct();

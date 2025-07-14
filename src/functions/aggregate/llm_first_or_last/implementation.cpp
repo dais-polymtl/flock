@@ -10,7 +10,7 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
 
     std::vector<nlohmann::json> current_tuples = tuples;
 
-    while (current_tuples.size() > 1) {
+    do {
         auto start_index = 0;
         const auto n = static_cast<int>(current_tuples.size());
         while (start_index < n) {
@@ -30,7 +30,7 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
             new_tuples.push_back(current_tuples[result_idx]);
         }
         current_tuples = std::move(new_tuples);
-    }
+    } while (current_tuples.size() > 1);
     current_tuples[0].erase("flockmtl_tuple_id");
     return current_tuples[0];
 }

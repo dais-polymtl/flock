@@ -13,7 +13,7 @@ void LLMFunctionTestBase<FunctionClass>::SetUp() {
               "       TYPE OPENAI,"
               "    API_KEY 'your-api-key');");
 
-    mock_provider = std::make_shared<MockOpenAIProvider>();
+    mock_provider = std::make_shared<MockProvider>(ModelDetails{});
     Model::SetMockProvider(mock_provider);
 }
 

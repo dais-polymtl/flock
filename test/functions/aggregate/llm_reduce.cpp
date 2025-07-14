@@ -41,8 +41,10 @@ protected:
 
 // Test llm_reduce with SQL queries without GROUP BY
 TEST_F(LLMReduceTest, LLMReduceWithoutGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(GetExpectedJsonResponse()));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
     auto con = Config::GetConnection();
 
@@ -59,9 +61,11 @@ TEST_F(LLMReduceTest, LLMReduceWithoutGroupBy) {
 
 // Test llm_reduce with SQL queries with GROUP BY
 TEST_F(LLMReduceTest, LLMReduceWithGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+            .Times(3);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
-            .WillRepeatedly(::testing::Return(GetExpectedJsonResponse()));
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
     auto con = Config::GetConnection();
 
@@ -92,9 +96,11 @@ TEST_F(LLMReduceTest, Operation_InvalidArguments_ThrowsException) {
 TEST_F(LLMReduceTest, Operation_MultipleInputs_ProcessesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+            .Times(3);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
-            .WillRepeatedly(::testing::Return(expected_response));
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
 
@@ -116,8 +122,11 @@ TEST_F(LLMReduceTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillRepeatedly(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+            .Times(100);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .Times(100)
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
 

@@ -7,13 +7,13 @@ nlohmann::json LlmReduce::ReduceLoop(const std::vector<nlohmann::json>& tuples,
                                      const AggregateFunctionType& function_type) {
 
     auto batch_size = std::min<int>(model.GetModelDetails().batch_size, static_cast<int>(tuples.size()));
-    if (batch_size <= 1) {
-        throw std::runtime_error("Batch size must be greater than one");
+    if (batch_size <= 0) {
+        throw std::runtime_error("Batch size must be greater than zero");
     }
 
     std::vector<nlohmann::json> current_tuples = tuples;
 
-    while (current_tuples.size() > 1) {
+    do {
         auto start_index = 0;
         const auto n = static_cast<int>(current_tuples.size());
 
@@ -37,7 +37,8 @@ nlohmann::json LlmReduce::ReduceLoop(const std::vector<nlohmann::json>& tuples,
             new_tuples.push_back(responses[i]["items"][0]);
         }
         current_tuples = std::move(new_tuples);
-    }
+    } while (current_tuples.size() > 1);
+
     return current_tuples[0];
 }
 

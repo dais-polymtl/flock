@@ -37,12 +37,7 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::
 
     // For each batch, call Complete (which should AddRequest internally)
     for (const auto& batch: all_batches) {
-        try {
-            AddCompletionRequest(batch, user_prompt, function_type, model);
-        } catch (const ExceededMaxOutputTokensError&) {
-            // If you want to handle dynamic batch size reduction, you can add logic here
-            throw std::runtime_error("ExceededMaxOutputTokensError: consider handling dynamic batch size");
-        }
+        AddCompletionRequest(batch, user_prompt, function_type, model);
     }
 
     // After all requests are queued, send them all and collect results
