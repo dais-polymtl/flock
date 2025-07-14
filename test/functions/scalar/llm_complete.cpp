@@ -81,7 +81,7 @@ TEST_F(LLMCompleteTest, Operation_TwoArguments_SimplePrompt) {
     SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
     SetStructStringData(chunk.data[1], {{{"prompt", TEST_PROMPT}}});
 
-    auto results = LlmComplete::Operation(chunk);
+    auto results = LlmComplete::Operation(chunk, ExecutionMode::SYNC);
 
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], GetExpectedResponse());
@@ -109,7 +109,7 @@ TEST_F(LLMCompleteTest, Operation_ThreeArguments_BatchProcessing) {
     SetStructStringData(chunk.data[2], {{{"variable1", "Hello"}, {"variable2", "World"}},
                                         {{"variable1", "Good"}, {"variable2", "Morning"}}});
 
-    auto results = LlmComplete::Operation(chunk);
+    auto results = LlmComplete::Operation(chunk, ExecutionMode::ASYNC);
 
     EXPECT_EQ(results.size(), 2);
     EXPECT_EQ(results, expected_response["items"]);
@@ -154,7 +154,7 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     SetStructStringData(chunk.data[2], large_input);
 
-    const auto results = LlmComplete::Operation(chunk);
+    const auto results = LlmComplete::Operation(chunk, ExecutionMode::ASYNC);
 
     EXPECT_EQ(results.size(), input_count);
     EXPECT_EQ(results, expected_response["items"]);

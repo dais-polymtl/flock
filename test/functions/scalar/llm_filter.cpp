@@ -107,7 +107,7 @@ TEST_F(LLMFilterTest, Operation_ThreeArguments_RequiredStructure) {
     SetStructStringData(chunk.data[1], {{{"prompt", "Does this text express positive sentiment?"}}});
     SetStructStringData(chunk.data[2], {{{"sentiment_text", "I love this product!"}}});
 
-    auto results = LlmFilter::Operation(chunk);
+    auto results = LlmFilter::Operation(chunk, ExecutionMode::ASYNC);
 
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], FormatExpectedResult(expected_response));
@@ -135,7 +135,7 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing) {
     SetStructStringData(chunk.data[2], {{{"review_text", "Great product"}, {"rating", "5"}},
                                         {{"review_text", "Terrible quality"}, {"rating", "1"}}});
 
-    auto results = LlmFilter::Operation(chunk);
+    auto results = LlmFilter::Operation(chunk, ExecutionMode::ASYNC);
 
     EXPECT_EQ(results.size(), 2);
     std::vector<std::string> expected_results;
@@ -169,7 +169,7 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing_StringVector) {
     SetStructStringData(chunk.data[2], {{{"text_content", "Great offer!"}},
                                         {{"text_content", "Click here now!"}}});
 
-    auto results = LlmFilter::Operation(chunk);
+    auto results = LlmFilter::Operation(chunk, ExecutionMode::ASYNC);
 
     EXPECT_EQ(results.size(), 2);
     std::vector<std::string> expected_results;
@@ -219,7 +219,7 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     SetStructStringData(chunk.data[2], large_input);
 
-    const auto results = LlmFilter::Operation(chunk);
+    const auto results = LlmFilter::Operation(chunk, ExecutionMode::ASYNC);
 
     EXPECT_EQ(results.size(), input_count);
     std::vector<std::string> expected_strings;
@@ -237,7 +237,7 @@ TEST_F(LLMFilterTest, Operation_TwoArguments_ThrowsException) {
     SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
     SetStructStringData(chunk.data[1], {{{"prompt", TEST_PROMPT}}});
 
-    EXPECT_THROW(LlmFilter::Operation(chunk), std::runtime_error);
+    EXPECT_THROW(LlmFilter::Operation(chunk, ExecutionMode::ASYNC);, std::runtime_error);
 }
 
 }// namespace flockmtl

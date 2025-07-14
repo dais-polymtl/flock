@@ -147,7 +147,7 @@ void LLMFunctionTestBase<FunctionClass>::TestOperationInvalidArguments() {
     chunk.Initialize(duckdb::Allocator::DefaultAllocator(), {duckdb::LogicalType(duckdb::LogicalTypeId::VARCHAR)});
     chunk.SetCardinality(1);
 
-    EXPECT_THROW(FunctionClass::Operation(chunk), std::runtime_error);
+    EXPECT_THROW(FunctionClass::Operation(chunk, ExecutionMode::ASYNC), std::runtime_error);
 }
 
 template<typename FunctionClass>
@@ -167,7 +167,7 @@ void LLMFunctionTestBase<FunctionClass>::TestOperationEmptyPrompt() {
         SetStructStringData(chunk.data[1], {{{"prompt", ""}}});
         SetStructStringData(chunk.data[2], {{{"test", "value"}}});
 
-        EXPECT_THROW(FunctionClass::Operation(chunk), std::runtime_error);
+        EXPECT_THROW(FunctionClass::Operation(chunk, ExecutionMode::ASYNC);, std::runtime_error);
         return;
     } catch (const std::runtime_error&) {
         // Function might not accept 3 arguments, try with 2
@@ -179,7 +179,7 @@ void LLMFunctionTestBase<FunctionClass>::TestOperationEmptyPrompt() {
     SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
     SetStructStringData(chunk.data[1], {{{"prompt", ""}}});
 
-    EXPECT_THROW(FunctionClass::Operation(chunk), std::runtime_error);
+    EXPECT_THROW(FunctionClass::Operation(chunk, ExecutionMode::ASYNC);, std::runtime_error);
 }
 
 // Explicit instantiations for all used function classes
