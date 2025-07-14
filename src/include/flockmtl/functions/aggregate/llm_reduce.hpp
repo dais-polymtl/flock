@@ -9,6 +9,7 @@ public:
     explicit LlmReduce() = default;
 
     nlohmann::json ReduceBatch(const nlohmann::json& tuples, const AggregateFunctionType& function_type);
+    template<ExecutionMode mode>
     nlohmann::json ReduceLoop(const std::vector<nlohmann::json>& tuples, const AggregateFunctionType& function_type);
 
 public:
@@ -32,11 +33,11 @@ public:
     }
     static void FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
                                 duckdb::Vector& result, idx_t count, idx_t offset,
-                                const AggregateFunctionType function_type);
-    template<AggregateFunctionType function_type>
+                                const AggregateFunctionType function_type, ExecutionMode mode);
+    template<AggregateFunctionType function_type, ExecutionMode mode>
     static void Finalize(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, duckdb::Vector& result,
                          idx_t count, idx_t offset) {
-        FinalizeResults(states, aggr_input_data, result, count, offset, function_type);
+        FinalizeResults(states, aggr_input_data, result, count, offset, function_type, mode);
     };
 };
 

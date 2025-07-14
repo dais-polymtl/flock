@@ -10,7 +10,9 @@ template void AggregateFunctionBase::SimpleUpdate<LlmReduce>(duckdb::Vector[], d
                                                              duckdb::data_ptr_t, idx_t);
 template void AggregateFunctionBase::Combine<LlmReduce>(duckdb::Vector&, duckdb::Vector&, duckdb::AggregateInputData&,
                                                         idx_t);
-template void LlmReduce::Finalize<AggregateFunctionType::REDUCE>(duckdb::Vector&, duckdb::AggregateInputData&,
-                                                                 duckdb::Vector&, idx_t, idx_t);
+template void LlmReduce::Finalize<AggregateFunctionType::REDUCE, ExecutionMode::ASYNC>(duckdb::Vector&, duckdb::AggregateInputData&,
+                                                                                       duckdb::Vector&, idx_t, idx_t);
+template void LlmReduce::Finalize<AggregateFunctionType::REDUCE, ExecutionMode::SYNC>(duckdb::Vector&, duckdb::AggregateInputData&,
+                                                                                      duckdb::Vector&, idx_t, idx_t);
 
 }// namespace flockmtl

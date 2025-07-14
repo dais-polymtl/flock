@@ -14,7 +14,7 @@ void LlmEmbedding::ValidateArguments(duckdb::DataChunk& args) {
     }
 }
 
-std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataChunk& args) {
+std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataChunk& args, ExecutionMode mode) {
     LlmEmbedding::ValidateArguments(args);
 
     auto inputs = CastVectorOfStructsToJson(args.data[1], args.size());

@@ -21,7 +21,7 @@ void LlmComplete::ValidateArguments(duckdb::DataChunk& args) {
     }
 }
 
-std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
+std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args, ExecutionMode mode) {
     // LlmComplete::ValidateArguments(args);
 
     auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1)[0];
@@ -41,9 +41,17 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
         }
     } else {
         auto tuples = CastVectorOfStructsToJson(args.data[2], args.size());
-
-        auto responses = BatchAndComplete(tuples, prompt_details.prompt, ScalarFunctionType::COMPLETE, model);
-
+        nlohmann::json responses;
+        switch (mode) {
+            case ExecutionMode::SYNC:
+                responses = BatchAndComplete<ExecutionMode::SYNC>(tuples, prompt_details.prompt, ScalarFunctionType::COMPLETE, model);
+                break;
+            case ExecutionMode::ASYNC:
+                responses = BatchAndComplete<ExecutionMode::ASYNC>(tuples, prompt_details.prompt, ScalarFunctionType::COMPLETE, model);
+                break;
+            default:
+                break;
+        }
         results.reserve(responses.size());
         for (const auto& response: responses) {
             if (response.is_string()) {
@@ -56,9 +64,10 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
     return results;
 }
 
+template<ExecutionMode MODE>
 void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
 
-    if (const auto results = LlmComplete::Operation(args); static_cast<int>(results.size()) == 1) {
+    if (const auto results = LlmComplete::Operation(args, MODE); static_cast<int>(results.size()) == 1) {
         auto empty_vec = duckdb::Vector(std::string());
         duckdb::UnaryExecutor::Execute<duckdb::string_t, duckdb::string_t>(
                 empty_vec, result, args.size(),
@@ -70,5 +79,8 @@ void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& stat
         }
     }
 }
+
+template void LlmComplete::Execute<ExecutionMode::SYNC>(duckdb::DataChunk&, duckdb::ExpressionState&, duckdb::Vector&);
+template void LlmComplete::Execute<ExecutionMode::ASYNC>(duckdb::DataChunk&, duckdb::ExpressionState&, duckdb::Vector&);
 
 }// namespace flockmtl

@@ -19,7 +19,7 @@ void LlmFilter::ValidateArguments(duckdb::DataChunk& args) {
     }
 }
 
-std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
+std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args, ExecutionMode mode) {
     // LlmFilter::ValidateArguments(args);
 
     auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1)[0];
@@ -29,7 +29,17 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
 
     auto tuples = CastVectorOfStructsToJson(args.data[2], args.size());
 
-    auto responses = BatchAndComplete(tuples, prompt_details.prompt, ScalarFunctionType::FILTER, model);
+    nlohmann::json responses;
+    switch (mode) {
+        case ExecutionMode::SYNC:
+            responses = BatchAndComplete<ExecutionMode::SYNC>(tuples, prompt_details.prompt, ScalarFunctionType::FILTER, model);
+            break;
+        case ExecutionMode::ASYNC:
+            responses = BatchAndComplete<ExecutionMode::ASYNC>(tuples, prompt_details.prompt, ScalarFunctionType::FILTER, model);
+            break;
+        default:
+            break;
+    }
 
     std::vector<std::string> results;
     results.reserve(responses.size());
@@ -44,13 +54,17 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
     return results;
 }
 
+template<ExecutionMode MODE>
 void LlmFilter::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
-    const auto results = LlmFilter::Operation(args);
+    const auto results = LlmFilter::Operation(args, MODE);
 
     auto index = 0;
     for (const auto& res: results) {
         result.SetValue(index++, duckdb::Value(res));
     }
 }
+
+template void LlmFilter::Execute<ExecutionMode::SYNC>(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
+template void LlmFilter::Execute<ExecutionMode::ASYNC>(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
 
 }// namespace flockmtl

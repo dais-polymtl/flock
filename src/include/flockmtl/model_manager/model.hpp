@@ -17,6 +17,11 @@
 
 namespace flockmtl {
 
+enum class ExecutionMode {
+    SYNC,
+    ASYNC
+};
+
 class Model {
 public:
     explicit Model(const nlohmann::json& model_json);
