@@ -2,49 +2,43 @@
 
 namespace flockmtl {
 
-nlohmann::json LlmReduce::ReduceBatch(const nlohmann::json& tuples, const AggregateFunctionType& function_type) {
-    nlohmann::json data;
-    const auto prompt = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
-    OutputType output_type = OutputType::STRING;
-    model.AddCompletionRequest(prompt, true, output_type);
-    auto responses = model.CollectCompletions();
-    return responses[0]["items"][0];
-};
 
 nlohmann::json LlmReduce::ReduceLoop(const std::vector<nlohmann::json>& tuples,
                                      const AggregateFunctionType& function_type) {
-    auto batch_tuples = nlohmann::json::array();
-    int start_index = 0;
-    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, static_cast<int>(tuples.size()));
 
-    if (batch_size <= 0) {
-        throw std::runtime_error("Batch size must be greater than zero");
+    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, static_cast<int>(tuples.size()));
+    if (batch_size <= 1) {
+        throw std::runtime_error("Batch size must be greater than one");
     }
 
-    do {
-        batch_tuples.clear();
+    std::vector<nlohmann::json> current_tuples = tuples;
 
-        for (auto i = 0; i < batch_size && start_index + i < static_cast<int>(tuples.size()); i++) {
-            batch_tuples.push_back(tuples[start_index + i]);
-        }
+    while (current_tuples.size() > 1) {
+        auto start_index = 0;
+        const auto n = static_cast<int>(current_tuples.size());
 
-        start_index += batch_size;
-
-        try {
-            auto response = ReduceBatch(batch_tuples, function_type);
-            batch_tuples.clear();
-            batch_tuples.push_back(response);
-        } catch (const ExceededMaxOutputTokensError&) {
-            start_index -= batch_size;// Retry the current batch with reduced size
-            batch_size = static_cast<int>(batch_size * 0.9);
-            if (batch_size <= 0) {
-                throw std::runtime_error("Batch size reduced to zero, unable to process tuples");
+        // Prepare all batches and add all completion requests
+        while (start_index < n) {
+            auto this_batch_size = std::min<int>(batch_size, n - start_index);
+            nlohmann::json batch = nlohmann::json::array();
+            for (int i = 0; i < this_batch_size; ++i) {
+                batch.push_back(current_tuples[start_index + i]);
             }
+            const auto prompt = PromptManager::Render(user_query, batch, function_type, model.GetModelDetails().tuple_format);
+            OutputType output_type = OutputType::STRING;
+            model.AddCompletionRequest(prompt, true, output_type);
+            start_index += this_batch_size;
         }
 
-    } while (start_index < static_cast<int>(tuples.size()));
-
-    return batch_tuples[0];
+        // Collect all completions at once
+        std::vector<nlohmann::json> new_tuples;
+        auto responses = model.CollectCompletions();
+        for (size_t i = 0; i < responses.size(); ++i) {
+            new_tuples.push_back(responses[i]["items"][0]);
+        }
+        current_tuples = std::move(new_tuples);
+    }
+    return current_tuples[0];
 }
 
 void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
