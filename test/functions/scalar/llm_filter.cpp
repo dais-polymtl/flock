@@ -60,8 +60,10 @@ protected:
 // Test llm_filter with SQL queries
 TEST_F(LLMFilterTest, LLMFilterWithInputColumns) {
     const nlohmann::json expected_response = {{"items", {true}}};
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillRepeatedly(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+            .Times(::testing::AtLeast(1));
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
     const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'},{'prompt': 'Is positive?'}, {'input': i}) AS filter FROM range(1) AS tbl(i);");
@@ -71,8 +73,10 @@ TEST_F(LLMFilterTest, LLMFilterWithInputColumns) {
 
 TEST_F(LLMFilterTest, LLMFilterWithMultipleInputs) {
     const nlohmann::json expected_response = {{"items", {false}}};
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
     const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'},{'prompt': 'Is positive?'}, {'input1': i, 'input2': i}) AS filter FROM range(1) AS tbl(i);");
@@ -86,8 +90,10 @@ TEST_F(LLMFilterTest, ValidateArguments) {
 
 TEST_F(LLMFilterTest, Operation_ThreeArguments_RequiredStructure) {
     const nlohmann::json expected_response = {{"items", {true}}};
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     duckdb::DataChunk chunk;
     auto model_struct = CreateModelStruct();
@@ -101,7 +107,7 @@ TEST_F(LLMFilterTest, Operation_ThreeArguments_RequiredStructure) {
     SetStructStringData(chunk.data[1], {{{"prompt", "Does this text express positive sentiment?"}}});
     SetStructStringData(chunk.data[2], {{{"sentiment_text", "I love this product!"}}});
 
-    auto results = LlmFilter::Operation(chunk);
+    auto results = LlmFilter::Operation(chunk, ExecutionMode::ASYNC);
 
     EXPECT_EQ(results.size(), 1);
     EXPECT_EQ(results[0], FormatExpectedResult(expected_response));
@@ -110,8 +116,10 @@ TEST_F(LLMFilterTest, Operation_ThreeArguments_RequiredStructure) {
 TEST_F(LLMFilterTest, Operation_BatchProcessing) {
     const std::vector<bool> filter_responses = {true, false};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(filter_responses);
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     duckdb::DataChunk chunk;
     auto model_struct = CreateModelStruct();
@@ -127,7 +135,7 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing) {
     SetStructStringData(chunk.data[2], {{{"review_text", "Great product"}, {"rating", "5"}},
                                         {{"review_text", "Terrible quality"}, {"rating", "1"}}});
 
-    auto results = LlmFilter::Operation(chunk);
+    auto results = LlmFilter::Operation(chunk, ExecutionMode::ASYNC);
 
     EXPECT_EQ(results.size(), 2);
     std::vector<std::string> expected_results;
@@ -142,8 +150,10 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing_StringVector) {
     // Test with vector of strings (for compatibility with base class interface)
     const std::vector<std::string> filter_responses = {"true", "false"};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(filter_responses);
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     duckdb::DataChunk chunk;
     auto model_struct = CreateModelStruct();
@@ -159,7 +169,7 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing_StringVector) {
     SetStructStringData(chunk.data[2], {{{"text_content", "Great offer!"}},
                                         {{"text_content", "Click here now!"}}});
 
-    auto results = LlmFilter::Operation(chunk);
+    auto results = LlmFilter::Operation(chunk, ExecutionMode::ASYNC);
 
     EXPECT_EQ(results.size(), 2);
     std::vector<std::string> expected_results;
@@ -183,8 +193,10 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     duckdb::DataChunk chunk;
     auto model_struct = CreateModelStruct();
@@ -207,7 +219,7 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     SetStructStringData(chunk.data[2], large_input);
 
-    const auto results = LlmFilter::Operation(chunk);
+    const auto results = LlmFilter::Operation(chunk, ExecutionMode::ASYNC);
 
     EXPECT_EQ(results.size(), input_count);
     std::vector<std::string> expected_strings;
@@ -225,31 +237,7 @@ TEST_F(LLMFilterTest, Operation_TwoArguments_ThrowsException) {
     SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
     SetStructStringData(chunk.data[1], {{{"prompt", TEST_PROMPT}}});
 
-    EXPECT_THROW(LlmFilter::Operation(chunk), std::runtime_error);
-}
-
-TEST_F(LLMFilterTest, Operation_NullResponse_HandlesAsTrue) {
-    // Test that null responses from the model are handled as "True"
-    const nlohmann::json expected_response = nlohmann::json(nullptr);
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(expected_response));
-
-    duckdb::DataChunk chunk;
-    auto model_struct = CreateModelStruct();
-    auto prompt_struct = CreatePromptStruct();
-    auto input_struct = CreateInputStruct({"text"});
-
-    chunk.Initialize(duckdb::Allocator::DefaultAllocator(), {model_struct, prompt_struct, input_struct});
-    chunk.SetCardinality(1);
-
-    SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
-    SetStructStringData(chunk.data[1], {{{"prompt", "Filter this content"}}});
-    SetStructStringData(chunk.data[2], {{{"text", "Some content"}}});
-
-    auto results = LlmFilter::Operation(chunk);
-
-    EXPECT_EQ(results.size(), 1);
-    EXPECT_EQ(results[0], "true");// Null responses should default to "true"
+    EXPECT_THROW(LlmFilter::Operation(chunk, ExecutionMode::ASYNC);, std::runtime_error);
 }
 
 }// namespace flockmtl

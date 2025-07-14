@@ -22,7 +22,7 @@ protected:
     static constexpr const char* DEFAULT_MODEL = "gpt-4o";
     static constexpr const char* TEST_PROMPT = "Summarize the following data";
 
-    std::shared_ptr<MockOpenAIProvider> mock_provider;
+    std::shared_ptr<MockProvider> mock_provider;
 
     void SetUp() override {
         auto con = Config::GetConnection();
@@ -30,7 +30,7 @@ protected:
                   "       TYPE OPENAI,"
                   "    API_KEY 'your-api-key');");
 
-        mock_provider = std::make_shared<MockOpenAIProvider>();
+        mock_provider = std::make_shared<MockProvider>(ModelDetails{});
         Model::SetMockProvider(mock_provider);
     }
 

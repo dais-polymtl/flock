@@ -17,9 +17,12 @@ public:
     static void ValidateArguments(duckdb::DataChunk& args);
     static std::vector<std::any> Operation(duckdb::DataChunk& args);
     static void Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
-
     static nlohmann::json Complete(const nlohmann::json& tuples, const std::string& user_prompt,
                                    ScalarFunctionType function_type, Model& model);
+
+    static void AddCompletionRequest(const nlohmann::json& tuples, const std::string& user_prompt,
+                                     ScalarFunctionType function_type, Model& model);
+    template<ExecutionMode MODE>
     static nlohmann::json BatchAndComplete(const std::vector<nlohmann::json>& tuples,
                                            const std::string& user_prompt_name, ScalarFunctionType function_type,
                                            Model& model);

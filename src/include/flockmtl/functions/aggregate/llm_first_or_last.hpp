@@ -12,6 +12,7 @@ public:
     explicit LlmFirstOrLast() = default;
 
     int GetFirstOrLastTupleId(const nlohmann::json& tuples);
+    template<ExecutionMode mode>
     nlohmann::json Evaluate(nlohmann::json& tuples);
 
 public:
@@ -33,13 +34,13 @@ public:
     static void Destroy(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, idx_t count) {
         AggregateFunctionBase::Destroy<LlmFirstOrLast>(states, aggr_input_data, count);
     }
-    template<AggregateFunctionType function_type>
+    template<AggregateFunctionType function_type, ExecutionMode mode>
     static void Finalize(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, duckdb::Vector& result,
                          idx_t count, idx_t offset) {
-        FinalizeResults(states, aggr_input_data, result, count, offset, function_type);
+        FinalizeResults(states, aggr_input_data, result, count, offset, function_type, mode);
     }
     static void FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
-                                duckdb::Vector& result, idx_t count, idx_t offset, AggregateFunctionType function_type);
+                                duckdb::Vector& result, idx_t count, idx_t offset, AggregateFunctionType function_type, ExecutionMode mode);
 };
 
 }// namespace flockmtl

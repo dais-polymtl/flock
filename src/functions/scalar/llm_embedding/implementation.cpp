@@ -14,8 +14,8 @@ void LlmEmbedding::ValidateArguments(duckdb::DataChunk& args) {
     }
 }
 
-std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataChunk& args) {
-    // LlmEmbedding::ValidateArguments(args);
+std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataChunk& args, ExecutionMode mode) {
+    LlmEmbedding::ValidateArguments(args);
 
     auto inputs = CastVectorOfStructsToJson(args.data[1], args.size());
     auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1)[0];
@@ -36,19 +36,23 @@ std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataC
         batch_size = static_cast<int>(prepared_inputs.size());
     }
 
-    std::vector<duckdb::vector<duckdb::Value>> results;
     for (size_t i = 0; i < prepared_inputs.size(); i += batch_size) {
         std::vector<std::string> batch_inputs;
         for (size_t j = i; j < i + batch_size && j < prepared_inputs.size(); j++) {
             batch_inputs.push_back(prepared_inputs[j]);
         }
-        auto embeddings = model.CallEmbedding(batch_inputs);
-        for (size_t index = 0; index < embeddings.size(); index++) {
-            duckdb::vector<duckdb::Value> embedding;
-            for (auto& value: embeddings[index]) {
-                embedding.push_back(duckdb::Value(static_cast<double>(value)));
+        model.AddEmbeddingRequest(batch_inputs);
+    }
+
+    std::vector<duckdb::vector<duckdb::Value>> results;
+    auto all_embeddings = model.CollectEmbeddings();
+    for (size_t index = 0; index < all_embeddings.size(); index++) {
+        for (auto& embedding: all_embeddings[index]) {
+            duckdb::vector<duckdb::Value> formatted_embedding;
+            for (auto& value: embedding) {
+                formatted_embedding.push_back(duckdb::Value(static_cast<double>(value)));
             }
-            results.push_back(embedding);
+            results.push_back(formatted_embedding);
         }
     }
     return results;

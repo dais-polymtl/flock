@@ -53,13 +53,13 @@ std::string PromptManager::ConstructInputTuplesHeader(const nlohmann::json& tupl
 
 std::string PromptManager::ConstructInputTuplesHeaderXML(const nlohmann::json& tuples) {
     if (tuples.empty()) {
-        return "<tuple>Empty</tuple>\n";
+        return "<header></header>\n";
     }
-    auto header = std::string("<tuple>");
+    auto header = std::string("<header>");
     for (const auto& key: tuples[0].items()) {
         header += "<col>" + key.key() + "</col>";
     }
-    header += "</tuple>\n";
+    header += "</header>\n";
     return header;
 }
 
