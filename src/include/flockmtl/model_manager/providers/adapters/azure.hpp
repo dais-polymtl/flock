@@ -13,8 +13,8 @@ public:
                                                     model_details_.model, model_details_.secret["api_version"], true);
     }
 
-    nlohmann::json CallComplete(const std::string& prompt, bool json_response, OutputType output_type) override;
-    nlohmann::json CallEmbedding(const std::vector<std::string>& inputs) override;
+    void AddCompletionRequest(const std::string& prompt, bool json_response, OutputType output_type) override;
+    void AddEmbeddingRequest(const std::vector<std::string>& inputs) override;
 };
 
 }// namespace flockmtl

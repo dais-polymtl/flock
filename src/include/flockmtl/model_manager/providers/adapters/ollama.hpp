@@ -11,8 +11,8 @@ public:
         model_handler_ = std::make_unique<OllamaModelManager>(model_details_.secret["api_url"], true);
     }
 
-    nlohmann::json CallComplete(const std::string& prompt, bool json_response, OutputType output_type) override;
-    nlohmann::json CallEmbedding(const std::vector<std::string>& inputs) override;
+    void AddCompletionRequest(const std::string& prompt, bool json_response, OutputType output_type) override;
+    void AddEmbeddingRequest(const std::vector<std::string>& inputs) override;
 };
 
 }// namespace flockmtl

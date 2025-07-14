@@ -1,7 +1,6 @@
-
 #pragma once
 
-#include "flockmtl/model_manager/providers/handlers/handler.hpp"
+#include "flockmtl/model_manager/providers/handlers/base_handler.hpp"
 #include "session.hpp"
 #include <cstdlib>
 #include <iostream>
@@ -11,18 +10,16 @@
 
 namespace flockmtl {
 
-class OpenAIModelManager : public IModelProviderHandler {
+class OpenAIModelManager : public BaseModelProviderHandler {
 public:
     OpenAIModelManager(std::string token, std::string api_base_url, bool throw_exception)
-        : _token(token), _session("OpenAI", throw_exception), _throw_exception(throw_exception) {
+        : BaseModelProviderHandler(throw_exception), _token(token), _session("OpenAI", throw_exception) {
         _session.setToken(token, "");
-
         if (api_base_url.empty()) {
             _api_base_url = "https://api.openai.com/v1/";
         } else {
             _api_base_url = api_base_url;
         }
-
         _session.setUrl(_api_base_url);
     }
 
@@ -31,75 +28,67 @@ public:
     OpenAIModelManager(OpenAIModelManager&&) = delete;
     OpenAIModelManager& operator=(OpenAIModelManager&&) = delete;
 
-    nlohmann::json CallComplete(const nlohmann::json& json, const std::string& contentType = "application/json") {
-        std::string url = _api_base_url + "chat/completions";
-        _session.setUrl(url);
-        return execute_post(json.dump(), contentType);
-    }
-
-    nlohmann::json CallEmbedding(const nlohmann::json& json, const std::string& contentType = "application/json") {
-        std::string url = _api_base_url + "embeddings";
-        _session.setUrl(url);
-        return execute_post(json.dump(), contentType);
-    }
-
-
-private:
+protected:
     std::string _token;
     std::string _api_base_url;
     Session _session;
-    bool _throw_exception;
 
-    nlohmann::json execute_post(const std::string& data, const std::string& contentType) {
-        setParameters(data, contentType);
-        auto response = _session.postPrepare(contentType);
-        if (response.is_error) {
-            std::cout << ">> response error :\n"
-                      << response.text << "\n";
-            trigger_error(response.error_message);
-        }
-
-        nlohmann::json json{};
-        if (isJson(response.text)) {
-            json = nlohmann::json::parse(response.text);
-            checkResponse(json);
-        } else {
-            trigger_error("Response is not a valid JSON");
-        }
-
-        return json;
+    std::string getCompletionUrl() const override {
+        return _api_base_url + "chat/completions";
     }
-
-    void trigger_error(const std::string& msg) {
-        if (_throw_exception) {
-            throw std::runtime_error("[OpenAI] error. Reason: " + msg);
-        } else {
-            std::cerr << "[OpenAI] error. Reason: " << msg << '\n';
-        }
+    std::string getEmbedUrl() const override {
+        return _api_base_url + "embeddings";
     }
-
-    void checkResponse(const nlohmann::json& json) {
-        if (json.contains("error")) {
-            auto reason = json["error"].dump();
-            trigger_error(reason);
-            std::cerr << ">> response error :\n"
-                      << json.dump(2) << "\n";
-        }
+    void prepareSessionForRequest(const std::string& url) override {
+        _session.setUrl(url);
     }
-
-    bool isJson(const std::string& data) {
-        bool rc = true;
-        try {
-            auto json = nlohmann::json::parse(data);// throws if no json
-        } catch (std::exception&) {
-            rc = false;
-        }
-        return (rc);
-    }
-
-    void setParameters(const std::string& data, const std::string& contentType = "") {
+    void setParameters(const std::string& data, const std::string& contentType = "") override {
         if (contentType != "multipart/form-data") {
             _session.setBody(data);
+        }
+    }
+    auto postRequest(const std::string& contentType) -> decltype(((Session*) nullptr)->postPrepare(contentType)) override {
+        return _session.postPrepare(contentType);
+    }
+    std::vector<std::string> getExtraHeaders() const override {
+        return {"Authorization: Bearer " + _token};
+    }
+    void checkProviderSpecificResponse(const nlohmann::json& response, bool is_completion) override {
+        if (is_completion) {
+            if (response.contains("choices") && response["choices"].is_array() && !response["choices"].empty()) {
+                const auto& choice = response["choices"][0];
+                if (choice.contains("finish_reason") && !choice["finish_reason"].is_null()) {
+                    std::string finish_reason = choice["finish_reason"].get<std::string>();
+                    if (finish_reason != "stop" && finish_reason != "length") {
+                        throw std::runtime_error("OpenAI API did not finish successfully. finish_reason: " + finish_reason);
+                    }
+                }
+            }
+        } else {
+            // Embedding-specific checks (if any) can be added here
+            if (response.contains("data") && response["data"].is_array() && response["data"].empty()) {
+                throw std::runtime_error("OpenAI API returned empty embedding data.");
+            }
+        }
+    }
+    nlohmann::json ExtractCompletionOutput(const nlohmann::json& response) const override {
+        if (response.contains("choices") && response["choices"].is_array() && !response["choices"].empty()) {
+            const auto& choice = response["choices"][0];
+            if (choice.contains("message") && choice["message"].contains("content")) {
+                return nlohmann::json::parse(choice["message"]["content"].get<std::string>());
+            }
+        }
+        return {};
+    }
+
+    nlohmann::json ExtractEmbeddingVector(const nlohmann::json& response) const override {
+        auto results = nlohmann::json::array();
+        if (response.contains("data") && response["data"].is_array() && !response["data"].empty()) {
+            const auto& embeddings = response["data"];
+            for (const auto& embedding: embeddings) {
+                results.push_back(embedding["embedding"]);
+            }
+            return results;
         }
     }
 };

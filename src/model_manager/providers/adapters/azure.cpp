@@ -2,7 +2,7 @@
 
 namespace flockmtl {
 
-nlohmann::json AzureProvider::CallComplete(const std::string& prompt, const bool json_response, OutputType output_type) {
+void AzureProvider::AddCompletionRequest(const std::string& prompt, const bool json_response, OutputType output_type) {
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {{"messages", {{{"role", "user"}, {"content", prompt}}}}};
 
@@ -31,61 +31,18 @@ nlohmann::json AzureProvider::CallComplete(const std::string& prompt, const bool
         }
     }
 
-    // Make a request to the Azure API
-    auto completion = model_handler_->CallComplete(request_payload);
-
-    // Check if the conversation was too long for the context window
-    if (completion["choices"][0]["finish_reason"] == "length") {
-        // Handle the error when the context window is too long
-        throw ExceededMaxOutputTokensError();
-    }
-
-    // Check if the safety system refused the request
-    if (completion["choices"][0]["message"]["refusal"] != nullptr) {
-        // Handle refusal error
-        throw std::runtime_error(
-                duckdb_fmt::format("The request was refused due to Azure's safety system.{{\"refusal\": \"{}\"}}",
-                                   completion["choices"][0]["message"]["refusal"].get<std::string>()));
-    }
-
-    // Check if the model's output included restricted content
-    if (completion["choices"][0]["finish_reason"] == "content_filter") {
-        // Handle content filtering
-        throw std::runtime_error("The content filter was triggered, resulting in incomplete JSON.");
-    }
-
-    std::string content_str = completion["choices"][0]["message"]["content"];
-
-    if (json_response) {
-        return nlohmann::json::parse(content_str);
-    }
-
-    return content_str;
+    model_handler_->AddRequest(request_payload, IModelProviderHandler::RequestType::Completion);
 }
 
-nlohmann::json AzureProvider::CallEmbedding(const std::vector<std::string>& inputs) {
-    // Create a JSON request payload with the provided parameters
-    nlohmann::json request_payload = {
-            {"model", model_details_.model},
-            {"input", inputs},
-    };
+void AzureProvider::AddEmbeddingRequest(const std::vector<std::string>& inputs) {
+    for (const auto& input: inputs) {
+        nlohmann::json request_payload = {
+                {"model", model_details_.model},
+                {"prompt", input},
+        };
 
-    // Make a request to the Azure API
-    auto completion = model_handler_->CallEmbedding(request_payload);
-
-    // Check if the conversation was too long for the context window
-    if (completion["choices"][0]["finish_reason"] == "length") {
-        // Handle the error when the context window is too long
-        throw ExceededMaxOutputTokensError();
-        // Add error handling code here
+        model_handler_->AddRequest(request_payload, IModelProviderHandler::RequestType::Embedding);
     }
-
-    auto embeddings = nlohmann::json::array();
-    for (auto& item: completion["data"]) {
-        embeddings.push_back(item["embedding"]);
-    }
-
-    return embeddings;
 }
 
 }// namespace flockmtl

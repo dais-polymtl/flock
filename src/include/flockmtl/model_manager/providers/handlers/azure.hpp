@@ -1,21 +1,14 @@
-#pragma once
-
-#include "session.hpp"
-
-#include "flockmtl/model_manager/providers/handlers/handler.hpp"
-#include <iostream>
-#include <nlohmann/json.hpp>
-#include <stdexcept>
-#include <string>
+#include "flockmtl/model_manager/providers/handlers/base_handler.hpp"
 
 namespace flockmtl {
 
-class AzureModelManager : public IModelProviderHandler {
+class AzureModelManager : public BaseModelProviderHandler {
 public:
     AzureModelManager(std::string token, std::string resource_name, std::string deployment_model_name,
                       std::string api_version, bool throw_exception)
-        : _token(token), _resource_name(resource_name), _deployment_model_name(deployment_model_name),
-          _api_version(api_version), _session("Azure", throw_exception), _throw_exception(throw_exception) {
+        : BaseModelProviderHandler(throw_exception),
+          _token(token), _resource_name(resource_name), _deployment_model_name(deployment_model_name),
+          _api_version(api_version), _session("Azure", throw_exception) {
         _session.setToken(token, "");
     }
 
@@ -24,81 +17,60 @@ public:
     AzureModelManager(AzureModelManager&&) = delete;
     AzureModelManager& operator=(AzureModelManager&&) = delete;
 
-    nlohmann::json CallComplete(const nlohmann::json& json, const std::string& contentType = "application/json") {
-        std::string url = "https://" + _resource_name + ".openai.azure.com/openai/deployments/" +
-                          _deployment_model_name + "/chat/completions?api-version=" + _api_version;
+protected:
+    void checkProviderSpecificResponse(const nlohmann::json& response, bool is_completion) override {
+        if (is_completion) {
+            if (response.contains("choices") && response["choices"].is_array() && !response["choices"].empty()) {
+                const auto& choice = response["choices"][0];
+                if (choice.contains("finish_reason") && !choice["finish_reason"].is_null()) {
+                    std::string finish_reason = choice["finish_reason"].get<std::string>();
+                    if (finish_reason != "stop" && finish_reason != "length") {
+                        throw std::runtime_error("Azure API did not finish successfully. finish_reason: " + finish_reason);
+                    }
+                }
+            }
+        } else {
+            // Embedding-specific checks (if any) can be added here
+            if (response.contains("data") && response["data"].is_array() && response["data"].empty()) {
+                throw std::runtime_error("Azure API returned empty embedding data.");
+            }
+        }
+    }
+    std::string getCompletionUrl() const override {
+        return "https://" + _resource_name + ".openai.azure.com/openai/deployments/" +
+               _deployment_model_name + "/chat/completions?api-version=" + _api_version;
+    }
+    std::string getEmbedUrl() const override {
+        return "https://" + _resource_name + ".openai.azure.com/openai/deployments/" +
+               _deployment_model_name + "/embeddings?api-version=" + _api_version;
+    }
+    void prepareSessionForRequest(const std::string& url) override {
         _session.setUrl(url);
-        return execute_post(json.dump(), contentType);
+    }
+    void setParameters(const std::string& data, const std::string& contentType = "") override {
+        if (contentType != "multipart/form-data") {
+            _session.setBody(data);
+        }
+    }
+    auto postRequest(const std::string& contentType) -> decltype(((Session*) nullptr)->postPrepare(contentType)) override {
+        return _session.postPrepare(contentType);
     }
 
-    nlohmann::json CallEmbedding(const nlohmann::json& json, const std::string& contentType = "application/json") {
-        std::string url = "https://" + _resource_name + ".openai.azure.com/openai/deployments/" +
-                          _deployment_model_name + "/embeddings?api-version=" + _api_version;
-        _session.setUrl(url);
-        return execute_post(json.dump(), contentType);
+    nlohmann::json ExtractCompletionOutput(const nlohmann::json& response) const override {
+        if (response.contains("choices") && response["choices"].is_array() && !response["choices"].empty()) {
+            const auto& choice = response["choices"][0];
+            if (choice.contains("message") && choice["message"].contains("content")) {
+                return choice["message"]["content"].get<std::string>();
+            }
+        }
+        return {};
     }
 
-
-private:
     std::string _token;
     std::string _resource_name;
     std::string _deployment_model_name;
     std::string _api_version;
     Session _session;
-    bool _throw_exception;
-
-    nlohmann::json execute_post(const std::string& data, const std::string& contentType) {
-        setParameters(data, contentType);
-        auto response = _session.postPrepare(contentType);
-        if (response.is_error) {
-            std::cout << ">> response error :\n"
-                      << response.text << "\n";
-            trigger_error(response.error_message);
-        }
-
-        nlohmann::json json{};
-        if (isJson(response.text)) {
-            json = nlohmann::json::parse(response.text);
-            checkResponse(json);
-        } else {
-            trigger_error("Response is not a valid JSON");
-        }
-
-        return json;
-    }
-
-    void trigger_error(const std::string& msg) {
-        if (_throw_exception) {
-            throw std::runtime_error("[Azure] error. Reason: " + msg);
-        } else {
-            std::cerr << "[Azure] error. Reason: " << msg << '\n';
-        }
-    }
-
-    void checkResponse(const nlohmann::json& json) {
-        if (json.contains("error")) {
-            auto reason = json["error"].dump();
-            trigger_error(reason);
-            std::cerr << ">> response error :\n"
-                      << json.dump(2) << "\n";
-        }
-    }
-
-    bool isJson(const std::string& data) {
-        bool rc = true;
-        try {
-            auto json = nlohmann::json::parse(data);// throws if no json
-        } catch (std::exception&) {
-            rc = false;
-        }
-        return (rc);
-    }
-
-    void setParameters(const std::string& data, const std::string& contentType = "") {
-        if (contentType != "multipart/form-data") {
-            _session.setBody(data);
-        }
-    }
 };
 
 }// namespace flockmtl

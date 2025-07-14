@@ -32,7 +32,8 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
     std::vector<std::string> results;
     if (args.ColumnCount() == 2) {
         auto template_str = prompt_details.prompt;
-        auto response = model.CallComplete(template_str, false);
+        model.AddCompletionRequest(template_str, false);
+        auto response = model.CollectCompletions()[0];
         if (response.is_string()) {
             results.push_back(response.get<std::string>());
         } else {

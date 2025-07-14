@@ -91,10 +91,20 @@ void Model::ConstructProvider() {
 
 ModelDetails Model::GetModelDetails() { return model_details_; }
 
-nlohmann::json Model::CallComplete(const std::string& prompt, const bool json_response, const OutputType output_type) {
-    return provider_->CallComplete(prompt, json_response, output_type);
+void Model::AddCompletionRequest(const std::string& prompt, bool json_response, OutputType output_type) {
+    provider_->AddCompletionRequest(prompt, json_response, output_type);
 }
 
-nlohmann::json Model::CallEmbedding(const std::vector<std::string>& inputs) { return provider_->CallEmbedding(inputs); }
+void Model::AddEmbeddingRequest(const std::vector<std::string>& inputs) {
+    provider_->AddEmbeddingRequest(inputs);
+}
+
+std::vector<nlohmann::json> Model::CollectCompletions(const std::string& contentType) {
+    return provider_->CollectCompletions(contentType);
+}
+
+std::vector<nlohmann::json> Model::CollectEmbeddings(const std::string& contentType) {
+    return provider_->CollectEmbeddings(contentType);
+}
 
 }// namespace flockmtl

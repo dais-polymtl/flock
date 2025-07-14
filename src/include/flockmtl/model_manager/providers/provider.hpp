@@ -23,8 +23,15 @@ public:
     explicit IProvider(const ModelDetails& model_details) : model_details_(model_details) {};
     virtual ~IProvider() = default;
 
-    virtual nlohmann::json CallComplete(const std::string& prompt, bool json_response, OutputType output_type) = 0;
-    virtual nlohmann::json CallEmbedding(const std::vector<std::string>& inputs) = 0;
+    virtual void AddCompletionRequest(const std::string& prompt, bool json_response, OutputType output_type) = 0;
+    virtual void AddEmbeddingRequest(const std::vector<std::string>& inputs) = 0;
+
+    virtual std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json") {
+        return model_handler_->CollectCompletions(contentType);
+    }
+    virtual std::vector<nlohmann::json> CollectEmbeddings(const std::string& contentType = "application/json") {
+        return model_handler_->CollectEmbeddings(contentType);
+    }
 
     static std::string GetOutputTypeString(const OutputType output_type) {
         switch (output_type) {
