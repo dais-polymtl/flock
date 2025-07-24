@@ -2,7 +2,6 @@
 
 #include "flockmtl/model_manager/providers/handlers/handler.hpp"
 #include "session.hpp"
-#include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
@@ -74,13 +73,6 @@ public:
             curl_multi_wait(multi_handle, NULL, 0, 1000, &numfds);
             curl_multi_perform(multi_handle, &still_running);
         }
-        // Save input JSONs to file (append mode)
-        {
-            std::ofstream input_file("/Users/anas/Documents/TableIQDatasets/output/batching_experiment/experiments/input.jsonl", std::ios::app);
-            for (const auto& json_obj: jsons) {
-                input_file << json_obj.dump() << std::endl;
-            }
-        }
         std::vector<nlohmann::json> results(jsons.size());
         for (size_t i = 0; i < requests.size(); ++i) {
             curl_easy_getinfo(requests[i].easy, CURLINFO_RESPONSE_CODE, NULL);
@@ -101,13 +93,6 @@ public:
             }
             curl_multi_remove_handle(multi_handle, requests[i].easy);
             curl_easy_cleanup(requests[i].easy);
-        }
-        // Save output JSONs to file (append mode)
-        {
-            std::ofstream output_file("/Users/anas/Documents/TableIQDatasets/output/batching_experiment/experiments/output.jsonl", std::ios::app);
-            for (const auto& result: results) {
-                output_file << result.dump() << std::endl;
-            }
         }
         curl_slist_free_all(headers);
         curl_multi_cleanup(multi_handle);
