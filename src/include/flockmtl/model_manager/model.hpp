@@ -17,13 +17,20 @@
 
 namespace flockmtl {
 
+enum class ExecutionMode {
+    SYNC,
+    ASYNC
+};
+
 class Model {
 public:
     explicit Model(const nlohmann::json& model_json);
     explicit Model() = default;
-    nlohmann::json CallComplete(const std::string& prompt, bool json_response = true,
-                                OutputType output_type = OutputType::STRING);
-    nlohmann::json CallEmbedding(const std::vector<std::string>& inputs);
+    void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, bool json_response = true,
+                              OutputType output_type = OutputType::STRING);
+    void AddEmbeddingRequest(const std::vector<std::string>& inputs);
+    std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json");
+    std::vector<nlohmann::json> CollectEmbeddings(const std::string& contentType = "application/json");
     ModelDetails GetModelDetails();
 
     static void SetMockProvider(const std::shared_ptr<IProvider>& mock_provider) {
@@ -33,9 +40,10 @@ public:
         mock_provider_ = nullptr;
     }
 
-private:
     std::shared_ptr<IProvider>
             provider_;
+
+private:
     ModelDetails model_details_;
     inline static std::shared_ptr<IProvider> mock_provider_ = nullptr;
     void ConstructProvider();

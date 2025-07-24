@@ -60,13 +60,12 @@ TEST(PromptManager, ReplaceSectionString) {
     EXPECT_EQ(result, "Replace  and  but not [that].");
 }
 
-// Test cases for PromptManager::ConstructInputTuplesHeader
 TEST(PromptManager, ConstructInputTuplesHeader) {
     json tuple = {{{"col1", "val1"}, {"col2", 123}}};
 
     // XML
     auto xml_header = PromptManager::ConstructInputTuplesHeader(tuple, "xml");
-    EXPECT_EQ(xml_header, "<tuple><col>col1</col><col>col2</col></tuple>\n");
+    EXPECT_EQ(xml_header, "<header><col>col1</col><col>col2</col></header>\n");
 
     // Markdown
     auto md_header = PromptManager::ConstructInputTuplesHeader(tuple, "markdown");
@@ -114,7 +113,7 @@ TEST(PromptManager, ConstructInputTuples) {
 
     // XML
     auto xml_expected = std::string("- The Number of Tuples to Generate Responses for: 2\n\n");
-    xml_expected += "<tuple><col>colA</col><col>colB</col></tuple>\n";
+    xml_expected += "<header><col>colA</col><col>colB</col></header>\n";
     xml_expected += "<tuple><col>\"row1A\"</col><col>1</col></tuple>\n";
     xml_expected += "<tuple><col>\"row2A\"</col><col>2</col></tuple>\n";
     EXPECT_EQ(PromptManager::ConstructInputTuples(tuples, "xml"), xml_expected);
@@ -143,7 +142,7 @@ TEST(PromptManager, ConstructInputTuplesEmpty) {
 
     // Empty tuples - XML
     auto xml_expected = std::string("- The Number of Tuples to Generate Responses for: 0\n\n");
-    xml_expected += "<tuple>Empty</tuple>\n";
+    xml_expected += "<header></header>\n";
     EXPECT_EQ(PromptManager::ConstructInputTuples(empty_tuples, "xml"), xml_expected);
 
     // Empty tuples - Markdown

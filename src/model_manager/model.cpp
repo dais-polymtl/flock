@@ -31,7 +31,7 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
             model_json.contains("tuple_format") ? model_json.at("tuple_format").get<std::string>() : std::get<2>(query_result).contains("tuple_format") ? std::get<2>(query_result).at("tuple_format").get<std::string>()
                                                                                                                                                         : "XML";
     model_details_.batch_size =
-            model_json.contains("batch_size") ? std::stoi(model_json.at("batch_size").get<std::string>()) : std::get<2>(query_result).contains("batch_size") ? std::stoi(std::get<2>(query_result).at("batch_size").get<std::string>())
+            model_json.contains("batch_size") ? std::stoi(model_json.at("batch_size").get<std::string>()) : std::get<2>(query_result).contains("batch_size") ? std::get<2>(query_result).at("batch_size").get<int>()
                                                                                                                                                              : 2048;
 }
 
@@ -91,10 +91,20 @@ void Model::ConstructProvider() {
 
 ModelDetails Model::GetModelDetails() { return model_details_; }
 
-nlohmann::json Model::CallComplete(const std::string& prompt, const bool json_response, const OutputType output_type) {
-    return provider_->CallComplete(prompt, json_response, output_type);
+void Model::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, bool json_response, OutputType output_type) {
+    provider_->AddCompletionRequest(prompt, num_output_tuples, json_response, output_type);
 }
 
-nlohmann::json Model::CallEmbedding(const std::vector<std::string>& inputs) { return provider_->CallEmbedding(inputs); }
+void Model::AddEmbeddingRequest(const std::vector<std::string>& inputs) {
+    provider_->AddEmbeddingRequest(inputs);
+}
+
+std::vector<nlohmann::json> Model::CollectCompletions(const std::string& contentType) {
+    return provider_->CollectCompletions(contentType);
+}
+
+std::vector<nlohmann::json> Model::CollectEmbeddings(const std::string& contentType) {
+    return provider_->CollectEmbeddings(contentType);
+}
 
 }// namespace flockmtl

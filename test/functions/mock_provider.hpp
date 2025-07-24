@@ -1,19 +1,17 @@
 #pragma once
-
-#include "flockmtl/model_manager/providers/adapters/openai.hpp"
-#include "nlohmann/json.hpp"
+#include "flockmtl/model_manager/providers/provider.hpp"
 #include <gmock/gmock.h>
 
 namespace flockmtl {
 
-// Mock class for OpenAI API to avoid real API calls during tests
-class MockOpenAIProvider : public OpenAIProvider {
+class MockProvider : public IProvider {
 public:
-    explicit MockOpenAIProvider() : OpenAIProvider(ModelDetails()) {}
+    explicit MockProvider(const ModelDetails& model_details) : IProvider(model_details) {}
 
-    // Override the API call methods for testing
-    MOCK_METHOD(nlohmann::json, CallComplete, (const std::string& prompt, bool json_response, OutputType output_type), (override));
-    MOCK_METHOD(nlohmann::json, CallEmbedding, (const std::vector<std::string>& inputs), (override));
+    MOCK_METHOD(void, AddCompletionRequest, (const std::string& prompt, const int num_output_tuples, bool json_response, OutputType output_type), (override));
+    MOCK_METHOD(void, AddEmbeddingRequest, (const std::vector<std::string>& inputs), (override));
+    MOCK_METHOD(std::vector<nlohmann::json>, CollectCompletions, (const std::string& contentType), (override));
+    MOCK_METHOD(std::vector<nlohmann::json>, CollectEmbeddings, (const std::string& contentType), (override));
 };
 
 }// namespace flockmtl

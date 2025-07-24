@@ -47,8 +47,10 @@ protected:
 
 // Test llm_rerank with SQL queries without GROUP BY
 TEST_F(LLMRerankTest, LLMRerankWithoutGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(GetExpectedJsonResponse()));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
     auto con = Config::GetConnection();
 
@@ -69,9 +71,11 @@ TEST_F(LLMRerankTest, LLMRerankWithoutGroupBy) {
 
 // Test llm_rerank with SQL queries with GROUP BY
 TEST_F(LLMRerankTest, LLMRerankWithGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(3);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
-            .WillRepeatedly(::testing::Return(nlohmann::json::parse(LLM_RESPONSE_WITH_GROUP_BY)));
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{nlohmann::json::parse(LLM_RESPONSE_WITH_GROUP_BY)}));
 
     auto con = Config::GetConnection();
 
@@ -105,9 +109,11 @@ TEST_F(LLMRerankTest, Operation_InvalidArguments_ThrowsException) {
 TEST_F(LLMRerankTest, Operation_MultipleInputs_ProcessesCorrectly) {
     const nlohmann::json expected_response = nlohmann::json::parse(LLM_RESPONSE_WITH_GROUP_BY);
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(3);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
-            .WillRepeatedly(::testing::Return(expected_response));
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
 
@@ -132,8 +138,11 @@ TEST_F(LLMRerankTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillRepeatedly(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(100);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .Times(100)
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
 

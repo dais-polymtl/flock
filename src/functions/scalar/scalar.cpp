@@ -10,8 +10,9 @@ nlohmann::json ScalarFunctionBase::Complete(const nlohmann::json& tuples, const 
     if (function_type == ScalarFunctionType::FILTER) {
         output_type = OutputType::BOOL;
     }
-    auto response = model.CallComplete(prompt, true, output_type);
-    return response["items"];
+    model.AddCompletionRequest(prompt, static_cast<int>(tuples.size()), true, output_type);
+    auto response = model.CollectCompletions();
+    return response[0]["items"];
 };
 
 nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::json>& tuples,
@@ -47,6 +48,8 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::
                 for (auto i = static_cast<int>(response.size()); i < batch_tuples.size(); i++) {
                     response.push_back(nullptr);
                 }
+            } else if (response.size() > batch_tuples.size()) {
+                response.erase(response.begin() + batch_tuples.size(), response.end());
             }
 
             for (const auto& tuple: response) {

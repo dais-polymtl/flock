@@ -3,7 +3,7 @@
 #include "../mock_provider.hpp"
 #include "flockmtl/core/config.hpp"
 #include "flockmtl/model_manager/model.hpp"
-#include "flockmtl/model_manager/providers/adapters/openai.hpp"
+#include "flockmtl/model_manager/providers/provider.hpp"
 #include "nlohmann/json.hpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -20,7 +20,7 @@ protected:
     static constexpr const char* DEFAULT_MODEL = "gpt-4o";
     static constexpr const char* TEST_PROMPT = "Explain the purpose of FlockMTL.";
 
-    std::shared_ptr<MockOpenAIProvider> mock_provider;
+    std::shared_ptr<MockProvider> mock_provider;
 
     void SetUp() override;
     void TearDown() override;

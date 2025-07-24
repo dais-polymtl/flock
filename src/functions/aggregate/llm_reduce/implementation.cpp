@@ -6,7 +6,8 @@ nlohmann::json LlmReduce::ReduceBatch(const nlohmann::json& tuples, const Aggreg
     nlohmann::json data;
     const auto prompt = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
     OutputType output_type = OutputType::STRING;
-    auto response = model.CallComplete(prompt, true, output_type);
+    model.AddCompletionRequest(prompt, 1, true, output_type);
+    auto response = model.CollectCompletions()[0];
     return response["items"][0];
 };
 
