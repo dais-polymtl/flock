@@ -42,7 +42,7 @@ protected:
 
 // Test llm_reduce_json with SQL queries without GROUP BY
 TEST_F(LLMReduceJsonTest, LLMReduceJsonWithoutGroupBy) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
@@ -63,7 +63,7 @@ TEST_F(LLMReduceJsonTest, LLMReduceJsonWithoutGroupBy) {
 
 // Test llm_reduce_json with SQL queries with GROUP BY
 TEST_F(LLMReduceJsonTest, LLMReduceJsonWithGroupBy) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(3);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
@@ -99,7 +99,7 @@ TEST_F(LLMReduceJsonTest, Operation_InvalidArguments_ThrowsException) {
 TEST_F(LLMReduceJsonTest, Operation_MultipleInputs_ProcessesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(3);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
@@ -126,7 +126,7 @@ TEST_F(LLMReduceJsonTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(100);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(100)
@@ -152,7 +152,7 @@ TEST_F(LLMReduceJsonTest, Operation_LargeInputSet_ProcessesCorrectly) {
 TEST_F(LLMReduceJsonTest, Operation_ValidJsonOutput_ParsesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -192,7 +192,7 @@ TEST_F(LLMReduceJsonTest, Operation_ComplexJsonStructure_HandlesCorrectly) {
 
     complex_response["items"].push_back(item);
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{complex_response}));

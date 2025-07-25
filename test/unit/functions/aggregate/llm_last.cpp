@@ -41,7 +41,7 @@ protected:
 
 // Test llm_last with SQL queries without GROUP BY
 TEST_F(LLMLastTest, LLMLastWithoutGroupBy) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
@@ -61,7 +61,7 @@ TEST_F(LLMLastTest, LLMLastWithoutGroupBy) {
 
 // Test llm_last with SQL queries with GROUP BY
 TEST_F(LLMLastTest, LLMLastWithGroupBy) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(3);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
@@ -99,7 +99,7 @@ TEST_F(LLMLastTest, Operation_InvalidArguments_ThrowsException) {
 TEST_F(LLMLastTest, Operation_MultipleInputs_ProcessesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(3);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
@@ -128,7 +128,7 @@ TEST_F(LLMLastTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(100);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(100)
