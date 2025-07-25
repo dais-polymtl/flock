@@ -37,7 +37,7 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
 
         // Then add new tuples up to batch_size
         auto remaining_space = batch_size - static_cast<int>(carry_forward_tuples.size());
-        auto end_index = std::min(start_index + remaining_space, num_tuples);
+        auto end_index = std::min<int>(start_index + remaining_space, num_tuples);
         for (auto i = start_index; i < end_index; i++) {
             window_tuples.push_back(tuples[i]);
         }
