@@ -2,7 +2,8 @@
 
 namespace flockmtl {
 
-AggregateFunctionBase* AggregateFunctionBase::instance = nullptr;
+nlohmann::json AggregateFunctionBase::model_details;
+std::string AggregateFunctionBase::user_query;
 
 void AggregateFunctionBase::ValidateArguments(duckdb::Vector inputs[], idx_t input_count) {
     if (input_count != 3) {

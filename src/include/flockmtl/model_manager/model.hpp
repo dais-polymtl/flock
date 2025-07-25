@@ -26,8 +26,7 @@ class Model {
 public:
     explicit Model(const nlohmann::json& model_json);
     explicit Model() = default;
-    void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, bool json_response = true,
-                              OutputType output_type = OutputType::STRING);
+    void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type = OutputType::STRING);
     void AddEmbeddingRequest(const std::vector<std::string>& inputs);
     std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json");
     std::vector<nlohmann::json> CollectEmbeddings(const std::string& contentType = "application/json");

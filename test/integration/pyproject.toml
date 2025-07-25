@@ -1,0 +1,20 @@
+[project]
+name = "integration"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Anas Dorbani", email = "anasdorbani@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "dotenv>=0.9.9",
+    "pytest>=8.4.1",
+]
+
+[project.scripts]
+integration = "integration:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -23,7 +23,7 @@ public:
     explicit IProvider(const ModelDetails& model_details) : model_details_(model_details) {};
     virtual ~IProvider() = default;
 
-    virtual void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, bool json_response, OutputType output_type) = 0;
+    virtual void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type) = 0;
     virtual void AddEmbeddingRequest(const std::vector<std::string>& inputs) = 0;
 
     virtual std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json") {

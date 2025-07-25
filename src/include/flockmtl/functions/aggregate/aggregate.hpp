@@ -32,10 +32,11 @@ public:
 class AggregateFunctionBase {
 public:
     Model model;
-    std::string user_query;
+    static nlohmann::json model_details;
+    static std::string user_query;
 
 public:
-    explicit AggregateFunctionBase() : model(std::move(Model())), user_query("") {};
+    explicit AggregateFunctionBase() = default;
 
 public:
     static void ValidateArguments(duckdb::Vector inputs[], idx_t input_count);
@@ -62,10 +63,9 @@ public:
                           duckdb::Vector& states, idx_t count) {
         ValidateArguments(inputs, input_count);
 
-        auto [model_details, prompt_details, tuples] = CastInputsToJson(inputs, count);
-        auto function_instance = GetInstance<Derived>();
-        function_instance->model = Model(model_details);
-        function_instance->user_query = PromptManager::CreatePromptDetails(prompt_details).prompt;
+        auto [model_details_json, prompt_details, tuples] = CastInputsToJson(inputs, count);
+        model_details = model_details_json;
+        user_query = PromptManager::CreatePromptDetails(prompt_details).prompt;
 
         auto state_map_p = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
@@ -84,10 +84,9 @@ public:
                              duckdb::data_ptr_t state_p, idx_t count) {
         ValidateArguments(inputs, input_count);
 
-        auto [model_details, prompt_details, tuples] = CastInputsToJson(inputs, count);
-        auto function_instance = GetInstance<Derived>();
-        function_instance->model = Model(model_details);
-        function_instance->user_query = PromptManager::CreatePromptDetails(prompt_details).prompt;
+        auto [model_details_json, prompt_details, tuples] = CastInputsToJson(inputs, count);
+        model_details = model_details_json;
+        user_query = PromptManager::CreatePromptDetails(prompt_details).prompt;
 
         auto state = reinterpret_cast<AggregateFunctionState*>(state_p);
 
@@ -138,33 +137,14 @@ public:
     static void FinalizeSafe(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, duckdb::Vector& result,
                              idx_t count, idx_t offset) {
         const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
-        auto function_instance = GetInstance<Derived>();
 
         for (idx_t i = 0; i < count; i++) {
             auto idx = i + offset;
             auto* state = states_vector[idx];
 
-            if (state && state->value) {
-                // Call the derived class's processing method
-                auto processed_result = static_cast<Derived*>(function_instance)->ProcessStateForFinalize(*state);
-                result.SetValue(idx, processed_result);
-            } else {
-                result.SetValue(idx, "[]");// Empty JSON array as default
-            }
+            result.SetValue(idx, "[]");// Empty JSON array as default
         }
     }
-
-    // Static method to get or create an instance of the derived class
-    template<typename Derived>
-    static Derived* GetInstance() {
-        if (instance == nullptr) {
-            instance = new Derived();
-        }
-        return static_cast<Derived*>(instance);
-    }
-
-private:
-    static AggregateFunctionBase* instance;
 };
 
 }// namespace flockmtl

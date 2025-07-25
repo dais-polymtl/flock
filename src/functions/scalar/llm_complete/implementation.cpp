@@ -32,7 +32,7 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
     std::vector<std::string> results;
     if (args.ColumnCount() == 2) {
         auto template_str = prompt_details.prompt;
-        model.AddCompletionRequest(template_str, 1, true, OutputType::STRING);
+        model.AddCompletionRequest(template_str, 1, OutputType::STRING);
         auto response = model.CollectCompletions()[0]["items"][0];
         if (response.is_string()) {
             results.push_back(response.get<std::string>());
@@ -41,6 +41,10 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
         }
     } else {
         auto tuples = CastVectorOfStructsToJson(args.data[2], args.size());
+
+        if (tuples.empty()) {
+            return results;
+        }
 
         auto responses = BatchAndComplete(tuples, prompt_details.prompt, ScalarFunctionType::COMPLETE, model);
 
