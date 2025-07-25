@@ -10,7 +10,7 @@ nlohmann::json ScalarFunctionBase::Complete(const nlohmann::json& tuples, const 
     if (function_type == ScalarFunctionType::FILTER) {
         output_type = OutputType::BOOL;
     }
-    model.AddCompletionRequest(prompt, static_cast<int>(tuples.size()), true, output_type);
+    model.AddCompletionRequest(prompt, static_cast<int>(tuples.size()), output_type);
     auto response = model.CollectCompletions();
     return response[0]["items"];
 };

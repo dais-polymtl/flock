@@ -11,7 +11,7 @@ public:
         model_handler_ = std::make_unique<OllamaModelManager>(model_details_.secret["api_url"], true);
     }
 
-    void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, bool json_response, OutputType output_type) override;
+    void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type) override;
     void AddEmbeddingRequest(const std::vector<std::string>& inputs) override;
 };
 

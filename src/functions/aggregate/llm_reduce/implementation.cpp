@@ -6,7 +6,7 @@ nlohmann::json LlmReduce::ReduceBatch(const nlohmann::json& tuples, const Aggreg
     nlohmann::json data;
     const auto prompt = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
     OutputType output_type = OutputType::STRING;
-    model.AddCompletionRequest(prompt, 1, true, output_type);
+    model.AddCompletionRequest(prompt, 1, output_type);
     auto response = model.CollectCompletions()[0];
     return response["items"][0];
 };
@@ -22,8 +22,6 @@ nlohmann::json LlmReduce::ReduceLoop(const std::vector<nlohmann::json>& tuples,
     }
 
     do {
-        batch_tuples.clear();
-
         for (auto i = 0; i < batch_size && start_index + i < static_cast<int>(tuples.size()); i++) {
             batch_tuples.push_back(tuples[start_index + i]);
         }
@@ -52,20 +50,21 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
                                 const AggregateFunctionType function_type) {
     const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
-    auto function_instance = AggregateFunctionBase::GetInstance<LlmReduce>();
     for (idx_t i = 0; i < count; i++) {
         auto idx = i + offset;
         auto* state = states_vector[idx];
 
-        if (state && state->value) {
-            auto response = function_instance->ReduceLoop(*state->value, function_type);
+        if (state && !state->value->empty()) {
+            LlmReduce reduce_instance;
+            reduce_instance.model = Model(model_details);
+            auto response = reduce_instance.ReduceLoop(*state->value, function_type);
             if (response.is_string()) {
                 result.SetValue(idx, response.get<std::string>());
             } else {
                 result.SetValue(idx, response.dump());
             }
         } else {
-            result.SetValue(idx, "");// Empty result for null/empty states
+            result.SetValue(idx, nullptr);// Empty result for null/empty states
         }
     }
 }
