@@ -60,7 +60,7 @@ protected:
 // Test llm_filter with SQL queries
 TEST_F(LLMFilterTest, LLMFilterWithInputColumns) {
     const nlohmann::json expected_response = {{"items", {true}}};
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(::testing::AtLeast(1));
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -73,7 +73,7 @@ TEST_F(LLMFilterTest, LLMFilterWithInputColumns) {
 
 TEST_F(LLMFilterTest, LLMFilterWithMultipleInputs) {
     const nlohmann::json expected_response = {{"items", {false}}};
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -90,7 +90,7 @@ TEST_F(LLMFilterTest, ValidateArguments) {
 
 TEST_F(LLMFilterTest, Operation_ThreeArguments_RequiredStructure) {
     const nlohmann::json expected_response = {{"items", {true}}};
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -116,7 +116,7 @@ TEST_F(LLMFilterTest, Operation_ThreeArguments_RequiredStructure) {
 TEST_F(LLMFilterTest, Operation_BatchProcessing) {
     const std::vector<bool> filter_responses = {true, false};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(filter_responses);
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -150,7 +150,7 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing_StringVector) {
     // Test with vector of strings (for compatibility with base class interface)
     const std::vector<std::string> filter_responses = {"true", "false"};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(filter_responses);
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -193,7 +193,7 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));

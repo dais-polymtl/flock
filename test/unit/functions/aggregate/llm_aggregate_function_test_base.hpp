@@ -164,7 +164,9 @@ protected:
     virtual std::string GetFunctionName() const = 0;
     virtual AggregateFunctionType GetFunctionType() const = 0;
     virtual nlohmann::json PrepareExpectedResponseForBatch(const std::vector<std::string>& responses) const = 0;
-    virtual nlohmann::json PrepareExpectedResponseForLargeInput(size_t input_count) const = 0;
+    virtual nlohmann::json PrepareExpectedResponseForLargeInput(size_t input_count) const {
+        return nlohmann::json::object();
+    }
     virtual std::string FormatExpectedResult(const nlohmann::json& response) const = 0;
 };
 

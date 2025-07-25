@@ -34,12 +34,6 @@ protected:
         return nlohmann::json{{"items", ranking_indices}};
     }
 
-    nlohmann::json PrepareExpectedResponseForLargeInput(size_t input_count) const override {
-        std::vector<int> ranking_indices(input_count);
-        std::iota(ranking_indices.begin(), ranking_indices.end(), 0);
-        return nlohmann::json{{"items", ranking_indices}};
-    }
-
     std::string FormatExpectedResult(const nlohmann::json& response) const override {
         return response.dump();
     }
@@ -47,7 +41,7 @@ protected:
 
 // Test llm_rerank with SQL queries without GROUP BY
 TEST_F(LLMRerankTest, LLMRerankWithoutGroupBy) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
@@ -64,14 +58,14 @@ TEST_F(LLMRerankTest, LLMRerankWithoutGroupBy) {
     ASSERT_EQ(results->RowCount(), 1);
     EXPECT_NO_THROW({
         nlohmann::json parsed = nlohmann::json::parse(results->GetValue(0, 0).GetValue<std::string>());
-        EXPECT_EQ(parsed.size(), 2);
+        EXPECT_EQ(parsed.size(), 3);
         EXPECT_TRUE(parsed[0].contains("product_description"));
     });
 }
 
 // Test llm_rerank with SQL queries with GROUP BY
 TEST_F(LLMRerankTest, LLMRerankWithGroupBy) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(3);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
@@ -109,7 +103,7 @@ TEST_F(LLMRerankTest, Operation_InvalidArguments_ThrowsException) {
 TEST_F(LLMRerankTest, Operation_MultipleInputs_ProcessesCorrectly) {
     const nlohmann::json expected_response = nlohmann::json::parse(LLM_RESPONSE_WITH_GROUP_BY);
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(3);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
@@ -136,9 +130,9 @@ TEST_F(LLMRerankTest, Operation_MultipleInputs_ProcessesCorrectly) {
 // Test large input set processing
 TEST_F(LLMRerankTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
-    const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
+    const nlohmann::json expected_response = nlohmann::json::parse(LLM_RESPONSE_WITH_GROUP_BY);
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(100);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(100)

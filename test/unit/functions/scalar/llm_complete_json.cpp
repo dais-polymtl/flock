@@ -45,7 +45,7 @@ protected:
 
 TEST_F(LLMCompleteJsonTest, LLMCompleteJsonWithoutInputColumns) {
     nlohmann::json expected_response = GetExpectedJsonResponse();
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -58,7 +58,7 @@ TEST_F(LLMCompleteJsonTest, LLMCompleteJsonWithoutInputColumns) {
 
 TEST_F(LLMCompleteJsonTest, LLMCompleteJsonWithInputColumns) {
     const nlohmann::json expected_response = {{"items", {nlohmann::json::parse(R"({"capital": "Ottawa", "country": "Canada"})")}}};
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -76,7 +76,7 @@ TEST_F(LLMCompleteJsonTest, ValidateArguments) {
 
 TEST_F(LLMCompleteJsonTest, Operation_TwoArguments_SimplePrompt) {
     nlohmann::json expected_response = GetExpectedJsonResponse();
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -96,7 +96,7 @@ TEST_F(LLMCompleteJsonTest, Operation_TwoArguments_SimplePrompt) {
 TEST_F(LLMCompleteJsonTest, Operation_ThreeArguments_BatchProcessing) {
     const std::vector<std::string> responses = {"response 1", "response 2"};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(responses);
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -138,7 +138,7 @@ TEST_F(LLMCompleteJsonTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
