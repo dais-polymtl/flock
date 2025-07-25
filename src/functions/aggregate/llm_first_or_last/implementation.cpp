@@ -5,7 +5,8 @@ namespace flockmtl {
 int LlmFirstOrLast::GetFirstOrLastTupleId(const nlohmann::json& tuples) {
     nlohmann::json data;
     const auto prompt = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
-    auto response = model.CallComplete(prompt, true, OutputType::INTEGER);
+    model.AddCompletionRequest(prompt, 1, true, OutputType::INTEGER);
+    auto response = model.CollectCompletions()[0];
     return response["items"][0];
 }
 

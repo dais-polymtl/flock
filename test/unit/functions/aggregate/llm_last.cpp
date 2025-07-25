@@ -3,11 +3,11 @@
 
 namespace flockmtl {
 
-class LLMFirstTest : public LLMAggregateTestBase<LlmFirstOrLast> {
+class LLMLastTest : public LLMAggregateTestBase<LlmFirstOrLast> {
 protected:
-    // The LLM response (for mocking)
+    // The LLM response (for mocking) - for llm_last, it should select the last index
     static constexpr const char* LLM_RESPONSE = R"({"items":[0]})";
-    // The expected function output (selected data)
+    // The expected function output (selected data from the last position)
     static constexpr const char* EXPECTED_RESPONSE = R"({"product_description":"High-performance running shoes with advanced cushioning"})";
 
     std::string GetExpectedResponse() const override {
@@ -19,19 +19,19 @@ protected:
     }
 
     std::string GetFunctionName() const override {
-        return "llm_first";
+        return "llm_last";
     }
 
     AggregateFunctionType GetFunctionType() const override {
-        return AggregateFunctionType::FIRST;
+        return AggregateFunctionType::LAST;
     }
 
     nlohmann::json PrepareExpectedResponseForBatch(const std::vector<std::string>& responses) const override {
-        return nlohmann::json{{"items", {0}}};
+        return nlohmann::json{{"selected", static_cast<int>(responses.size() - 1)}};
     }
 
     nlohmann::json PrepareExpectedResponseForLargeInput(size_t input_count) const override {
-        return nlohmann::json{{"items", {0}}};
+        return nlohmann::json{{"selected", static_cast<int>(input_count - 1)}};
     }
 
     std::string FormatExpectedResult(const nlohmann::json& response) const override {
@@ -39,38 +39,42 @@ protected:
     }
 };
 
-// Test llm_first with SQL queries without GROUP BY
-TEST_F(LLMFirstTest, LLMFirstWithoutGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillOnce(::testing::Return(GetExpectedJsonResponse()));
+// Test llm_last with SQL queries without GROUP BY
+TEST_F(LLMLastTest, LLMLastWithoutGroupBy) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
                                             "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'What is the most relevant detail for these products, based on their names and descriptions?'}, "
+                                            "{'prompt': 'What is the least relevant detail for these products, based on their names and descriptions?'}, "
                                             "{'product_description': description}"
-                                            ") AS first_product_feature FROM test_products;");
+                                            ") AS last_product_feature FROM test_products;");
 
     ASSERT_EQ(results->RowCount(), 1);
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), GetExpectedResponse());
 }
 
-// Test llm_first with SQL queries with GROUP BY
-TEST_F(LLMFirstTest, LLMFirstWithGroupBy) {
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
+// Test llm_last with SQL queries with GROUP BY
+TEST_F(LLMLastTest, LLMLastWithGroupBy) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(3);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
-            .WillRepeatedly(::testing::Return(GetExpectedJsonResponse()));
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
                                             "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'What is the most relevant detail for these products, based on their names and descriptions?'}, "
+                                            "{'prompt': 'What is the least relevant detail for these products, based on their names and descriptions?'}, "
                                             "{'product_description': description}"
-                                            ") AS first_feature FROM test_products GROUP BY description;");
+                                            ") AS last_feature FROM test_products GROUP BY description;");
 
     ASSERT_EQ(results->RowCount(), 3);
     for (idx_t i = 0; i < results->RowCount(); i++) {
@@ -82,31 +86,33 @@ TEST_F(LLMFirstTest, LLMFirstWithGroupBy) {
 }
 
 // Test argument validation
-TEST_F(LLMFirstTest, ValidateArguments) {
+TEST_F(LLMLastTest, ValidateArguments) {
     TestValidateArguments();
 }
 
 // Test operation with invalid arguments
-TEST_F(LLMFirstTest, Operation_InvalidArguments_ThrowsException) {
+TEST_F(LLMLastTest, Operation_InvalidArguments_ThrowsException) {
     TestOperationInvalidArguments();
 }
 
 // Test operation with multiple input scenarios
-TEST_F(LLMFirstTest, Operation_MultipleInputs_ProcessesCorrectly) {
+TEST_F(LLMLastTest, Operation_MultipleInputs_ProcessesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(3);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
-            .WillRepeatedly(::testing::Return(expected_response));
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
                                             "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'What is the most relevant product information?'}, "
+                                            "{'prompt': 'What is the least relevant product information?'}, "
                                             "{'product_description': description}"
-                                            ") AS first_relevant_info FROM test_products GROUP BY description;");
+                                            ") AS last_relevant_info FROM test_products GROUP BY description;");
 
     ASSERT_EQ(results->RowCount(), 3);
     for (idx_t i = 0; i < results->RowCount(); i++) {
@@ -118,21 +124,24 @@ TEST_F(LLMFirstTest, Operation_MultipleInputs_ProcessesCorrectly) {
 }
 
 // Test large input set processing
-TEST_F(LLMFirstTest, Operation_LargeInputSet_ProcessesCorrectly) {
+TEST_F(LLMLastTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
-    const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
+    const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, CallComplete(::testing::_, ::testing::_, ::testing::_))
-            .WillRepeatedly(::testing::Return(expected_response));
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(100);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .Times(100)
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
                                             "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'Select the first relevant product based on relevance'}, "
+                                            "{'prompt': 'Select the last relevant product based on relevance'}, "
                                             "{'id': id, 'description': description}"
-                                            ") AS first_relevant FROM test_large_dataset GROUP BY id;");
+                                            ") AS last_relevant FROM test_large_dataset GROUP BY id;");
 
     ASSERT_EQ(results->RowCount(), 100);
     for (idx_t i = 0; i < results->RowCount(); i++) {

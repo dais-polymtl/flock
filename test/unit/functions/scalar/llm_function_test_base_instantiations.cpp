@@ -13,7 +13,7 @@ void LLMFunctionTestBase<FunctionClass>::SetUp() {
               "       TYPE OPENAI,"
               "    API_KEY 'your-api-key');");
 
-    mock_provider = std::make_shared<MockOpenAIProvider>();
+    mock_provider = std::make_shared<MockProvider>(ModelDetails{});
     Model::SetMockProvider(mock_provider);
 }
 
@@ -167,7 +167,7 @@ void LLMFunctionTestBase<FunctionClass>::TestOperationEmptyPrompt() {
         SetStructStringData(chunk.data[1], {{{"prompt", ""}}});
         SetStructStringData(chunk.data[2], {{{"test", "value"}}});
 
-        EXPECT_THROW(FunctionClass::Operation(chunk), std::runtime_error);
+        EXPECT_THROW(FunctionClass::Operation(chunk);, std::runtime_error);
         return;
     } catch (const std::runtime_error&) {
         // Function might not accept 3 arguments, try with 2
@@ -179,7 +179,7 @@ void LLMFunctionTestBase<FunctionClass>::TestOperationEmptyPrompt() {
     SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
     SetStructStringData(chunk.data[1], {{{"prompt", ""}}});
 
-    EXPECT_THROW(FunctionClass::Operation(chunk), std::runtime_error);
+    EXPECT_THROW(FunctionClass::Operation(chunk);, std::runtime_error);
 }
 
 // Explicit instantiations for all used function classes

@@ -65,4 +65,4 @@ endif()
 
 # Add the test directory
 enable_testing()
-add_subdirectory(test)
+add_subdirectory(test/unit)
