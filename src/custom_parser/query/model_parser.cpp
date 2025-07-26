@@ -90,7 +90,15 @@ void ModelParser::ParseCreateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
             for (auto it = input_args.begin(); it != input_args.end(); ++it) {
                 const std::string& key = it.key();
                 if (key == "tuple_format" || key == "batch_size" || key == "model_parameters") {
-                    model_args[key] = it.value();
+                    const auto& param_val = it.value();
+                    if (key == "batch_size") {
+                        if (!param_val.is_number_integer()) {
+                            throw std::runtime_error("Expected 'batch_size' to be an integer.");
+                        }
+                        model_args[key] = param_val.get<int>();
+                    } else {
+                        model_args[key] = it.value();
+                    }
                 } else {
                     throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, and model_parameters are allowed.");
                 }
@@ -220,7 +228,15 @@ void ModelParser::ParseUpdateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
                 for (auto it = input_args.begin(); it != input_args.end(); ++it) {
                     const std::string& key = it.key();
                     if (key == "tuple_format" || key == "batch_size" || key == "model_parameters") {
-                        new_model_args[key] = it.value();
+                        const auto& param_val = it.value();
+                        if (key == "batch_size") {
+                            if (!param_val.is_number_integer()) {
+                                throw std::runtime_error("Expected 'batch_size' to be an integer.");
+                            }
+                            new_model_args[key] = param_val.get<int>();
+                        } else {
+                            new_model_args[key] = it.value();
+                        }
                     } else {
                         throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, and model_parameters are allowed.");
                     }

@@ -60,6 +60,12 @@ TEST(ModelParserTest, ParseInvalidCreateModel) {
     EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data')", statement), std::runtime_error);
 }
 
+TEST(ModelParserTest, ParseStringBatchSizeCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": \"32\", \"model_parameters\": {\"param1\": \"value1\"}})", statement), std::runtime_error);
+}
+
 TEST(ModelParserTest, ParseCreateModelWithArgs) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
@@ -174,6 +180,12 @@ TEST(ModelParserTest, ParseInvalidUpdateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
     EXPECT_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data')", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseStringBatchSizeUpdateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": \"64\", \"model_parameters\": {\"param2\": \"value2\"}})", statement), std::runtime_error);
 }
 
 /**************************************************

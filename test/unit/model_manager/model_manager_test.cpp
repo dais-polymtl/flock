@@ -36,7 +36,7 @@ TEST_F(ModelManagerTest, ModelInitialization) {
             {"model", "gpt-4o"},
             {"provider", "openai"},
             {"tuple_format", "json"},
-            {"batch_size", "32"},
+            {"batch_size", 32},
             {"model_parameters", "{\"temperature\": 0.7}"}};
 
     EXPECT_NO_THROW({
@@ -114,7 +114,7 @@ TEST_F(ModelManagerTest, GetModelDetails) {
             {"provider", "openai"},
             {"model_parameters", "{\"temperature\": 0.7}"},
             {"tuple_format", "XML"},
-            {"batch_size", "10"}};
+            {"batch_size", 10}};
 
     Model model(model_config);
     ModelDetails details = model.GetModelDetails();

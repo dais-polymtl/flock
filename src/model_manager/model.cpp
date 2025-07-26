@@ -30,9 +30,9 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     model_details_.tuple_format =
             model_json.contains("tuple_format") ? model_json.at("tuple_format").get<std::string>() : std::get<2>(query_result).contains("tuple_format") ? std::get<2>(query_result).at("tuple_format").get<std::string>()
                                                                                                                                                         : "XML";
-    model_details_.batch_size =
-            model_json.contains("batch_size") ? std::stoi(model_json.at("batch_size").get<std::string>()) : std::get<2>(query_result).contains("batch_size") ? std::get<2>(query_result).at("batch_size").get<int>()
-                                                                                                                                                             : 2048;
+
+    model_details_.batch_size = model_json.contains("batch_size") ? model_json.at("batch_size").get<int>() : std::get<2>(query_result).contains("batch_size") ? std::get<2>(query_result).at("batch_size").get<int>()
+                                                                                                                                                              : 2048;
 }
 
 std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedModel(const std::string& model_name) {
