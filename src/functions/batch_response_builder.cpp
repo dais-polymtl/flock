@@ -11,7 +11,7 @@ std::vector<nlohmann::json> CastVectorOfStructsToJson(const duckdb::Vector& stru
             auto value = duckdb::StructValue::GetChildren(struct_vector.GetValue(i))[j];
             if (key == "batch_size") {
                 if (value.GetTypeMutable() != duckdb::LogicalType::INTEGER) {
-                    throw std::runtime_error("Expected 'batch_size' to be of type INTEGER.");
+                    throw std::runtime_error("Expected 'batch_size' to be an integer.");
                 }
                 json[key] = value.GetValue<int>();
             } else {
