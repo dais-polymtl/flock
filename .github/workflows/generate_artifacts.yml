@@ -1,6 +1,8 @@
 name: Build FlockMTL per Tag with Corresponding DuckDB
 
 on:
+  push:
+    branches:
   workflow_dispatch:
 
 jobs:
