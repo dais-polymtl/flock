@@ -6,16 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  #  build_v0_3_1:
-  #    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.3.2
-  #    with:
-  #      duckdb_version: v1.3.2
-  #      ci_tools_version: v1.3.2
-  #      extension_name: flockmtl
-  #      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
-  #    secrets: inherit
-  #
-  build_v0_3_0:
+  build_v0_3_1:
     uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.3.2
     with:
       duckdb_version: v1.3.2
@@ -23,6 +14,15 @@ jobs:
       extension_name: flockmtl
       exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
     secrets: inherit
+  #
+  #  build_v0_3_0:
+  #    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.3.2
+  #    with:
+  #      duckdb_version: v1.3.2
+  #      ci_tools_version: v1.3.2
+  #      extension_name: flockmtl
+  #      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
+  #    secrets: inherit
   #
   #  build_v0_2_5:
   #    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.3.0
