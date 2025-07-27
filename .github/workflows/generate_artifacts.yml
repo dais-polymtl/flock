@@ -1,0 +1,53 @@
+name: Build FlockMTL per Tag with Corresponding DuckDB
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-per-tag:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - tag:
+              v0.3.1; duckdb: v1.3.2
+          - tag:
+              v0.3.0; duckdb: v1.3.2
+          - tag:
+              v0.2.5; duckdb: v1.3.0
+          - tag:
+              v0.2.4; duckdb: v1.1.3
+          - tag:
+              v0.2.3; duckdb: v1.1.3
+          - tag:
+              v0.2.2; duckdb: v1.1.3
+
+    steps:
+      - name: Check out specific tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.tag }}
+
+      - name: Build binaries using extension-ci-tools
+        uses: duckdb/extension‑ci‑tools/.github/workflows/_extension_distribution.yml@${{ matrix.duckdb }}
+        with:
+          duckdb_version: ${{ matrix.duckdb }}
+          ci_tools_version: ${{ matrix.duckdb }}
+          extension_name: flockmtl
+          exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
+
+      - name: Deploy binaries (optional)
+        uses: ./.github/workflows/_extension_deploy.yml
+        needs: build-per-tag
+        secrets: inherit
+        with:
+          duckdb_version: ${{ matrix.duckdb }}
+          extension_name: flockmtl
+          deploy_latest: false
+          exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
+
+      - name: Upload artifact for tag
+        uses: actions/upload-artifact@v4
+        with:
+          name: flockmtl-${{ matrix.tag }}-duckdb-${{ matrix.duckdb }}
+          path: build/release/extension/flockmtl/*.zip
