@@ -24,23 +24,23 @@ jobs:
   #      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
   #    secrets: inherit
   #
-  #  build_v0_2_5:
-  #    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.3.0
-  #    with:
-  #      duckdb_version: v1.3.0
-  #      ci_tools_version: v1.3.0
-  #      extension_name: flockmtl
-  #      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
-  #    secrets: inherit
-  #
-  build_v0_2_4:
-    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.1.3
+  build_v0_2_5:
+    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.3.0
     with:
-      duckdb_version: v1.1.3
-      ci_tools_version: v1.1.3
+      duckdb_version: v1.3.0
+      ci_tools_version: v1.3.0
       extension_name: flockmtl
       exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
     secrets: inherit
+  #
+#  build_v0_2_4:
+#    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.1.3
+#    with:
+#      duckdb_version: v1.1.3
+#      ci_tools_version: v1.1.3
+#      extension_name: flockmtl
+#      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
+#    secrets: inherit
 
 #  build_v0_2_3:
 #    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.1.3
