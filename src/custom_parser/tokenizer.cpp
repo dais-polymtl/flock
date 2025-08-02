@@ -92,31 +92,47 @@ Token Tokenizer::ParseParenthesis() {
     return {TokenType::PARENTHESIS, std::string(1, ch)};
 }
 
+// Parse a comment (starts with -- and goes to end of line)
+Token Tokenizer::ParseComment() {
+    auto start = _position;
+    // Skip initial --
+    _position += 2;
+    while (_position < static_cast<int>(_query.size()) && _query[_position] != '\n') {
+        ++_position;
+    }
+    auto value = _query.substr(start, _position - start);
+    return {TokenType::COMMENT, value};
+}
+
 // Get the next token from the input
 Token Tokenizer::GetNextToken() {
     SkipWhitespace();
-    if (_position >= static_cast<int>(_query.size())) {
-        return {TokenType::END_OF_FILE, ""};
+    while (_position < static_cast<int>(_query.size())) {
+        auto ch = _query[_position];
+        if (ch == '-' && _query[_position + 1] == '-') {
+            ParseComment();// Ignore comment
+            SkipWhitespace();
+            continue;
+        }
+        if (ch == '\'') {
+            return ParseStringLiteral();
+        } else if (ch == '{') {
+            return ParseJson();
+        } else if (std::isalpha(ch)) {
+            return ParseKeyword();
+        } else if (ch == ';' || ch == ',') {
+            return ParseSymbol();
+        } else if (ch == '=') {
+            return ParseSymbol();
+        } else if (ch == '(' || ch == ')') {
+            return ParseParenthesis();
+        } else if (std::isdigit(ch)) {
+            return ParseNumber();
+        } else {
+            return {TokenType::UNKNOWN, std::string(1, ch)};
+        }
     }
-
-    auto ch = _query[_position];
-    if (ch == '\'') {
-        return ParseStringLiteral();
-    } else if (ch == '{') {
-        return ParseJson();
-    } else if (std::isalpha(ch)) {
-        return ParseKeyword();
-    } else if (ch == ';' || ch == ',') {
-        return ParseSymbol();
-    } else if (ch == '=') {
-        return ParseSymbol();
-    } else if (ch == '(' || ch == ')') {
-        return ParseParenthesis();
-    } else if (std::isdigit(ch)) {
-        return ParseNumber();
-    } else {
-        return {TokenType::UNKNOWN, std::string(1, ch)};
-    }
+    return {TokenType::END_OF_FILE, ""};
 }
 
 // Get the next token
@@ -137,6 +153,8 @@ std::string TokenTypeToString(TokenType type) {
             return "NUMBER";
         case TokenType::PARENTHESIS:
             return "PARENTHESIS";
+        case TokenType::COMMENT:
+            return "COMMENT";
         case TokenType::END_OF_FILE:
             return "END_OF_FILE";
         case TokenType::UNKNOWN:

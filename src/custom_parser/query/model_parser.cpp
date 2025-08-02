@@ -116,7 +116,7 @@ void ModelParser::ParseCreateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
     }
 
     token = tokenizer.NextToken();
-    if (token.type == TokenType::END_OF_FILE) {
+    if (token.type == TokenType::END_OF_FILE || token.type == TokenType::SYMBOL || token.value == ";") {
         auto create_statement = std::make_unique<CreateModelStatement>();
         create_statement->catalog = catalog;
         create_statement->model_name = model_name;
@@ -143,7 +143,7 @@ void ModelParser::ParseDeleteModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
     auto model_name = token.value;
 
     token = tokenizer.NextToken();
-    if (token.type == TokenType::SYMBOL || token.value == ";") {
+    if (token.type == TokenType::END_OF_FILE || token.type == TokenType::SYMBOL || token.value == ";") {
         auto delete_statement = std::make_unique<DeleteModelStatement>();
         delete_statement->model_name = model_name;
         statement = std::move(delete_statement);
@@ -255,7 +255,7 @@ void ModelParser::ParseUpdateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
         }
 
         token = tokenizer.NextToken();
-        if (token.type == TokenType::END_OF_FILE) {
+        if (token.type == TokenType::END_OF_FILE || token.type == TokenType::SYMBOL || token.value == ";") {
             auto update_statement = std::make_unique<UpdateModelStatement>();
             update_statement->new_model = new_model;
             update_statement->model_name = model_name;
@@ -277,7 +277,7 @@ void ModelParser::ParseGetModel(Tokenizer& tokenizer, std::unique_ptr<QueryState
     }
 
     token = tokenizer.NextToken();
-    if (token.type == TokenType::SYMBOL || token.value == ";") {
+    if ((token.type == TokenType::END_OF_FILE || token.type == TokenType::SYMBOL || token.value == ";") && value == "MODELS") {
         auto get_all_statement = std::make_unique<GetAllModelStatement>();
         statement = std::move(get_all_statement);
     } else {
@@ -287,7 +287,7 @@ void ModelParser::ParseGetModel(Tokenizer& tokenizer, std::unique_ptr<QueryState
         auto model_name = token.value;
 
         token = tokenizer.NextToken();
-        if (token.type == TokenType::SYMBOL || token.value == ";") {
+        if (token.type == TokenType::END_OF_FILE || token.type == TokenType::SYMBOL || token.value == ";") {
             auto get_statement = std::make_unique<GetModelStatement>();
             get_statement->model_name = model_name;
             statement = std::move(get_statement);

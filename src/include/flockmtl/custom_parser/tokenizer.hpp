@@ -11,6 +11,7 @@ enum class TokenType { KEYWORD,
                        SYMBOL,
                        NUMBER,
                        PARENTHESIS,
+                       COMMENT,
                        END_OF_FILE,
                        UNKNOWN };
 
@@ -33,6 +34,7 @@ public:
     Token ParseSymbol();
     Token ParseNumber();
     Token ParseParenthesis();
+    Token ParseComment();
     Token ParseJson();
     Token GetNextToken();
 
