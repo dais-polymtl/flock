@@ -51,6 +51,20 @@ TEST(TokenizerTest, ParseParenthesis) {
     EXPECT_EQ(token.value, "(");
 }
 
+TEST(TokenizerTest, ParseComment) {
+    Tokenizer tokenizer("-- This is a comment");
+    Token token = tokenizer.ParseComment();
+    EXPECT_EQ(token.type, TokenType::COMMENT);
+    EXPECT_EQ(token.value, "-- This is a comment");
+}
+
+TEST(TokenizerTest, ParseCommentWithNewline) {
+    Tokenizer tokenizer("-- Comment\nCREATE");
+    Token token = tokenizer.ParseComment();
+    EXPECT_EQ(token.type, TokenType::COMMENT);
+    EXPECT_EQ(token.value, "-- Comment");
+}
+
 TEST(TokenizerTest, GetNextToken_EndOfFile) {
     Tokenizer tokenizer("");
     Token token = tokenizer.GetNextToken();
@@ -63,4 +77,47 @@ TEST(TokenizerTest, GetNextToken_Unknown) {
     Token token = tokenizer.GetNextToken();
     EXPECT_EQ(token.type, TokenType::UNKNOWN);
     EXPECT_EQ(token.value, "@");
+}
+
+/**************************************************
+ *              Comment Parsing Tests              *
+ **************************************************/
+
+TEST(TokenizerTest, GetNextToken_IgnoresComments) {
+    Tokenizer tokenizer("-- This is a comment\nCREATE MODEL");
+    Token token = tokenizer.GetNextToken();
+    EXPECT_EQ(token.type, TokenType::KEYWORD);
+    EXPECT_EQ(token.value, "CREATE");
+}
+
+TEST(TokenizerTest, GetNextToken_IgnoresCommentsWithWhitespace) {
+    Tokenizer tokenizer("  -- Comment with spaces\n  CREATE");
+    Token token = tokenizer.GetNextToken();
+    EXPECT_EQ(token.type, TokenType::KEYWORD);
+    EXPECT_EQ(token.value, "CREATE");
+}
+
+TEST(TokenizerTest, GetNextToken_HandlesMultipleComments) {
+    Tokenizer tokenizer("-- First comment\n-- Second comment\nCREATE");
+    Token token = tokenizer.GetNextToken();
+    EXPECT_EQ(token.type, TokenType::KEYWORD);
+    EXPECT_EQ(token.value, "CREATE");
+}
+
+TEST(TokenizerTest, GetNextToken_CommentAtEnd) {
+    Tokenizer tokenizer("CREATE -- End comment");
+    Token token = tokenizer.GetNextToken();
+    EXPECT_EQ(token.type, TokenType::KEYWORD);
+    EXPECT_EQ(token.value, "CREATE");
+}
+
+TEST(TokenizerTest, GetNextToken_CommentInMiddle) {
+    Tokenizer tokenizer("CREATE -- Middle comment\nMODEL");
+    Token token = tokenizer.GetNextToken();
+    EXPECT_EQ(token.type, TokenType::KEYWORD);
+    EXPECT_EQ(token.value, "CREATE");
+
+    token = tokenizer.GetNextToken();
+    EXPECT_EQ(token.type, TokenType::KEYWORD);
+    EXPECT_EQ(token.value, "MODEL");
 }

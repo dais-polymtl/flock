@@ -158,9 +158,7 @@ def test_create_model_invalid_syntax(integration_setup):
 def test_create_model_invalid_json_args(integration_setup):
     duckdb_cli_path, db_path = integration_setup
     # Invalid JSON format
-    invalid_query1 = (
-        "CREATE MODEL('test-model', 'gpt-4o', 'openai', '{invalid json}');"
-    )
+    invalid_query1 = "CREATE MODEL('test-model', 'gpt-4o', 'openai', '{invalid json}');"
     result1 = run_cli(duckdb_cli_path, db_path, invalid_query1)
     assert result1.returncode != 0
 
@@ -262,3 +260,54 @@ def test_multiple_providers(integration_setup):
     assert "openai" in result.stdout
     assert "azure" in result.stdout
     assert "ollama" in result.stdout
+
+
+# Comment and Semicolon Tests
+def test_create_model_without_semicolon(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = "CREATE MODEL('no-semicolon-model', 'gpt-4o', 'openai')"
+    run_cli(duckdb_cli_path, db_path, create_query)
+    get_query = "GET MODEL 'no-semicolon-model';"
+    result = run_cli(duckdb_cli_path, db_path, get_query)
+    assert "no-semicolon-model" in result.stdout
+
+
+def test_create_model_with_comment(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = (
+        "CREATE MODEL('comment-model', 'gpt-4o', 'openai'); -- This is a comment"
+    )
+    run_cli(duckdb_cli_path, db_path, create_query)
+    get_query = "GET MODEL 'comment-model';"
+    result = run_cli(duckdb_cli_path, db_path, get_query)
+    assert "comment-model" in result.stdout
+
+
+def test_create_model_with_comment_before(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = """-- Create a test model
+CREATE MODEL('comment-before-model', 'gpt-4o', 'openai');"""
+    run_cli(duckdb_cli_path, db_path, create_query)
+    get_query = "GET MODEL 'comment-before-model';"
+    result = run_cli(duckdb_cli_path, db_path, get_query)
+    assert "comment-before-model" in result.stdout
+
+
+def test_delete_model_without_semicolon(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = "CREATE MODEL('delete-no-semi', 'gpt-4o', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_query)
+    delete_query = "DELETE MODEL 'delete-no-semi'"
+    run_cli(duckdb_cli_path, db_path, delete_query)
+    get_query = "GET MODEL 'delete-no-semi';"
+    result = run_cli(duckdb_cli_path, db_path, get_query)
+    assert "delete-no-semi" not in result.stdout or result.stdout.strip() == ""
+
+
+def test_get_models_without_semicolon(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = "CREATE MODEL('get-no-semi', 'gpt-4o', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_query)
+    get_query = "GET MODELS"
+    result = run_cli(duckdb_cli_path, db_path, get_query)
+    assert "get-no-semi" in result.stdout

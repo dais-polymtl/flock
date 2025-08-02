@@ -157,3 +157,54 @@ def test_empty_prompt_content_error(integration_setup):
     invalid_query = "CREATE PROMPT('test', '');"
     result = run_cli(duckdb_cli_path, db_path, invalid_query)
     assert result.returncode != 0
+
+
+# Comment and Semicolon Tests
+def test_create_prompt_without_semicolon(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = "CREATE PROMPT('no-semi-prompt', 'Test content')"
+    run_cli(duckdb_cli_path, db_path, create_query)
+    get_query = "GET PROMPT 'no-semi-prompt';"
+    result = run_cli(duckdb_cli_path, db_path, get_query)
+    assert "no-semi-prompt" in result.stdout
+
+
+def test_create_prompt_with_comment(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = (
+        "CREATE PROMPT('comment-prompt', 'Test content'); -- This is a comment"
+    )
+    run_cli(duckdb_cli_path, db_path, create_query)
+    get_query = "GET PROMPT 'comment-prompt';"
+    result = run_cli(duckdb_cli_path, db_path, get_query)
+    assert "comment-prompt" in result.stdout
+
+
+def test_create_prompt_with_comment_before(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = """-- Create a test prompt
+CREATE PROMPT('comment-before-prompt', 'Test content');"""
+    run_cli(duckdb_cli_path, db_path, create_query)
+    get_query = "GET PROMPT 'comment-before-prompt';"
+    result = run_cli(duckdb_cli_path, db_path, get_query)
+    assert "comment-before-prompt" in result.stdout
+
+
+def test_delete_prompt_without_semicolon(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = "CREATE PROMPT('delete-no-semi', 'Test content');"
+    run_cli(duckdb_cli_path, db_path, create_query)
+    delete_query = "DELETE PROMPT 'delete-no-semi'"
+    run_cli(duckdb_cli_path, db_path, delete_query)
+    get_query = "GET PROMPT 'delete-no-semi';"
+    result = run_cli(duckdb_cli_path, db_path, get_query)
+    assert "delete-no-semi" not in result.stdout or result.stdout.strip() == ""
+
+
+def test_get_prompts_without_semicolon(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = "CREATE PROMPT('get-no-semi', 'Test content');"
+    run_cli(duckdb_cli_path, db_path, create_query)
+    get_query = "GET PROMPTS"
+    result = run_cli(duckdb_cli_path, db_path, get_query)
+    assert "get-no-semi" in result.stdout
