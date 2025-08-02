@@ -132,7 +132,7 @@ void PromptParser::ParseUpdatePrompt(Tokenizer& tokenizer, std::unique_ptr<Query
         auto catalog = value == "GLOBAL" ? "flockmtl_storage." : "";
 
         token = tokenizer.NextToken();
-        if (token.type == TokenType::SYMBOL || token.value == ";") {
+        if (token.type == TokenType::END_OF_FILE || token.type == TokenType::SYMBOL || token.value == ";") {
             auto update_statement = std::make_unique<UpdatePromptScopeStatement>();
             update_statement->prompt_name = prompt_name;
             update_statement->catalog = catalog;
