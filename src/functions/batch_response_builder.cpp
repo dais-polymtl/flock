@@ -20,13 +20,12 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
                 for (auto context_column_idx = 0; context_column_idx < static_cast<int>(context_columns.size()); context_column_idx++) {
                     auto context_column = context_columns[context_column_idx];
                     auto context_column_json = CastVectorOfStructsToJson(duckdb::Vector(context_column), 1);
-                    if (struct_json.contains("context_columns") && static_cast<int>(struct_json["context_columns"].size()) > 0) {
-                        struct_json["context_columns"][context_column_idx]["column"].push_back(context_column_json["column"]);
+                    if (struct_json.contains("context_columns") && struct_json["context_columns"].size() == context_columns.size()) {
+                        struct_json["context_columns"][context_column_idx]["data"].push_back(context_column_json["data"]);
                     } else {
-                        struct_json["context_columns"] = nlohmann::json::array();
                         struct_json["context_columns"].push_back(context_column_json);
-                        struct_json["context_columns"][context_column_idx]["column"] = nlohmann::json::array();
-                        struct_json["context_columns"][context_column_idx]["column"].push_back(context_column_json["column"]);
+                        struct_json["context_columns"][context_column_idx]["data"] = nlohmann::json::array();
+                        struct_json["context_columns"][context_column_idx]["data"].push_back(context_column_json["data"]);
                     }
                 }
             } else if (key == "batch_size") {

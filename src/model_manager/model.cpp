@@ -91,8 +91,8 @@ void Model::ConstructProvider() {
 
 ModelDetails Model::GetModelDetails() { return model_details_; }
 
-void Model::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type) {
-    provider_->AddCompletionRequest(prompt, num_output_tuples, output_type);
+void Model::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
+    provider_->AddCompletionRequest(prompt, num_output_tuples, output_type, media_data);
 }
 
 void Model::AddEmbeddingRequest(const std::vector<std::string>& inputs) {

@@ -16,7 +16,7 @@ public:
                 model_details_.secret["api_key"], base_url, true);
     }
 
-    void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type) override;
+    void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) override;
     void AddEmbeddingRequest(const std::vector<std::string>& inputs) override;
 };
 

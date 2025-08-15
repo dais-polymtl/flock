@@ -2,9 +2,24 @@
 
 namespace flockmtl {
 
-void AzureProvider::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type) {
+void AzureProvider::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
     // Create a JSON request payload with the provided parameters
     nlohmann::json request_payload = {{"messages", {{{"role", "user"}, {"content", prompt}}}}};
+
+    if (!media_data.empty()) {
+        auto detail = media_data.contains("detail") ? media_data["detail"].get<std::string>() : "low";
+        for (const auto& column: media_data) {
+            request_payload["messages"].push_back(
+                    {{"role", "user"},
+                     {"content", "Until the next indication all the images represents a single column"}});
+            for (const auto& image: column["data"]) {
+                request_payload["messages"].push_back(
+                        {{"role", "user"},
+                         {"type", "image_url"},
+                         {"image_url", {{"url", image.get<std::string>()}, {"detail", detail}}}});
+            }
+        }
+    }
 
     if (!model_details_.model_parameters.empty()) {
         request_payload.update(model_details_.model_parameters);
