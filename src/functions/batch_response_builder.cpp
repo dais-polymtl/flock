@@ -20,6 +20,18 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
                 for (auto context_column_idx = 0; context_column_idx < static_cast<int>(context_columns.size()); context_column_idx++) {
                     auto context_column = context_columns[context_column_idx];
                     auto context_column_json = CastVectorOfStructsToJson(duckdb::Vector(context_column), 1);
+                    auto allowed_keys = {"name", "data", "type"};
+                    for (const auto& key: context_column_json.items()) {
+                        if (std::find(std::begin(allowed_keys), std::end(allowed_keys), key.key()) == std::end(allowed_keys)) {
+                            throw std::runtime_error(duckdb_fmt::format("Unexpected key in 'context_columns': {}", key.key()));
+                        }
+                    }
+                    auto required_keys = {"data"};
+                    for (const auto& key: required_keys) {
+                        if (!context_column_json.contains(key) || context_column_json[key].get<std::string>() == "NULL") {
+                            throw std::runtime_error(duckdb_fmt::format("Expected 'context_columns' to contain key: {}", key));
+                        }
+                    }
                     if (struct_json.contains("context_columns") && struct_json["context_columns"].size() == context_columns.size()) {
                         struct_json["context_columns"][context_column_idx]["data"].push_back(context_column_json["data"]);
                     } else {
