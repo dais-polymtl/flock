@@ -39,7 +39,7 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples
         for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
             batch_tuples.push_back(nlohmann::json::object());
             for (const auto& item: tuples[i].items()) {
-                if (item.key() != "column") {
+                if (item.key() != "data") {
                     batch_tuples[i][item.key()] = item.value();
                 } else {
                     for (auto j = 0; j < batch_size && start_index + j < static_cast<int>(item.value().size()); j++) {
