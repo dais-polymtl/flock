@@ -29,22 +29,20 @@ def test_llm_first_basic_functionality(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO candidates VALUES 
-    (1, 'Alice Johnson', '5 years in software development', 'Python, JavaScript, React'),
-    (2, 'Bob Smith', '8 years in data science', 'Python, R, Machine Learning'),
-    (3, 'Carol Davis', '3 years in web development', 'HTML, CSS, JavaScript, Vue.js');
-    """
+                        INSERT INTO candidates
+                        VALUES (1, 'Alice Johnson', '5 years in software development', 'Python, JavaScript, React'),
+                               (2, 'Bob Smith', '8 years in data science', 'Python, R, Machine Learning'),
+                               (3, 'Carol Davis', '3 years in web development', 'HTML, CSS, JavaScript, Vue.js'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT 
-        llm_first(
-            {'model_name': 'test-first-model'},
-            {'prompt': 'Which candidate is best suited for a senior software engineer position? Return the ID number only.'},
-            {'name': name, 'experience': experience, 'skills': skills}
+            SELECT llm_first(
+                       {'model_name': 'test-first-model'},
+            {'prompt': 'Which candidate is best suited for a senior software engineer position? Return the ID number only.', 'context_columns': [{'data': name}, {'data': experience}, {'data': skills}]}
         ) AS selected_candidate
-    FROM candidates;
-    """
+            FROM candidates; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -75,27 +73,26 @@ def test_llm_first_with_group_by(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO job_applications VALUES 
-    (1, 'Engineering', 'John Doe', 85, 'Strong technical skills'),
-    (2, 'Engineering', 'Jane Smith', 92, 'Excellent problem solver'),
-    (3, 'Marketing', 'Bob Wilson', 78, 'Good communication skills'),
-    (4, 'Marketing', 'Alice Brown', 88, 'Creative and analytical');
-    """
+                        INSERT INTO job_applications
+                        VALUES (1, 'Engineering', 'John Doe', 85, 'Strong technical skills'),
+                               (2, 'Engineering', 'Jane Smith', 92, 'Excellent problem solver'),
+                               (3, 'Marketing', 'Bob Wilson', 78, 'Good communication skills'),
+                               (4, 'Marketing', 'Alice Brown', 88, 'Creative and analytical'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT * FROM duckdb_secrets();
-    SELECT 
-        department,
-        llm_first(
-            {'model_name': 'test-first-group'},
-            {'prompt': 'Who is the best candidate for this department? Return the ID number only.'},
-            {'candidate': candidate_name, 'score': score, 'notes': notes}
+            SELECT *
+            FROM duckdb_secrets();
+            SELECT department,
+                   llm_first(
+                       {'model_name': 'test-first-group'},
+            {'prompt': 'Who is the best candidate for this department? Return the ID number only.', 'context_columns': [{'data': candidate_name}, {'data': score::VARCHAR}, {'data': notes}]}
         ) AS best_candidate_id
-    FROM job_applications 
-    GROUP BY department
-    ORDER BY department;
-    """
+            FROM job_applications
+            GROUP BY department
+            ORDER BY department; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -129,24 +126,22 @@ def test_llm_first_with_batch_processing(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO investment_options VALUES 
-    (1, 'Government Bonds', 'Low', 3.5, 'Safe investment with guaranteed returns'),
-    (2, 'Stock Market Index', 'Medium', 8.2, 'Diversified portfolio with moderate risk'),
-    (3, 'Growth Stocks', 'High', 12.8, 'High potential returns but volatile'),
-    (4, 'Real Estate', 'Medium', 6.5, 'Property investment with steady growth'),
-    (5, 'Cryptocurrency', 'Very High', 15.0, 'Digital assets with extreme volatility');
-    """
+                        INSERT INTO investment_options
+                        VALUES (1, 'Government Bonds', 'Low', 3.5, 'Safe investment with guaranteed returns'),
+                               (2, 'Stock Market Index', 'Medium', 8.2, 'Diversified portfolio with moderate risk'),
+                               (3, 'Growth Stocks', 'High', 12.8, 'High potential returns but volatile'),
+                               (4, 'Real Estate', 'Medium', 6.5, 'Property investment with steady growth'),
+                               (5, 'Cryptocurrency', 'Very High', 15.0, 'Digital assets with extreme volatility'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT 
-        llm_first(
-            {'model_name': 'test-first-batch', 'batch_size': 3},
-            {'prompt': 'Which investment option is best for a conservative investor? Return the ID number only.'},
-            {'name': name, 'risk_level': risk_level, 'expected_return': expected_return, 'description': description}
+            SELECT llm_first(
+                       {'model_name': 'test-first-batch', 'batch_size': 3},
+            {'prompt': 'Which investment option is best for a conservative investor? Return the ID number only.', 'context_columns': [{'data': name}, {'data': risk_level}, {'data': expected_return::VARCHAR}, {'data': description}]}
         ) AS best_conservative_investment
-    FROM investment_options;
-    """
+            FROM investment_options; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -176,22 +171,24 @@ def test_llm_first_with_model_parameters(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO startup_pitches VALUES 
-    (1, 'TechStart AI', 'Technology', 500000, 8, 'AI-powered automation platform for small businesses'),
-    (2, 'GreenEnergy Solutions', 'Renewable Energy', 1000000, 12, 'Solar panel installation and maintenance service'),
-    (3, 'HealthTrack App', 'Healthcare', 250000, 5, 'Personal health monitoring mobile application');
-    """
+                        INSERT INTO startup_pitches
+                        VALUES (1, 'TechStart AI', 'Technology', 500000, 8,
+                                'AI-powered automation platform for small businesses'),
+                               (2, 'GreenEnergy Solutions', 'Renewable Energy', 1000000, 12,
+                                'Solar panel installation and maintenance service'),
+                               (3, 'HealthTrack App', 'Healthcare', 250000, 5,
+                                'Personal health monitoring mobile application'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT 
-        llm_first(
-            {'model_name': 'test-first-params', 'tuple_format': 'Markdown', 'model_parameters': '{"temperature": 0.1}'},
-            {'prompt': 'Which startup has the most promising business model for investment? Return the ID number only.'},
-            {'company': company_name, 'sector': sector, 'funding': funding_request, 'team': team_size, 'description': description}
+            SELECT llm_first(
+                       {'model_name': 'test-first-params', 'tuple_format': 'Markdown',
+                                                           'model_parameters': '{"temperature": 0.1}'},
+            {'prompt': 'Which startup has the most promising business model for investment? Return the ID number only.', 'context_columns': [{'data': company_name}, {'data': sector}, {'data': funding_request::VARCHAR}, {'data': team_size::VARCHAR}, {'data': description}]}
         ) AS most_promising_startup
-    FROM startup_pitches;
-    """
+            FROM startup_pitches; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -222,23 +219,21 @@ def test_llm_first_multiple_criteria(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO course_options VALUES 
-    (1, 'Python for Beginners', 'Beginner', 8, 199, 4.8, 'None'),
-    (2, 'Advanced Machine Learning', 'Advanced', 16, 599, 4.9, 'Python, Statistics'),
-    (3, 'Web Development Bootcamp', 'Intermediate', 12, 399, 4.6, 'Basic HTML/CSS'),
-    (4, 'Data Science Fundamentals', 'Intermediate', 10, 299, 4.7, 'Basic programming');
-    """
+                        INSERT INTO course_options
+                        VALUES (1, 'Python for Beginners', 'Beginner', 8, 199, 4.8, 'None'),
+                               (2, 'Advanced Machine Learning', 'Advanced', 16, 599, 4.9, 'Python, Statistics'),
+                               (3, 'Web Development Bootcamp', 'Intermediate', 12, 399, 4.6, 'Basic HTML/CSS'),
+                               (4, 'Data Science Fundamentals', 'Intermediate', 10, 299, 4.7, 'Basic programming'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT 
-        llm_first(
-            {'model_name': 'test-first-multi'},
-            {'prompt': 'Which course is best for someone new to programming with a budget of $300 and 12 weeks available? Return the ID number only.'},
-            {'course': course_name, 'difficulty': difficulty, 'duration': duration_weeks, 'cost': cost, 'rating': rating, 'prerequisites': prerequisites}
+            SELECT llm_first(
+                       {'model_name': 'test-first-multi'},
+            {'prompt': 'Which course is best for someone new to programming with a budget of $300 and 12 weeks available? Return the ID number only.', 'context_columns': [{'data': course_name}, {'data': difficulty}, {'data': duration_weeks::VARCHAR}, {'data': cost::VARCHAR}, {'data': rating::VARCHAR}, {'data': prerequisites}]}
         ) AS best_course_for_beginner
-    FROM course_options;
-    """
+            FROM course_options; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -264,14 +259,12 @@ def test_llm_first_empty_table(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     query = """
-    SELECT 
-        llm_first(
-            {'model_name': 'test-first-empty'},
-            {'prompt': 'Select the best candidate'},
-            {'name': name}
+            SELECT llm_first(
+                       {'model_name': 'test-first-empty'},
+            {'prompt': 'Select the best candidate', 'context_columns': [{'data': name}]}
         ) AS selected
-    FROM empty_candidates;
-    """
+            FROM empty_candidates; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -293,18 +286,18 @@ def test_llm_first_error_handling_invalid_model(integration_setup):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO test_data VALUES (1, 'Test content');
-    """
+                        INSERT INTO test_data
+                        VALUES (1, 'Test content'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT llm_first(
-        {'model_name': 'non-existent-model'},
-        {'prompt': 'Select the best item'},
-        {'text': text}
+            SELECT llm_first(
+                       {'model_name': 'non-existent-model'},
+        {'prompt': 'Select the best item', 'context_columns': [{'data': text}]}
     ) AS result
-    FROM test_data;
-    """
+            FROM test_data; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert (
@@ -333,18 +326,18 @@ def test_llm_first_error_handling_empty_prompt(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO test_data VALUES (1, 'Test content');
-    """
+                        INSERT INTO test_data
+                        VALUES (1, 'Test content'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT llm_first(
-        {'model_name': 'test-first-empty-prompt'},
-        {'prompt': ''},
-        {'text': text}
+            SELECT llm_first(
+                       {'model_name': 'test-first-empty-prompt'},
+        {'prompt': '', 'context_columns': [{'data': text}]}
     ) AS result
-    FROM test_data;
-    """
+            FROM test_data; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode != 0
@@ -360,16 +353,15 @@ def test_llm_first_error_handling_missing_arguments(integration_setup, model_con
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
-    # Test with only 2 arguments (should fail since llm_first requires 3)
+    # Test with only 1 argument (should fail since llm_first requires 2)
     query = """
     SELECT llm_first(
-        {'model_name': 'test-first-missing-args'},
-        {'prompt': 'Test prompt'}
+        {'model_name': 'test-first-missing-args'}
     ) AS result;
     """
     result = run_cli(duckdb_cli_path, db_path, query)
 
-    assert result.returncode != 0, "Expected error for missing third argument"
+    assert result.returncode != 0, "Expected error for missing second argument"
 
 
 def test_llm_first_with_special_characters(integration_setup, model_config):
@@ -394,22 +386,22 @@ def test_llm_first_with_special_characters(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO international_universities VALUES 
-    (1, 'École Polytechnique', 'Paris, France 🇫🇷', 15, 'Top engineering school with rigorous curriculum'),
-    (2, '東京大学 (University of Tokyo)', 'Tokyo, Japan 🇯🇵', 8, 'Premier research university in Asia'),
-    (3, 'MIT', 'Cambridge, MA, USA 🇺🇸', 2, 'Leading technology and innovation institute');
-    """
+                        INSERT INTO international_universities
+                        VALUES (1, 'École Polytechnique', 'Paris, France 🇫🇷', 15,
+                                'Top engineering school with rigorous curriculum'),
+                               (2, '東京大学 (University of Tokyo)', 'Tokyo, Japan 🇯🇵', 8,
+                                'Premier research university in Asia'),
+                               (3, 'MIT', 'Cambridge, MA, USA 🇺🇸', 2, 'Leading technology and innovation institute'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT 
-        llm_first(
-            {'model_name': 'test-first-unicode'},
-            {'prompt': 'Which university offers the best combination of prestige and innovation for engineering? Return the ID number only.'},
-            {'name': name, 'location': location, 'ranking': ranking, 'description': description}
+            SELECT llm_first(
+                       {'model_name': 'test-first-unicode'},
+            {'prompt': 'Which university offers the best combination of prestige and innovation for engineering? Return the ID number only.', 'context_columns': [{'data': name}, {'data': location}, {'data': ranking::VARCHAR}, {'data': description}]}
         ) AS top_engineering_university
-    FROM international_universities;
-    """
+            FROM international_universities; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -438,18 +430,15 @@ def _test_llm_first_performance_large_dataset(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     query = """
-    SELECT
-        category,
-        llm_first(
-            {'model_name': 'test-first-perf', 'batch_size': 5},
-            {'prompt': 'Who is the best candidate in this category based on score? Return the ID number only.'},
-            {'name': name, 'score': score}
+            SELECT category,
+                   llm_first(
+                       {'model_name': 'test-first-perf', 'batch_size': 5},
+            {'prompt': 'Who is the best candidate in this category based on score? Return the ID number only.', 'context_columns': [{'data': name}, {'data': score::VARCHAR}]}
         ) AS best_candidate
-    FROM large_candidate_pool
-    GROUP BY category
-    ORDER BY category
-    LIMIT 3;
-    """
+            FROM large_candidate_pool
+            GROUP BY category
+            ORDER BY category LIMIT 3; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"

@@ -40,8 +40,7 @@ def test_llm_last_basic_functionality(integration_setup, model_config):
     SELECT 
         llm_last(
             {'model_name': 'test-last-model'},
-            {'prompt': 'Which product offers the worst value for money? Return the ID number only.'},
-            {'name': name, 'price': price, 'rating': rating}
+            {'prompt': 'Which product offers the worst value for money? Return the ID number only.', 'context_columns': [{'data': name}, {'data': price::VARCHAR}, {'data': rating::VARCHAR}]}
         ) AS worst_value_product
     FROM products;
     """
@@ -89,8 +88,7 @@ def test_llm_last_with_group_by(integration_setup, model_config):
         city,
         llm_last(
             {'model_name': 'test-last-group'},
-            {'prompt': 'Which restaurant has the worst reviews in this city? Return the ID number only.'},
-            {'restaurant': restaurant_name, 'rating': rating, 'review': review}
+            {'prompt': 'Which restaurant has the worst reviews in this city? Return the ID number only.', 'context_columns': [{'data': restaurant_name}, {'data': rating::VARCHAR}, {'data': review}]}
         ) AS worst_restaurant_id
     FROM restaurant_reviews 
     GROUP BY city
@@ -142,8 +140,7 @@ def test_llm_last_with_batch_processing(integration_setup, model_config):
     SELECT 
         llm_last(
             {'model_name': 'test-last-batch', 'batch_size': 3},
-            {'prompt': 'Which service provider offers the worst overall service considering rating, response time, and reliability? Return the ID number only.'},
-            {'company': company_name, 'rating': customer_rating, 'response_time': response_time_hours, 'price': price_per_hour, 'reliability': reliability_score}
+            {'prompt': 'Which service provider offers the worst overall service considering rating, response time, and reliability? Return the ID number only.', 'context_columns': [{'data': company_name}, {'data': customer_rating::VARCHAR}, {'data': response_time_hours::VARCHAR}, {'data': price_per_hour::VARCHAR}, {'data': reliability_score::VARCHAR}]}
         ) AS worst_service_provider
     FROM service_providers;
     """
@@ -188,8 +185,7 @@ def test_llm_last_with_model_parameters(integration_setup, model_config):
     SELECT 
         llm_last(
             {'model_name': 'test-last-params', 'tuple_format': 'Markdown', 'model_parameters': '{"temperature": 0.1}'},
-            {'prompt': 'Which movie was the biggest disappointment considering its budget and reviews? Return the ID number only.'},
-            {'title': title, 'genre': genre, 'rating': rating, 'review': review, 'box_office': box_office}
+            {'prompt': 'Which movie was the biggest disappointment considering its budget and reviews? Return the ID number only.', 'context_columns': [{'data': title}, {'data': genre}, {'data': rating::VARCHAR}, {'data': review}, {'data': box_office::VARCHAR}]}
         ) AS biggest_disappointment
     FROM movie_reviews;
     """
@@ -235,8 +231,7 @@ def test_llm_last_multiple_criteria(integration_setup, model_config):
     SELECT 
         llm_last(
             {'model_name': 'test-last-multi'},
-            {'prompt': 'Which housing option offers the worst value considering price, location quality, commute time, and living conditions? Return the ID number only.'},
-            {'address': address, 'price': price_per_month, 'size': size_sqft, 'commute': commute_time_minutes, 'neighborhood': neighborhood_rating, 'condition': condition_score}
+                    {'prompt': 'Which housing option offers the worst value considering price, location quality, commute time, and living conditions? Return the ID number only.', 'context_columns': [{'data': address}, {'data': price_per_month::VARCHAR}, {'data': size_sqft::VARCHAR}, {'data': commute_time_minutes::VARCHAR}, {'data': neighborhood_rating::VARCHAR}, {'data': condition_score::VARCHAR}]}
         ) AS worst_housing_value
     FROM housing_options;
     """
@@ -268,8 +263,7 @@ def test_llm_last_empty_table(integration_setup, model_config):
     SELECT 
         llm_last(
             {'model_name': 'test-last-empty'},
-            {'prompt': 'Select the worst product'},
-            {'name': name}
+                    {'prompt': 'Select the worst product', 'context_columns': [{'data': name}]}
         ) AS selected
     FROM empty_products;
     """
@@ -301,8 +295,7 @@ def test_llm_last_error_handling_invalid_model(integration_setup):
     query = """
     SELECT llm_last(
         {'model_name': 'non-existent-model'},
-        {'prompt': 'Select the worst item'},
-        {'text': text}
+        {'prompt': 'Select the worst item', 'context_columns': [{'data': text}]}
     ) AS result
     FROM test_data;
     """
@@ -341,8 +334,7 @@ def test_llm_last_error_handling_empty_prompt(integration_setup, model_config):
     query = """
     SELECT llm_last(
         {'model_name': 'test-last-empty-prompt'},
-        {'prompt': ''},
-        {'text': text}
+        {'prompt': '', 'context_columns': [{'data': text}]}
     ) AS result
     FROM test_data;
     """
@@ -361,16 +353,15 @@ def test_llm_last_error_handling_missing_arguments(integration_setup, model_conf
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
-    # Test with only 2 arguments (should fail since llm_last requires 3)
+    # Test with only 1 argument (should fail since llm_last requires 2)
     query = """
     SELECT llm_last(
-        {'model_name': 'test-last-missing-args'},
-        {'prompt': 'Test prompt'}
+        {'model_name': 'test-last-missing-args'}
     ) AS result;
     """
     result = run_cli(duckdb_cli_path, db_path, query)
 
-    assert result.returncode != 0, "Expected error for missing third argument"
+    assert result.returncode != 0, "Expected error for missing second argument"
 
 
 def test_llm_last_with_special_characters(integration_setup, model_config):
@@ -407,8 +398,7 @@ def test_llm_last_with_special_characters(integration_setup, model_config):
     SELECT 
         llm_last(
             {'model_name': 'test-last-unicode'},
-            {'prompt': 'Which destination is the least safe and appealing for tourists? Return the ID number only.'},
-            {'destination': destination, 'cost': cost_per_day, 'safety': safety_rating, 'weather': weather_score, 'description': description}
+                    {'prompt': 'Which destination is the least safe and appealing for tourists? Return the ID number only.', 'context_columns': [{'data': destination}, {'data': cost_per_day::VARCHAR}, {'data': safety_rating::VARCHAR}, {'data': weather_score::VARCHAR}, {'data': description}]}
         ) AS least_appealing_destination
     FROM travel_destinations;
     """
@@ -444,8 +434,7 @@ def _test_llm_last_performance_large_dataset(integration_setup, model_config):
         category,
         llm_last(
             {'model_name': 'test-last-perf', 'batch_size': 8},
-            {'prompt': 'Which product has the lowest quality in this category? Return the ID number only.'},
-            {'name': name, 'quality_score': quality_score}
+                    {'prompt': 'Which product has the lowest quality in this category? Return the ID number only.', 'context_columns': [{'data': name}, {'data': quality_score::VARCHAR}]}
         ) AS worst_product
     FROM large_product_pool
     GROUP BY category

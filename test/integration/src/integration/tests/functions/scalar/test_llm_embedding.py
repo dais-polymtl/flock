@@ -22,7 +22,7 @@ def test_llm_embedding_basic_functionality(integration_setup, model_config):
     query = """
     SELECT llm_embedding(
         {'model_name': 'test-embedding-model'},
-        {'text': 'This is a test document for embedding generation.'}
+        {'context_columns': [{'data': 'This is a test document for embedding generation.'}]}
     ) AS embedding;
     """
     result = run_cli(duckdb_cli_path, db_path, query)
@@ -46,7 +46,7 @@ def test_llm_embedding_with_multiple_text_fields(integration_setup, model_config
     query = """
     SELECT llm_embedding(
         {'model_name': 'test-embedding-multi-field'},
-        {'title': 'Product Title', 'description': 'Product description here', 'category': 'Electronics'}
+        {'context_columns': [{'data': 'Product Title'}, {'data': 'Product description here'}, {'data': 'Electronics'}]}
     ) AS embedding;
     """
     result = run_cli(duckdb_cli_path, db_path, query)
@@ -89,7 +89,7 @@ def test_llm_embedding_with_input_columns(integration_setup, model_config):
         title,
         llm_embedding(
             {'model_name': 'test-embedding-input'},
-            {'text': title || '. ' || content}
+            {'context_columns': [{'data': title || '. ' || content}]}
         ) AS document_embedding
     FROM documents 
     WHERE id <= 2;
@@ -137,7 +137,7 @@ def test_llm_embedding_batch_processing(integration_setup, model_config):
         product_name,
         llm_embedding(
             {'model_name': 'test-embedding-batch', 'batch_size': 2},
-            {'text': product_name || ': ' || description}
+            {'context_columns': [{'data': product_name || ': ' || description}]}
         ) AS product_embedding
     FROM product_descriptions;
     """
@@ -159,7 +159,7 @@ def test_llm_embedding_error_handling_invalid_model(integration_setup):
     query = """
     SELECT llm_embedding(
         {'model_name': 'non-existent-embedding-model'},
-        {'text': 'Test text for embedding'}
+        {'context_columns': [{'data': 'Test text for embedding'}]}
     ) AS embedding;
     """
     result = run_cli(duckdb_cli_path, db_path, query)
@@ -183,7 +183,7 @@ def test_llm_embedding_error_handling_empty_text(integration_setup, model_config
     query = """
     SELECT llm_embedding(
         {'model_name': 'test-embedding-empty'},
-        {'text': ''}
+        {'context_columns': [{'data': ''}]}
     ) AS embedding;
     """
     result = run_cli(duckdb_cli_path, db_path, query)
@@ -222,7 +222,7 @@ def test_llm_embedding_with_special_characters(integration_setup, model_config):
     SELECT 
         llm_embedding(
             {'model_name': 'test-embedding-unicode'},
-            {'text': text}
+            {'context_columns': [{'data': text}]}
         ) AS text_embedding
     FROM special_text
     WHERE id = 1;
@@ -245,7 +245,7 @@ def test_llm_embedding_with_model_params(integration_setup, model_config):
     query = """
     SELECT llm_embedding(
         {'model_name': 'test-embedding-params', 'batch_size': 1},
-        {'text': 'This is a test document for parameter testing.'}
+        {'context_columns': [{'data': 'This is a test document for parameter testing.'}]}
     ) AS embedding;
     """
     result = run_cli(duckdb_cli_path, db_path, query)
@@ -288,7 +288,7 @@ def test_llm_embedding_document_similarity_use_case(integration_setup, model_con
         section,
         llm_embedding(
             {'model_name': 'test-embedding-similarity'},
-            {'title': title, 'content': content, 'section': section}
+            {'context_columns': [{'data': title}, {'data': content}, {'data': section}]}
         ) AS content_embedding
     FROM knowledge_base
     WHERE section = 'AI';
@@ -337,7 +337,7 @@ def test_llm_embedding_concatenated_fields(integration_setup, model_config):
         name,
         llm_embedding(
             {'model_name': 'test-embedding-concat'},
-            {'product_name': name, 'product_description': description, 'category': category}
+            {'context_columns': [{'data': name}, {'data': description}, {'data': category}]}
         ) AS product_embedding
     FROM products;
     """
@@ -377,7 +377,7 @@ def _llm_embedding_performance_large_dataset(integration_setup, model_config):
         title,
         llm_embedding(
             {'model_name': 'test-embedding-perf', 'batch_size': 5},
-            {'text': title || '. ' || content}
+            {'context_columns': [{'data': title || '. ' || content}]}
         ) AS document_embedding
     FROM large_text_dataset
     LIMIT 10;

@@ -59,8 +59,7 @@ def test_llm_complete_with_input_columns(integration_setup, model_config):
         name,
         llm_complete(
             {'model_name': 'test-model-input'},
-            {'prompt': 'What is the capital of {country}?'},
-            {'country': name}
+            {'prompt': 'What is the capital of {country}?', 'context_columns': [{'data': name}]}
         ) AS capital
     FROM countries 
     WHERE id <= 2;
@@ -103,8 +102,7 @@ def test_llm_complete_batch_processing(integration_setup, model_config):
         product_name,
         llm_complete(
             {'model_name': 'test-batch-model', 'batch_size': 2},
-            {'prompt': 'Analyze the sentiment of this review: {review}. Respond with POSITIVE, NEGATIVE, or NEUTRAL.'},
-            {'review': review_text}
+            {'prompt': 'Analyze the sentiment of this review: {review}. Respond with POSITIVE, NEGATIVE, or NEUTRAL.', 'context_columns': [{'data': review_text}]}
         ) AS sentiment
     FROM product_reviews;
     """
@@ -187,8 +185,7 @@ def test_llm_complete_with_special_characters(integration_setup, model_config):
     SELECT 
         llm_complete(
             {'model_name': 'test-unicode-model'},
-            {'prompt': 'Translate this text to English if needed: {text}'},
-            {'text': text}
+            {'prompt': 'Translate this text to English if needed: {text}', 'context_columns': [{'data': text}]}
         ) AS translation
     FROM special_text
     WHERE id = 1;
@@ -315,8 +312,7 @@ def test_llm_complete_with_structured_output_with_table(
                         "strict": true
                     }}'
             },
-            {'prompt': 'What is the capital of each country?'},
-            {'country': name}
+            {'prompt': 'What is the capital of each country?', 'context_columns': [{'data': name}]}
         ) AS capital_info
     FROM countries
     WHERE id <= 2;
@@ -355,8 +351,7 @@ def _llm_complete_performance_large_dataset(integration_setup, model_config):
         item_name,
         llm_complete(
             {'model_name': 'test-perf-model'},
-            {'prompt': 'Create a short marketing slogan for: {item}'},
-            {'item': item_name}
+            {'prompt': 'Create a short marketing slogan for: {item}', 'context_columns': [{'data': item_name}]}
         ) AS slogan
     FROM large_dataset
     LIMIT 5;

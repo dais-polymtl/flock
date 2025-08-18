@@ -8,7 +8,7 @@ class LlmReduce : public AggregateFunctionBase {
 public:
     explicit LlmReduce() = default;
 
-    nlohmann::json ReduceBatch(nlohmann::json& tuples, const AggregateFunctionType& function_type);
+    nlohmann::json ReduceBatch(nlohmann::json& tuples, const AggregateFunctionType& function_type, const nlohmann::json& summary);
     nlohmann::json ReduceLoop(const nlohmann::json& tuples, const AggregateFunctionType& function_type);
 
 public:

@@ -43,7 +43,7 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
                         if (j == 0) {
                             window_tuples[i]["data"] = nlohmann::json::array();
                         }
-                        window_tuples[i]["data"].push_back(item.value()[start_index + j]);
+                        window_tuples[i]["data"].push_back(item.value()[j]);
                     }
                 } else {
                     window_tuples[i][item.key()] = item.value();
@@ -92,7 +92,10 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
             if (start_index >= num_tuples && !carry_forward_tuples.empty()) {
                 auto idx = 0u;
                 for (const auto& column: carry_forward_tuples) {
-                    final_ranked_tuples[idx]["data"].insert(final_ranked_tuples[idx]["data"].begin(), column["data"].begin(), column["data"].end());
+                    for (const auto& i: column["data"]) {
+                        final_ranked_tuples[idx]["data"].push_back(i);
+                    }
+                    idx++;
                 }
                 carry_forward_tuples.clear();
             }

@@ -37,8 +37,7 @@ def test_llm_filter_basic_functionality(integration_setup, model_config):
         text,
         llm_filter(
             {'model_name': 'test-filter-model'},
-            {'prompt': 'Is this text positive? Answer true or false.'},
-            {'content': text}
+                    {'prompt': 'Is this text positive? Answer true or false.', 'context_columns': [{'data': text}]}
         ) AS is_positive
     FROM test_data 
     WHERE id = 1;
@@ -84,8 +83,7 @@ def test_llm_filter_batch_processing(integration_setup, model_config):
         category,
         llm_filter(
             {'model_name': 'test-batch-filter', 'batch_size': 2},
-            {'prompt': 'Is this item technology-related? Answer true or false.'},
-            {'item': text}
+                    {'prompt': 'Is this item technology-related? Answer true or false.', 'context_columns': [{'data': text}]}
         ) AS is_tech
     FROM test_items;
     """
@@ -116,8 +114,7 @@ def test_llm_filter_error_handling_invalid_model(integration_setup):
     query = """
     SELECT llm_filter(
         {'model_name': 'non-existent-model'},
-        {'prompt': 'Test prompt'},
-        {'text': text}
+        {'prompt': 'Test prompt', 'context_columns': [{'data': text}]}
     ) AS result
     FROM test_data;
     """
@@ -155,8 +152,7 @@ def test_llm_filter_error_handling_empty_prompt(integration_setup, model_config)
     query = """
     SELECT llm_filter(
         {'model_name': 'test-empty-filter'},
-        {'prompt': ''},
-        {'text': text}
+        {'prompt': '', 'context_columns': [{'data': text}]}
     ) AS result
     FROM test_data;
     """
@@ -195,8 +191,7 @@ def test_llm_filter_with_special_characters(integration_setup, model_config):
         text,
         llm_filter(
             {'model_name': 'test-unicode-filter'},
-            {'prompt': 'Does this text contain non-ASCII characters? Answer true or false.'},
-            {'text': text}
+                    {'prompt': 'Does this text contain non-ASCII characters? Answer true or false.', 'context_columns': [{'data': text}]}
         ) AS has_unicode
     FROM special_text
     WHERE id = 1;
@@ -235,8 +230,7 @@ def test_llm_filter_with_model_params(integration_setup, model_config):
         text,
         llm_filter(
             {'model_name': 'test-params-filter', 'tuple_format': 'Markdown', 'batch_size': 1, 'model_parameters': '{"temperature": 0}'},
-            {'prompt': 'Is this text expressing positive sentiment? Answer true or false only.'},
-            {'text': text}
+                    {'prompt': 'Is this text expressing positive sentiment? Answer true or false only.', 'context_columns': [{'data': text}]}
         ) AS is_positive
     FROM test_data;
     """
@@ -294,8 +288,7 @@ def test_llm_filter_with_structured_output(integration_setup, model_config):
                         "strict": true
                     }}'
             },
-            {'prompt': 'Is this item an electronic device? Respond with a boolean result.'},
-            {'item': name}
+                    {'prompt': 'Is this item an electronic device? Respond with a boolean result.', 'context_columns': [{'data': name}]}
         ) AS is_electronic
     FROM items
     WHERE id <= 2;
@@ -316,16 +309,15 @@ def test_llm_filter_error_handling_missing_arguments(integration_setup, model_co
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
-    # Test with only 2 arguments (should fail since llm_filter requires 3)
+    # Test with only 1 argument (should fail since llm_filter requires 2)
     query = """
     SELECT llm_filter(
-        {'model_name': 'test-missing-args'},
-        {'prompt': 'Test prompt'}
+        {'model_name': 'test-missing-args'}
     ) AS result;
     """
     result = run_cli(duckdb_cli_path, db_path, query)
 
-    assert result.returncode != 0, "Expected error for missing third argument"
+    assert result.returncode != 0, "Expected error for missing second argument"
 
 
 def _test_llm_filter_performance_large_dataset(integration_setup, model_config):
@@ -352,8 +344,7 @@ def _test_llm_filter_performance_large_dataset(integration_setup, model_config):
         content,
         llm_filter(
             {'model_name': 'test-perf-filter', 'batch_size': 5},
-            {'prompt': 'Does this content contain the word "item"? Answer true or false.'},
-            {'content': content}
+                    {'prompt': 'Does this content contain the word "item"? Answer true or false.', 'context_columns': [{'data': content}]}
         ) AS filter_result
     FROM large_content
     LIMIT 10;

@@ -29,23 +29,22 @@ def test_llm_rerank_basic_functionality(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO search_results VALUES 
-    (1, 'Python Programming Guide', 'Complete guide to learning Python programming language', 0.85),
-    (2, 'JavaScript Fundamentals', 'Introduction to JavaScript and web development', 0.72),
-    (3, 'Python Data Science', 'Using Python for data analysis and machine learning', 0.91),
-    (4, 'Web Development with JavaScript', 'Building modern web applications', 0.68);
-    """
+                        INSERT INTO search_results
+                        VALUES (1, 'Python Programming Guide', 'Complete guide to learning Python programming language',
+                                0.85),
+                               (2, 'JavaScript Fundamentals', 'Introduction to JavaScript and web development', 0.72),
+                               (3, 'Python Data Science', 'Using Python for data analysis and machine learning', 0.91),
+                               (4, 'Web Development with JavaScript', 'Building modern web applications', 0.68); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT 
-        llm_rerank(
-            {'model_name': 'test-rerank-model'},
-            {'prompt': 'Rank these search results by relevance to Python programming. Return results in order of relevance.'},
-            {'title': title, 'content': content, 'score': relevance_score}
+            SELECT llm_rerank(
+                       {'model_name': 'test-rerank-model'},
+                    {'prompt': 'Rank these search results by relevance to Python programming. Return results in order of relevance.', 'context_columns': [{'data': title}, {'data': content}, {'data': relevance_score::VARCHAR}]}
         ) AS reranked_results
-    FROM search_results;
-    """
+            FROM search_results; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -77,29 +76,31 @@ def test_llm_rerank_with_group_by(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO product_listings VALUES 
-    (1, 'Electronics', 'Smartphone Pro', 999.99, 4.5, 'Latest flagship smartphone with advanced features'),
-    (2, 'Electronics', 'Budget Phone', 199.99, 3.8, 'Affordable smartphone for basic needs'),
-    (3, 'Electronics', 'Premium Tablet', 799.99, 4.7, 'High-end tablet for productivity and entertainment'),
-    (4, 'Books', 'Programming Guide', 49.99, 4.9, 'Comprehensive programming tutorial'),
-    (5, 'Books', 'Mystery Novel', 12.99, 4.2, 'Thrilling mystery story with unexpected twists'),
-    (6, 'Books', 'Science Textbook', 89.99, 4.1, 'University-level science reference book');
-    """
+                        INSERT INTO product_listings
+                        VALUES (1, 'Electronics', 'Smartphone Pro', 999.99, 4.5,
+                                'Latest flagship smartphone with advanced features'),
+                               (2, 'Electronics', 'Budget Phone', 199.99, 3.8, 'Affordable smartphone for basic needs'),
+                               (3, 'Electronics', 'Premium Tablet', 799.99, 4.7,
+                                'High-end tablet for productivity and entertainment'),
+                               (4, 'Books', 'Programming Guide', 49.99, 4.9, 'Comprehensive programming tutorial'),
+                               (5, 'Books', 'Mystery Novel', 12.99, 4.2,
+                                'Thrilling mystery story with unexpected twists'),
+                               (6, 'Books', 'Science Textbook', 89.99, 4.1, 'University-level science reference book'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT * FROM duckdb_secrets();
-    SELECT 
-        category,
-        llm_rerank(
-            {'model_name': 'test-rerank-group'},
-            {'prompt': 'Rank these products by overall value (considering price, rating, and features). Return the best value products first.'},
-            {'name': product_name, 'price': price, 'rating': rating, 'description': description}
+            SELECT *
+            FROM duckdb_secrets();
+            SELECT category,
+                   llm_rerank(
+                       {'model_name': 'test-rerank-group'},
+                    {'prompt': 'Rank these products by overall value (considering price, rating, and features). Return the best value products first.', 'context_columns': [{'data': product_name}, {'data': price::VARCHAR}, {'data': rating::VARCHAR}, {'data': description}]}
         ) AS ranked_products
-    FROM product_listings 
-    GROUP BY category
-    ORDER BY category;
-    """
+            FROM product_listings
+            GROUP BY category
+            ORDER BY category; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -132,24 +133,26 @@ def test_llm_rerank_with_batch_processing(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO job_candidates VALUES 
-    (1, 'Alice Johnson', 5, 'Python, Machine Learning, SQL', 'MS Computer Science', 85000),
-    (2, 'Bob Smith', 8, 'Java, Spring Boot, Microservices', 'BS Computer Engineering', 95000),
-    (3, 'Carol Davis', 3, 'JavaScript, React, Node.js', 'BS Information Technology', 75000),
-    (4, 'David Wilson', 10, 'C++, System Design, Architecture', 'PhD Computer Science', 120000),
-    (5, 'Eva Brown', 6, 'DevOps, Kubernetes, AWS', 'BS Software Engineering', 90000);
-    """
+                        INSERT INTO job_candidates
+                        VALUES (1, 'Alice Johnson', 5, 'Python, Machine Learning, SQL', 'MS Computer Science', 85000),
+                               (2, 'Bob Smith', 8, 'Java, Spring Boot, Microservices', 'BS Computer Engineering',
+                                95000),
+                               (3, 'Carol Davis', 3, 'JavaScript, React, Node.js', 'BS Information Technology', 75000),
+                               (4, 'David Wilson', 10, 'C++, System Design, Architecture', 'PhD Computer Science',
+                                120000),
+                               (5, 'Eva Brown', 6, 'DevOps, Kubernetes, AWS', 'BS Software Engineering', 90000); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT 
-        llm_rerank(
-            {'model_name': 'test-rerank-batch', 'batch_size': 3},
-            {'prompt': 'Rank these candidates for a senior software engineer position. Consider experience, skills, and value for money.'},
-            {'name': name, 'experience': experience_years, 'skills': skills, 'education': education, 'salary': salary_expectation}
+            SELECT llm_rerank(
+                       {'model_name': 'test-rerank-batch', 'batch_size': 3},
+            {'prompt': 'Rank these candidates for a senior software engineer position. Consider experience, skills, and value for money.', 'context_columns': [{'data': name}, {'data': experience_years::VARCHAR}, {'data': skills}, {'data': education}, {'data': salary_expectation::VARCHAR}]}
         ) AS ranked_candidates
-    FROM job_candidates;
-    """
+            FROM job_candidates;
+            """
+
+    print(query)
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -179,23 +182,22 @@ def test_llm_rerank_with_model_parameters(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO restaurant_options VALUES 
-    (1, 'Italian Bistro', 'Italian', 4.6, '$$', 2.3),
-    (2, 'Sushi Palace', 'Japanese', 4.8, '$$$', 5.1),
-    (3, 'Local Diner', 'American', 4.1, '$', 0.8),
-    (4, 'French Restaurant', 'French', 4.9, '$$$$', 7.2);
-    """
+                        INSERT INTO restaurant_options
+                        VALUES (1, 'Italian Bistro', 'Italian', 4.6, '$$', 2.3),
+                               (2, 'Sushi Palace', 'Japanese', 4.8, '$$$', 5.1),
+                               (3, 'Local Diner', 'American', 4.1, '$', 0.8),
+                               (4, 'French Restaurant', 'French', 4.9, '$$$$', 7.2); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT 
-        llm_rerank(
-            {'model_name': 'test-rerank-params', 'tuple_format': 'Markdown', 'model_parameters': '{"temperature": 0.1}'},
-            {'prompt': 'Rank these restaurants for a casual dinner considering rating, price, and distance. Prioritize nearby options with good value.'},
-            {'name': name, 'cuisine': cuisine, 'rating': rating, 'price': price_range, 'distance': distance_km}
+            SELECT llm_rerank(
+                       {'model_name': 'test-rerank-params', 'tuple_format': 'Markdown',
+                                                            'model_parameters': '{"temperature": 0.1}'},
+            {'prompt': 'Rank these restaurants for a casual dinner considering rating, price, and distance. Prioritize nearby options with good value.', 'context_columns': [{'data': name}, {'data': cuisine}, {'data': rating::VARCHAR}, {'data': price_range}, {'data': distance_km::VARCHAR}]}
         ) AS ranked_restaurants
-    FROM restaurant_options;
-    """
+            FROM restaurant_options; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -226,23 +228,21 @@ def test_llm_rerank_multiple_criteria(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO investment_funds VALUES 
-    (1, 'Growth Fund Alpha', 8.5, 'High', 0.75, 1000, 15),
-    (2, 'Balanced Portfolio', 6.2, 'Medium', 0.50, 500, 25),
-    (3, 'Conservative Bond Fund', 3.8, 'Low', 0.25, 100, 30),
-    (4, 'Tech Innovation Fund', 12.1, 'Very High', 1.20, 5000, 8);
-    """
+                        INSERT INTO investment_funds
+                        VALUES (1, 'Growth Fund Alpha', 8.5, 'High', 0.75, 1000, 15),
+                               (2, 'Balanced Portfolio', 6.2, 'Medium', 0.50, 500, 25),
+                               (3, 'Conservative Bond Fund', 3.8, 'Low', 0.25, 100, 30),
+                               (4, 'Tech Innovation Fund', 12.1, 'Very High', 1.20, 5000, 8); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT 
-        llm_rerank(
-            {'model_name': 'test-rerank-multi'},
-            {'prompt': 'Rank these investment funds for a moderate-risk investor with $2000 to invest. Consider returns, risk, fees, and fund stability.'},
-            {'name': fund_name, 'return': annual_return, 'risk': risk_rating, 'fees': expense_ratio, 'minimum': minimum_investment, 'age': fund_age_years}
+            SELECT llm_rerank(
+                       {'model_name': 'test-rerank-multi'},
+            {'prompt': 'Rank these investment funds for a moderate-risk investor with $2000 to invest. Consider returns, risk, fees, and fund stability.', 'context_columns': [{'data': fund_name}, {'data': annual_return::VARCHAR}, {'data': risk_rating}, {'data': expense_ratio::VARCHAR}, {'data': minimum_investment::VARCHAR}, {'data': fund_age_years::VARCHAR}]}
         ) AS ranked_funds
-    FROM investment_funds;
-    """
+            FROM investment_funds; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -269,14 +269,12 @@ def test_llm_rerank_empty_table(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     query = """
-    SELECT 
-        llm_rerank(
-            {'model_name': 'test-rerank-empty'},
-            {'prompt': 'Rank these items by score'},
-            {'name': name, 'score': score}
+            SELECT llm_rerank(
+                       {'model_name': 'test-rerank-empty'},
+            {'prompt': 'Rank these items by score', 'context_columns': [{'data': name}, {'data': score::VARCHAR}]}
         ) AS ranked_items
-    FROM empty_items;
-    """
+            FROM empty_items; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -299,24 +297,24 @@ def test_llm_rerank_error_handling_invalid_model(integration_setup):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO test_data VALUES (1, 'Test content', 0.5);
-    """
+                        INSERT INTO test_data
+                        VALUES (1, 'Test content', 0.5); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT llm_rerank(
-        {'model_name': 'non-existent-model'},
-        {'prompt': 'Rank these items'},
-        {'text': text, 'score': score}
+            SELECT llm_rerank(
+                       {'model_name': 'non-existent-model'},
+        {'prompt': 'Rank these items', 'context_columns': [{'data': text}, {'data': score::VARCHAR}]}
     ) AS result
-    FROM test_data;
-    """
+            FROM test_data; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert (
-        result.returncode != 0
-        or "error" in result.stderr.lower()
-        or "Error" in result.stdout
+            result.returncode != 0
+            or "error" in result.stderr.lower()
+            or "Error" in result.stdout
     )
 
 
@@ -339,18 +337,18 @@ def test_llm_rerank_error_handling_empty_prompt(integration_setup, model_config)
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO test_data VALUES (1, 'Test content');
-    """
+                        INSERT INTO test_data
+                        VALUES (1, 'Test content'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT llm_rerank(
-        {'model_name': 'test-rerank-empty-prompt'},
-        {'prompt': ''},
-        {'text': text}
+            SELECT llm_rerank(
+                       {'model_name': 'test-rerank-empty-prompt'},
+        {'prompt': '', 'context_columns': [{'data': text}]}
     ) AS result
-    FROM test_data;
-    """
+            FROM test_data; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode != 0
@@ -399,22 +397,20 @@ def test_llm_rerank_with_special_characters(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO international_dishes VALUES 
-    (1, 'Crème Brûlée', 'Traditional French dessert with caramelized sugar', '€8.50'),
-    (2, 'Sushi 寿司', 'Fresh Japanese fish and rice 🍣', '¥1,200'),
-    (3, 'Tacos Especiales', 'Authentic Mexican tacos with special sauce!', '$12.99');
-    """
+                        INSERT INTO international_dishes
+                        VALUES (1, 'Crème Brûlée', 'Traditional French dessert with caramelized sugar', '€8.50'),
+                               (2, 'Sushi 寿司', 'Fresh Japanese fish and rice 🍣', '¥1,200'),
+                               (3, 'Tacos Especiales', 'Authentic Mexican tacos with special sauce!', '$12.99'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = """
-    SELECT 
-        llm_rerank(
-            {'model_name': 'test-rerank-unicode'},
-            {'prompt': 'Rank these dishes by authenticity and traditional preparation methods.'},
-            {'name': name, 'description': description, 'price': price}
+            SELECT llm_rerank(
+                       {'model_name': 'test-rerank-unicode'},
+            {'prompt': 'Rank these dishes by authenticity and traditional preparation methods.', 'context_columns': [{'data': name}, {'data': description}, {'data': price}]}
         ) AS ranked_dishes
-    FROM international_dishes;
-    """
+            FROM international_dishes; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -444,18 +440,15 @@ def _test_llm_rerank_performance_large_dataset(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     query = """
-    SELECT
-        category,
-        llm_rerank(
-            {'model_name': 'test-rerank-perf', 'batch_size': 5},
-            {'prompt': 'Rank these documents by relevance and content quality within each category.'},
-            {'title': title, 'content': content, 'score': relevance_score}
+            SELECT category,
+                   llm_rerank(
+                       {'model_name': 'test-rerank-perf', 'batch_size': 5},
+            {'prompt': 'Rank these documents by relevance and content quality within each category.', 'context_columns': [{'data': title}, {'data': content}, {'data': relevance_score::VARCHAR}]}
         ) AS ranked_docs
-    FROM large_search_results
-    GROUP BY category
-    ORDER BY category
-    LIMIT 3;
-    """
+            FROM large_search_results
+            GROUP BY category
+            ORDER BY category LIMIT 3; \
+            """
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"

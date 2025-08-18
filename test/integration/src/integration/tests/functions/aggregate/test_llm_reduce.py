@@ -39,8 +39,7 @@ def test_llm_reduce_basic_functionality(integration_setup, model_config):
     SELECT 
         llm_reduce(
             {'model_name': 'test-reduce-model'},
-            {'prompt': 'Summarize the following product descriptions into a single comprehensive summary'},
-            {'description': description}
+                    {'prompt': 'Summarize the following product descriptions into a single comprehensive summary', 'context_columns': [{'data': description}]}
         ) AS product_summary
     FROM products;
     """
@@ -89,8 +88,7 @@ def test_llm_reduce_with_group_by(integration_setup, model_config):
         product_category,
         llm_reduce(
             {'model_name': 'test-reduce-group'},
-            {'prompt': 'Create a brief summary of these product reviews'},
-            {'review': review_text}
+                    {'prompt': 'Create a brief summary of these product reviews', 'context_columns': [{'data': review_text}]}
         ) AS category_summary
     FROM product_reviews 
     GROUP BY product_category
@@ -143,8 +141,7 @@ def test_llm_reduce_multiple_columns(integration_setup, model_config):
         department,
         llm_reduce(
             {'model_name': 'test-reduce-multi'},
-            {'prompt': 'Summarize the team feedback and overall performance'},
-            {'name': employee_name, 'feedback': feedback, 'rating': rating}
+                    {'prompt': 'Summarize the team feedback and overall performance', 'context_columns': [{'data': employee_name}, {'data': feedback}, {'data': rating::VARCHAR}]}
         ) AS team_summary
     FROM employee_feedback 
     GROUP BY department;
@@ -189,8 +186,7 @@ def test_llm_reduce_with_batch_processing(integration_setup, model_config):
     SELECT 
         llm_reduce(
             {'model_name': 'test-reduce-batch', 'batch_size': 2},
-            {'prompt': 'Create a comprehensive summary of these articles'},
-            {'title': title, 'content': content}
+                    {'prompt': 'Create a comprehensive summary of these articles', 'context_columns': [{'data': title}, {'data': content}]}
         ) AS articles_summary
     FROM articles;
     """
@@ -232,8 +228,7 @@ def test_llm_reduce_with_model_parameters(integration_setup, model_config):
     SELECT 
         llm_reduce(
             {'model_name': 'test-reduce-params', 'tuple_format': 'Markdown', 'model_parameters': '{"temperature": 0.1}'},
-            {'prompt': 'Provide a concise summary of these news items'},
-            {'headline': headline, 'summary': summary}
+                    {'prompt': 'Provide a concise summary of these news items', 'context_columns': [{'data': headline}, {'data': summary}]}
         ) AS news_summary
     FROM news_items;
     """
@@ -265,8 +260,7 @@ def test_llm_reduce_empty_table(integration_setup, model_config):
     SELECT 
         llm_reduce(
             {'model_name': 'test-reduce-empty'},
-            {'prompt': 'Summarize the following text'},
-            {'text': text}
+                    {'prompt': 'Summarize the following text', 'context_columns': [{'data': text}]}
         ) AS summary
     FROM empty_data;
     """
@@ -298,8 +292,7 @@ def test_llm_reduce_error_handling_invalid_model(integration_setup):
     query = """
     SELECT llm_reduce(
         {'model_name': 'non-existent-model'},
-        {'prompt': 'Summarize this'},
-        {'text': text}
+        {'prompt': 'Summarize this', 'context_columns': [{'data': text}]}
     ) AS result
     FROM test_data;
     """
@@ -338,8 +331,7 @@ def test_llm_reduce_error_handling_empty_prompt(integration_setup, model_config)
     query = """
     SELECT llm_reduce(
         {'model_name': 'test-reduce-empty-prompt'},
-        {'prompt': ''},
-        {'text': text}
+        {'prompt': '', 'context_columns': [{'data': text}]}
     ) AS result
     FROM test_data;
     """
@@ -358,16 +350,15 @@ def test_llm_reduce_error_handling_missing_arguments(integration_setup, model_co
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
-    # Test with only 2 arguments (should fail since llm_reduce requires 3)
+    # Test with only 1 argument (should fail since llm_reduce requires 2)
     query = """
     SELECT llm_reduce(
-        {'model_name': 'test-reduce-missing-args'},
-        {'prompt': 'Test prompt'}
+        {'model_name': 'test-reduce-missing-args'}
     ) AS result;
     """
     result = run_cli(duckdb_cli_path, db_path, query)
 
-    assert result.returncode != 0, "Expected error for missing third argument"
+    assert result.returncode != 0, "Expected error for missing second argument"
 
 
 def test_llm_reduce_with_special_characters(integration_setup, model_config):
@@ -400,8 +391,7 @@ def test_llm_reduce_with_special_characters(integration_setup, model_config):
     SELECT 
         llm_reduce(
             {'model_name': 'test-reduce-unicode'},
-            {'prompt': 'Summarize these international text samples'},
-            {'text': text}
+                    {'prompt': 'Summarize these international text samples', 'context_columns': [{'data': text}]}
         ) AS summary
     FROM international_content;
     """
@@ -464,8 +454,7 @@ def test_llm_reduce_with_structured_output(integration_setup, model_config):
                         "strict": true
                     }}'
             },
-            {'prompt': 'Summarize these items and identify key themes.'},
-            {'category': category, 'description': description}
+            {'prompt': 'Summarize these items and identify key themes.', 'context_columns': [{'data': category}, {'data': description}]}
         ) AS structured_summary
     FROM structured_data;
     """
@@ -500,8 +489,7 @@ def _test_llm_reduce_performance_large_dataset(integration_setup, model_config):
         category,
         llm_reduce(
             {'model_name': 'test-reduce-perf', 'batch_size': 10},
-            {'prompt': 'Create a comprehensive summary of all items in this category'},
-            {'content': content}
+                    {'prompt': 'Create a comprehensive summary of all items in this category', 'context_columns': [{'data': content}]}
         ) AS category_summary
     FROM large_dataset
     GROUP BY category
