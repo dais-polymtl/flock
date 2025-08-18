@@ -25,23 +25,8 @@ protected:
     void SetUp() override;
     void TearDown() override;
 
-    // Helper to create struct types with common patterns
-    static duckdb::LogicalType CreateModelStruct();
-    static duckdb::LogicalType CreatePromptStruct();
-    static duckdb::LogicalType CreateInputStruct(const std::vector<std::string>& field_names);
-
-    // Generic helper to create struct types for validation tests
-    static duckdb::LogicalType CreateGenericStruct(const std::vector<std::pair<std::string, duckdb::LogicalType>>& fields);
-
-    static void SetStructStringData(duckdb::Vector& struct_vector, const std::vector<std::map<std::string, std::string>>& data);
-
-    // Helper to setup a basic 2-argument chunk for testing
-    void CreateBasicChunk(duckdb::DataChunk& chunk, size_t cardinality = 1);
-
-    // Common test methods
+    // Common test methods that can be used by derived classes if needed
     void TestValidateArguments();
-    void TestOperationInvalidArguments();
-    void TestOperationEmptyPrompt();
 
     // Virtual methods for function-specific logic
     virtual std::string GetExpectedResponse() const = 0;

@@ -67,7 +67,7 @@ std::string PromptManager::ConstructInputTuplesHeaderXML(const nlohmann::json& c
 
 std::string PromptManager::ConstructInputTuplesHeaderMarkdown(const nlohmann::json& columns) {
     if (columns.empty()) {
-        return "| Empty | \n | --- | \n";
+        return " | Empty | \n | ----- | \n";
     }
     auto header = std::string(" | ");
     auto column_idx = 1u;
@@ -89,6 +89,10 @@ std::string PromptManager::ConstructInputTuplesHeaderMarkdown(const nlohmann::js
 }
 
 std::string PromptManager::ConstructInputTuplesXML(const nlohmann::json& columns) {
+    if (columns.empty() || columns[0]["data"].empty()) {
+        return "<row></row>\n";
+    }
+
     auto tuples_str = std::string("");
     for (auto i = 0; i < static_cast<int>(columns[0]["data"].size()); i++) {
         tuples_str += "<row>";
@@ -101,6 +105,10 @@ std::string PromptManager::ConstructInputTuplesXML(const nlohmann::json& columns
 }
 
 std::string PromptManager::ConstructInputTuplesMarkdown(const nlohmann::json& columns) {
+    if (columns.empty() || columns[0]["data"].empty()) {
+        return "";
+    }
+
     auto tuples_str = std::string("");
     for (auto i = 0; i < static_cast<int>(columns[0]["data"].size()); i++) {
         tuples_str += " | ";
@@ -109,7 +117,6 @@ std::string PromptManager::ConstructInputTuplesMarkdown(const nlohmann::json& co
         }
         tuples_str += "\n";
     }
-    tuples_str += "\n";
     return tuples_str;
 }
 
@@ -121,6 +128,7 @@ std::string PromptManager::ConstructInputTuplesJSON(const nlohmann::json& column
         tuples_json[column_name] = column["data"];
     }
     auto tuples_str = tuples_json.dump(4);
+    tuples_str += "\n";
     return tuples_str;
 }
 
@@ -130,7 +138,9 @@ std::string PromptManager::ConstructNumTuples(const int num_tuples) {
 
 std::string PromptManager::ConstructInputTuples(const nlohmann::json& columns, const std::string& tuple_format) {
     auto tuples_str = std::string("");
-    tuples_str += PromptManager::ConstructNumTuples(static_cast<int>(columns[0]["data"].size()));
+    const auto num_tuples = columns.size() > 0 ? static_cast<int>(columns[0]["data"].size()) : 0;
+
+    tuples_str += PromptManager::ConstructNumTuples(num_tuples);
     tuples_str += PromptManager::ConstructInputTuplesHeader(columns, tuple_format);
     switch (const auto format = stringToTupleFormat(tuple_format)) {
         case TupleFormat::XML:

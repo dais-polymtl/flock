@@ -23,7 +23,6 @@ void LlmComplete::ValidateArguments(duckdb::DataChunk& args) {
 
 std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
     // LlmComplete::ValidateArguments(args);
-
     auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1);
     Model model(model_details_json);
     auto prompt_context_json = CastVectorOfStructsToJson(args.data[1], args.size());
