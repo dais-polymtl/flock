@@ -24,7 +24,7 @@ public:
 
 protected:
     std::string getCompletionUrl() const override { return _url + "/api/generate"; }
-    std::string getEmbedUrl() const override { return _url + "/api/embeddings"; }
+    std::string getEmbedUrl() const override { return _url + "/api/embed"; }
     void prepareSessionForRequest(const std::string& url) override { _session.setUrl(url); }
     void setParameters(const std::string& data, const std::string& contentType = "") override {
         if (contentType != "multipart/form-data") {
@@ -42,7 +42,7 @@ protected:
             }
         } else {
             // Embedding-specific checks (if any) can be added here
-            if (response.contains("embedding") && (!response["embedding"].is_array() || response["embedding"].empty())) {
+            if (response.contains("embeddings") && (!response["embeddings"].is_array() || response["embeddings"].empty())) {
                 throw std::runtime_error("Ollama API returned empty or invalid embedding data.");
             }
         }
@@ -56,8 +56,8 @@ protected:
     }
 
     nlohmann::json ExtractEmbeddingVector(const nlohmann::json& response) const override {
-        if (response.contains("embedding") && response["embedding"].is_array()) {
-            return response["embedding"];
+        if (response.contains("embeddings") && response["embeddings"].is_array()) {
+            return response["embeddings"];
         }
         return {};
     }

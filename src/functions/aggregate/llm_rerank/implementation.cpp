@@ -6,7 +6,7 @@ std::vector<int> LlmRerank::RerankBatch(const nlohmann::json& tuples) {
     nlohmann::json data;
     auto [prompt, media_data] =
             PromptManager::Render(user_query, tuples, AggregateFunctionType::RERANK, model.GetModelDetails().tuple_format);
-    model.AddCompletionRequest(prompt, static_cast<int>(tuples.size()), OutputType::INTEGER, media_data);
+    model.AddCompletionRequest(prompt, static_cast<int>(tuples[0]["data"].size()), OutputType::INTEGER, media_data);
     auto responses = model.CollectCompletions();
     return responses[0]["items"];
 };

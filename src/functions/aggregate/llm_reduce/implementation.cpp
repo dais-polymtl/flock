@@ -3,7 +3,6 @@
 namespace flockmtl {
 
 nlohmann::json LlmReduce::ReduceBatch(nlohmann::json& tuples, const AggregateFunctionType& function_type, const nlohmann::json& summary) {
-    std::cout << tuples.dump() << std::endl;
     nlohmann::json data;
     auto [prompt, media_data] = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
 
@@ -12,7 +11,6 @@ nlohmann::json LlmReduce::ReduceBatch(nlohmann::json& tuples, const AggregateFun
     OutputType output_type = OutputType::STRING;
     model.AddCompletionRequest(prompt, 1, output_type, media_data);
     auto response = model.CollectCompletions()[0];
-    std::cout << response.dump() << std::endl;
     return response["items"][0];
 };
 
@@ -28,7 +26,6 @@ nlohmann::json LlmReduce::ReduceLoop(const nlohmann::json& tuples,
     }
 
     do {
-        std::cout << batch_tuples.dump() << std::endl;
         for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
             batch_tuples.push_back(nlohmann::json::object());
             for (const auto& item: tuples[i].items()) {

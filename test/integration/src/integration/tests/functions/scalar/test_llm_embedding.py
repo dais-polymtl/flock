@@ -3,7 +3,7 @@ from integration.conftest import run_cli
 
 
 @pytest.fixture(
-    params=[("text-embedding-3-small", "openai"), ("mxbai-embed-large", "ollama")]
+    params=[("text-embedding-3-small", "openai"), ("all-minilm", "ollama")]
 )
 def model_config(request):
     """Fixture to test with different embedding models."""
@@ -14,17 +14,22 @@ def test_llm_embedding_basic_functionality(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-model_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-model', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
-    query = """
-    SELECT llm_embedding(
-        {'model_name': 'test-embedding-model'},
+    query = (
+            """
+        SELECT llm_embedding(
+            {'model_name': '"""
+            + test_model_name
+            + """'},
         {'context_columns': [{'data': 'This is a test document for embedding generation.'}]}
     ) AS embedding;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -38,17 +43,22 @@ def test_llm_embedding_with_multiple_text_fields(integration_setup, model_config
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-multi-field_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-multi-field', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
-    query = """
-    SELECT llm_embedding(
-        {'model_name': 'test-embedding-multi-field'},
+    query = (
+            """
+        SELECT llm_embedding(
+            {'model_name': '"""
+            + test_model_name
+            + """'},
         {'context_columns': [{'data': 'Product Title'}, {'data': 'Product description here'}, {'data': 'Electronics'}]}
     ) AS embedding;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -61,8 +71,9 @@ def test_llm_embedding_with_input_columns(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-input_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-input', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -77,23 +88,28 @@ def test_llm_embedding_with_input_columns(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO documents VALUES 
-    (1, 'AI Research Paper', 'This paper discusses advances in artificial intelligence', 'Research'),
-    (2, 'Cooking Recipe', 'Instructions for making delicious pasta', 'Food'),
-    (3, 'Travel Guide', 'A comprehensive guide to visiting Paris', 'Travel');
-    """
+                        INSERT INTO documents
+                        VALUES (1, 'AI Research Paper', 'This paper discusses advances in artificial intelligence',
+                                'Research'),
+                               (2, 'Cooking Recipe', 'Instructions for making delicious pasta', 'Food'),
+                               (3, 'Travel Guide', 'A comprehensive guide to visiting Paris', 'Travel'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-    SELECT 
-        title,
-        llm_embedding(
-            {'model_name': 'test-embedding-input'},
+    query = (
+            """
+        SELECT 
+            title,
+            llm_embedding(
+                {'model_name': '"""
+            + test_model_name
+            + """'},
             {'context_columns': [{'data': title || '. ' || content}]}
         ) AS document_embedding
     FROM documents 
     WHERE id <= 2;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -110,8 +126,9 @@ def test_llm_embedding_batch_processing(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-batch_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-batch', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -125,22 +142,26 @@ def test_llm_embedding_batch_processing(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO product_descriptions VALUES 
-    (1, 'Laptop Pro', 'High-performance laptop for professionals'),
-    (2, 'Smart Phone X', 'Latest smartphone with advanced camera'),
-    (3, 'Wireless Headphones', 'Premium wireless headphones with noise cancellation');
-    """
+                        INSERT INTO product_descriptions
+                        VALUES (1, 'Laptop Pro', 'High-performance laptop for professionals'),
+                               (2, 'Smart Phone X', 'Latest smartphone with advanced camera'),
+                               (3, 'Wireless Headphones', 'Premium wireless headphones with noise cancellation'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-    SELECT 
-        product_name,
-        llm_embedding(
-            {'model_name': 'test-embedding-batch', 'batch_size': 2},
+    query = (
+            """
+        SELECT 
+            product_name,
+            llm_embedding(
+                {'model_name': '"""
+            + test_model_name
+            + """', 'batch_size': 2},
             {'context_columns': [{'data': product_name || ': ' || description}]}
         ) AS product_embedding
     FROM product_descriptions;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -165,9 +186,9 @@ def test_llm_embedding_error_handling_invalid_model(integration_setup):
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert (
-        result.returncode != 0
-        or "error" in result.stderr.lower()
-        or "Error" in result.stdout
+            result.returncode != 0
+            or "error" in result.stderr.lower()
+            or "Error" in result.stdout
     )
 
 
@@ -175,17 +196,22 @@ def test_llm_embedding_error_handling_empty_text(integration_setup, model_config
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-empty_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-empty', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
-    query = """
-    SELECT llm_embedding(
-        {'model_name': 'test-embedding-empty'},
+    query = (
+            """
+        SELECT llm_embedding(
+            {'model_name': '"""
+            + test_model_name
+            + """'},
         {'context_columns': [{'data': ''}]}
     ) AS embedding;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     # Some providers might handle empty text gracefully, others might error
@@ -197,8 +223,9 @@ def test_llm_embedding_with_special_characters(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-unicode_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-unicode', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -211,22 +238,26 @@ def test_llm_embedding_with_special_characters(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO special_text VALUES 
-    (1, 'Café résumé naïve'),
-    (2, 'Price: $100.99 (50% off!)'),
-    (3, 'Hello 世界 🌍 Testing emoji and unicode');
-    """
+                        INSERT INTO special_text
+                        VALUES (1, 'Café résumé naïve'),
+                               (2, 'Price: $100.99 (50% off!)'),
+                               (3, 'Hello 世界 🌍 Testing emoji and unicode'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-    SELECT 
-        llm_embedding(
-            {'model_name': 'test-embedding-unicode'},
+    query = (
+            """
+        SELECT 
+            llm_embedding(
+                {'model_name': '"""
+            + test_model_name
+            + """'},
             {'context_columns': [{'data': text}]}
         ) AS text_embedding
     FROM special_text
     WHERE id = 1;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -237,17 +268,22 @@ def test_llm_embedding_with_model_params(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-params_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-params', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
-    query = """
-    SELECT llm_embedding(
-        {'model_name': 'test-embedding-params', 'batch_size': 1},
+    query = (
+            """
+        SELECT llm_embedding(
+            {'model_name': '"""
+            + test_model_name
+            + """', 'batch_size': 1},
         {'context_columns': [{'data': 'This is a test document for parameter testing.'}]}
     ) AS embedding;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -259,8 +295,9 @@ def test_llm_embedding_document_similarity_use_case(integration_setup, model_con
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-similarity_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-similarity', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -275,24 +312,30 @@ def test_llm_embedding_document_similarity_use_case(integration_setup, model_con
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO knowledge_base VALUES 
-    (1, 'Machine Learning Basics', 'Introduction to supervised and unsupervised learning algorithms', 'AI'),
-    (2, 'Data Preprocessing', 'Techniques for cleaning and preparing data for analysis', 'Data Science'),
-    (3, 'Neural Networks', 'Deep learning architectures and their applications', 'AI');
-    """
+                        INSERT INTO knowledge_base
+                        VALUES (1, 'Machine Learning Basics',
+                                'Introduction to supervised and unsupervised learning algorithms', 'AI'),
+                               (2, 'Data Preprocessing', 'Techniques for cleaning and preparing data for analysis',
+                                'Data Science'),
+                               (3, 'Neural Networks', 'Deep learning architectures and their applications', 'AI'); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-    SELECT 
-        title,
-        section,
-        llm_embedding(
-            {'model_name': 'test-embedding-similarity'},
+    query = (
+            """
+        SELECT 
+            title,
+            section,
+            llm_embedding(
+                {'model_name': '"""
+            + test_model_name
+            + """'},
             {'context_columns': [{'data': title}, {'data': content}, {'data': section}]}
         ) AS content_embedding
     FROM knowledge_base
     WHERE section = 'AI';
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -309,8 +352,9 @@ def test_llm_embedding_concatenated_fields(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-concat_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-concat', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -326,21 +370,26 @@ def test_llm_embedding_concatenated_fields(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     insert_data_query = """
-    INSERT INTO products VALUES 
-    (1, 'Gaming Laptop', 'High-performance laptop for gaming and creative work', 'Electronics', 1299.99),
-    (2, 'Office Chair', 'Ergonomic office chair with lumbar support', 'Furniture', 299.99);
-    """
+                        INSERT INTO products
+                        VALUES (1, 'Gaming Laptop', 'High-performance laptop for gaming and creative work',
+                                'Electronics', 1299.99),
+                               (2, 'Office Chair', 'Ergonomic office chair with lumbar support', 'Furniture', 299.99); \
+                        """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-    SELECT 
-        name,
-        llm_embedding(
-            {'model_name': 'test-embedding-concat'},
+    query = (
+            """
+        SELECT 
+            name,
+            llm_embedding(
+                {'model_name': '"""
+            + test_model_name
+            + """'},
             {'context_columns': [{'data': name}, {'data': description}, {'data': category}]}
         ) AS product_embedding
     FROM products;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -357,8 +406,9 @@ def _llm_embedding_performance_large_dataset(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-perf_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-perf', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -372,16 +422,20 @@ def _llm_embedding_performance_large_dataset(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    query = """
-    SELECT
-        title,
-        llm_embedding(
-            {'model_name': 'test-embedding-perf', 'batch_size': 5},
+    query = (
+            """
+        SELECT
+            title,
+            llm_embedding(
+                {'model_name': '"""
+            + test_model_name
+            + """', 'batch_size': 5},
             {'context_columns': [{'data': title || '. ' || content}]}
         ) AS document_embedding
     FROM large_text_dataset
     LIMIT 10;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -398,8 +452,9 @@ def test_llm_embedding_error_handling_malformed_input(integration_setup, model_c
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-embedding-malformed_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-embedding-malformed', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -412,7 +467,7 @@ def test_llm_embedding_error_handling_malformed_input(integration_setup, model_c
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert (
-        result.returncode != 0
-        or "error" in result.stderr.lower()
-        or "Error" in result.stdout
+            result.returncode != 0
+            or "error" in result.stderr.lower()
+            or "Error" in result.stdout
     )

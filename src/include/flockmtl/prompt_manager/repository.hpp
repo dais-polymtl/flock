@@ -111,12 +111,12 @@ public:
 
     static constexpr auto FIRST_OR_LAST =
             "Identify the row that is {{RELEVANCE}} relevant to the user's prompt. "
-            "Return the index of this row, indicating its position within the provided table. "
+            "Return the index of this row, all the indexes are provided under the `flockmtl_row_id`, indicating its position within the provided table. "
             "Ensure that the relevance assessment is based solely on the information within each row.";
 
     static constexpr auto RERANK =
             "Evaluate the relevance of each row in the provided table concerning the user's prompt. "
-            "Rank the rows in descending order of relevance and return the indices of the rows in this order. "
+            "Rank the rows in descending order of relevance and return the indices of the rows in this order. All the indexes are provided under the `flockmtl_row_id`. "
             "Each row should be considered independently, and the ranking should reflect the individual pertinence of each row.";
 
     template<typename FunctionType>

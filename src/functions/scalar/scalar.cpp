@@ -76,7 +76,7 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples
             }
         }
 
-    } while (start_index < static_cast<int>(tuples.size()));
+    } while (start_index < static_cast<int>(tuples[0]["data"].size()));
 
     return responses;
 }

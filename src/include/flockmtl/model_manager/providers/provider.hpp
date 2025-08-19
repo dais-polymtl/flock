@@ -2,11 +2,14 @@
 
 #include "fmt/format.h"
 #include <nlohmann/json.hpp>
+#include <regex>
 
 #include "flockmtl/model_manager/providers/handlers/handler.hpp"
 #include "flockmtl/model_manager/repository.hpp"
 
 namespace flockmtl {
+
+bool is_base64(const std::string& str);
 
 enum class OutputType {
     STRING,

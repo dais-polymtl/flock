@@ -13,8 +13,9 @@ def test_llm_rerank_basic_functionality(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-rerank-model_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-rerank-model', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -38,13 +39,17 @@ def test_llm_rerank_basic_functionality(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+        """
             SELECT llm_rerank(
-                       {'model_name': 'test-rerank-model'},
+                       {'model_name': '"""
+        + test_model_name
+        + """'},
                     {'prompt': 'Rank these search results by relevance to Python programming. Return results in order of relevance.', 'context_columns': [{'data': title}, {'data': content}, {'data': relevance_score::VARCHAR}]}
         ) AS reranked_results
             FROM search_results; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -58,8 +63,9 @@ def test_llm_rerank_with_group_by(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-rerank-group_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-rerank-group', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -89,18 +95,22 @@ def test_llm_rerank_with_group_by(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+        """
             SELECT *
             FROM duckdb_secrets();
             SELECT category,
                    llm_rerank(
-                       {'model_name': 'test-rerank-group'},
+                       {'model_name': '"""
+        + test_model_name
+        + """'},
                     {'prompt': 'Rank these products by overall value (considering price, rating, and features). Return the best value products first.', 'context_columns': [{'data': product_name}, {'data': price::VARCHAR}, {'data': rating::VARCHAR}, {'data': description}]}
         ) AS ranked_products
             FROM product_listings
             GROUP BY category
             ORDER BY category; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -115,8 +125,9 @@ def test_llm_rerank_with_batch_processing(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-rerank-batch_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-rerank-batch', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -144,15 +155,18 @@ def test_llm_rerank_with_batch_processing(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+        """
             SELECT llm_rerank(
-                       {'model_name': 'test-rerank-batch', 'batch_size': 3},
+                       {'model_name': '"""
+        + test_model_name
+        + """', 'batch_size': 3},
             {'prompt': 'Rank these candidates for a senior software engineer position. Consider experience, skills, and value for money.', 'context_columns': [{'data': name}, {'data': experience_years::VARCHAR}, {'data': skills}, {'data': education}, {'data': salary_expectation::VARCHAR}]}
         ) AS ranked_candidates
             FROM job_candidates;
             """
+    )
 
-    print(query)
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -164,8 +178,9 @@ def test_llm_rerank_with_model_parameters(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-rerank-params_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-rerank-params', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -190,14 +205,18 @@ def test_llm_rerank_with_model_parameters(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+        """
             SELECT llm_rerank(
-                       {'model_name': 'test-rerank-params', 'tuple_format': 'Markdown',
+                       {'model_name': '"""
+        + test_model_name
+        + """', 'tuple_format': 'Markdown',
                                                             'model_parameters': '{"temperature": 0.1}'},
             {'prompt': 'Rank these restaurants for a casual dinner considering rating, price, and distance. Prioritize nearby options with good value.', 'context_columns': [{'data': name}, {'data': cuisine}, {'data': rating::VARCHAR}, {'data': price_range}, {'data': distance_km::VARCHAR}]}
         ) AS ranked_restaurants
             FROM restaurant_options; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -209,8 +228,9 @@ def test_llm_rerank_multiple_criteria(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-rerank-multi_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-rerank-multi', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -236,13 +256,17 @@ def test_llm_rerank_multiple_criteria(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+        """
             SELECT llm_rerank(
-                       {'model_name': 'test-rerank-multi'},
+                       {'model_name': '"""
+        + test_model_name
+        + """'},
             {'prompt': 'Rank these investment funds for a moderate-risk investor with $2000 to invest. Consider returns, risk, fees, and fund stability.', 'context_columns': [{'data': fund_name}, {'data': annual_return::VARCHAR}, {'data': risk_rating}, {'data': expense_ratio::VARCHAR}, {'data': minimum_investment::VARCHAR}, {'data': fund_age_years::VARCHAR}]}
         ) AS ranked_funds
             FROM investment_funds; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -254,8 +278,9 @@ def test_llm_rerank_empty_table(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-rerank-empty_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-rerank-empty', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -268,13 +293,17 @@ def test_llm_rerank_empty_table(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    query = """
+    query = (
+        """
             SELECT llm_rerank(
-                       {'model_name': 'test-rerank-empty'},
+                       {'model_name': '"""
+        + test_model_name
+        + """'},
             {'prompt': 'Rank these items by score', 'context_columns': [{'data': name}, {'data': score::VARCHAR}]}
         ) AS ranked_items
             FROM empty_items; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -312,9 +341,9 @@ def test_llm_rerank_error_handling_invalid_model(integration_setup):
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert (
-            result.returncode != 0
-            or "error" in result.stderr.lower()
-            or "Error" in result.stdout
+        result.returncode != 0
+        or "error" in result.stderr.lower()
+        or "Error" in result.stdout
     )
 
 
@@ -323,8 +352,9 @@ def test_llm_rerank_error_handling_empty_prompt(integration_setup, model_config)
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-rerank-empty-prompt_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-rerank-empty-prompt', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -342,13 +372,17 @@ def test_llm_rerank_error_handling_empty_prompt(integration_setup, model_config)
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+        """
             SELECT llm_rerank(
-                       {'model_name': 'test-rerank-empty-prompt'},
+                       {'model_name': '"""
+        + test_model_name
+        + """'},
         {'prompt': '', 'context_columns': [{'data': text}]}
     ) AS result
             FROM test_data; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode != 0
@@ -359,18 +393,23 @@ def test_llm_rerank_error_handling_missing_arguments(integration_setup, model_co
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-rerank-missing-args_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-rerank-missing-args', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
     # Test with only 2 arguments (should fail since llm_rerank requires 3)
-    query = """
+    query = (
+        """
     SELECT llm_rerank(
-        {'model_name': 'test-rerank-missing-args'},
+        {'model_name': '"""
+        + test_model_name
+        + """'},
         {'prompt': 'Test prompt'}
     ) AS result;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode != 0, "Expected error for missing third argument"
@@ -381,8 +420,9 @@ def test_llm_rerank_with_special_characters(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-rerank-unicode_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-rerank-unicode', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -404,13 +444,17 @@ def test_llm_rerank_with_special_characters(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+        """
             SELECT llm_rerank(
-                       {'model_name': 'test-rerank-unicode'},
+                       {'model_name': '"""
+        + test_model_name
+        + """'},
             {'prompt': 'Rank these dishes by authenticity and traditional preparation methods.', 'context_columns': [{'data': name}, {'data': description}, {'data': price}]}
         ) AS ranked_dishes
             FROM international_dishes; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -422,8 +466,9 @@ def _test_llm_rerank_performance_large_dataset(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-rerank-perf_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-rerank-perf', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -439,16 +484,20 @@ def _test_llm_rerank_performance_large_dataset(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    query = """
+    query = (
+        """
             SELECT category,
                    llm_rerank(
-                       {'model_name': 'test-rerank-perf', 'batch_size': 5},
+                       {'model_name': '"""
+        + test_model_name
+        + """', 'batch_size': 5},
             {'prompt': 'Rank these documents by relevance and content quality within each category.', 'context_columns': [{'data': title}, {'data': content}, {'data': relevance_score::VARCHAR}]}
         ) AS ranked_docs
             FROM large_search_results
             GROUP BY category
             ORDER BY category LIMIT 3; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -457,3 +506,205 @@ def _test_llm_rerank_performance_large_dataset(integration_setup, model_config):
         f"Expected at least 4 lines (header + 3 categories), got {len(lines)}"
     )
     assert "category" in result.stdout.lower()
+
+
+def test_llm_rerank_with_image_integration(integration_setup, model_config):
+    """Test llm_rerank with image data integration."""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    test_model_name = f"test-image-rerank-model_{model_name}"
+    create_model_query = (
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE fashion_images (
+        id INTEGER,
+        item_name VARCHAR,
+        image_url VARCHAR,
+        style VARCHAR,
+        season VARCHAR,
+        price_range VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    # Insert data with Unsplash fashion image URLs
+    insert_data_query = """
+                        INSERT INTO fashion_images
+                        VALUES (1, 'Summer Dress',
+                                'https://plus.unsplash.com/premium_photo-1687279093043-73bd1bf3f0bf?w=400',
+                                'Casual', 'Summer', 'Mid-range'),
+                               (2, 'Winter Coat', 'https://images.unsplash.com/photo-1519944159858-806d435dc86b?w=400',
+                                'Formal', 'Winter', 'High-end'),
+                               (3, 'Spring Blouse',
+                                'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400', 'Business',
+                                'Spring', 'Mid-range'); \
+                        """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = (
+        """
+            SELECT llm_rerank(
+                       {'model_name': '"""
+        + test_model_name
+        + """'},
+            {
+                'prompt': 'Rank these fashion items by their versatility and style appeal.',
+                'context_columns': [
+                    {'data': item_name},
+                    {'data': image_url, 'type': 'image'},
+                    {'data': style},
+                    {'data': season}
+                ]
+            }
+        ) AS ranked_fashion_items
+            FROM fashion_images;
+            """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+    assert "ranked_fashion_items" in result.stdout.lower()
+    assert len(result.stdout.strip().split("\n")) >= 2
+
+
+def test_llm_rerank_image_with_group_by(integration_setup, model_config):
+    """Test llm_rerank with images and GROUP BY clause."""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    test_model_name = f"test-image-group-rerank_{model_name}"
+    create_model_query = (
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE interior_images (
+        id INTEGER,
+        room_name VARCHAR,
+        image_url VARCHAR,
+        style VARCHAR,
+        color_scheme VARCHAR,
+        room_type VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    # Insert data with Unsplash interior image URLs
+    insert_data_query = """
+                        INSERT INTO interior_images
+                        VALUES (1, 'Living Room A',
+                                'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400', 'Modern',
+                                'Neutral', 'Living'),
+                               (2, 'Kitchen B', 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400',
+                                'Contemporary', 'Warm', 'Kitchen'),
+                               (3, 'Bedroom C', 'https://images.unsplash.com/photo-1505693314120-0d443867891c?w=400',
+                                'Minimalist', 'Cool', 'Bedroom'),
+                               (4, 'Dining Room D',
+                                'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400', 'Traditional',
+                                'Rich', 'Dining'); \
+                        """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = (
+        """
+            SELECT llm_rerank(
+                       {'model_name': '"""
+        + test_model_name
+        + """'},
+            {
+                'prompt': 'Rank these room designs by their aesthetic appeal and functionality.',
+                'context_columns': [
+                    {'data': room_name},
+                    {'data': image_url, 'type': 'image'},
+                    {'data': style},
+                    {'data': color_scheme}
+                ]
+            }
+        ) AS ranked_room_designs
+            FROM interior_images
+            GROUP BY room_type
+            ORDER BY room_type; \
+            """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+    lines = result.stdout.strip().split("\n")
+    assert len(lines) >= 4, (
+        f"Expected at least 4 lines (header + 3 room types), got {len(lines)}"
+    )
+    assert "ranked_room_designs" in result.stdout.lower()
+
+
+def test_llm_rerank_image_batch_processing(integration_setup, model_config):
+    """Test llm_rerank with multiple images in batch processing."""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    test_model_name = f"test-image-batch-rerank_{model_name}"
+    create_model_query = (
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE travel_destination_images (
+        id INTEGER,
+        destination_name VARCHAR,
+        image_url VARCHAR,
+        country VARCHAR,
+        climate VARCHAR,
+        tourist_rating DECIMAL(3,1)
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    # Insert data with Unsplash travel destination image URLs
+    insert_data_query = """
+                        INSERT INTO travel_destination_images
+                        VALUES (1, 'Beach Resort', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400',
+                                'Maldives', 'Tropical', 4.8),
+                               (2, 'Mountain Retreat',
+                                'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400', 'Switzerland',
+                                'Alpine', 4.6),
+                               (3, 'City Break', 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400',
+                                'Paris', 'Temperate', 4.7),
+                               (4, 'Desert Oasis', 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400',
+                                'Morocco', 'Arid', 4.3); \
+                        """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = (
+        """
+            SELECT llm_rerank(
+                       {'model_name': '"""
+        + test_model_name
+        + """', 'batch_size': 2},
+            {
+                'prompt': 'Rank these travel destinations by their visual appeal and tourist attractiveness.',
+                'context_columns': [
+                    {'data': destination_name},
+                    {'data': image_url, 'type': 'image'},
+                    {'data': climate},
+                    {'data': tourist_rating::VARCHAR}
+                ]
+            }
+        ) AS ranked_destinations
+            FROM travel_destination_images
+            GROUP BY country
+            ORDER BY country; \
+            """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+    lines = result.stdout.strip().split("\n")
+    assert len(lines) >= 4, (
+        f"Expected at least 4 lines (header + 3 countries), got {len(lines)}"
+    )
+    assert "ranked_destinations" in result.stdout.lower()

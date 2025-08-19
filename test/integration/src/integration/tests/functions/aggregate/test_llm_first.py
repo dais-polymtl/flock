@@ -13,8 +13,9 @@ def test_llm_first_basic_functionality(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-first-model_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-first-model', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -36,15 +37,18 @@ def test_llm_first_basic_functionality(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-            SELECT llm_first(
-                       {'model_name': 'test-first-model'},
+    query = (
+            """
+                SELECT llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """'},
             {'prompt': 'Which candidate is best suited for a senior software engineer position? Return the ID number only.', 'context_columns': [{'data': name}, {'data': experience}, {'data': skills}]}
         ) AS selected_candidate
             FROM candidates; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
-
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     assert "selected_candidate" in result.stdout.lower()
     lines = result.stdout.strip().split("\n")
@@ -56,8 +60,9 @@ def test_llm_first_with_group_by(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-first-group_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-first-group', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -81,18 +86,22 @@ def test_llm_first_with_group_by(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+            """
             SELECT *
             FROM duckdb_secrets();
             SELECT department,
                    llm_first(
-                       {'model_name': 'test-first-group'},
+                       {'model_name': '"""
+            + test_model_name
+            + """'},
             {'prompt': 'Who is the best candidate for this department? Return the ID number only.', 'context_columns': [{'data': candidate_name}, {'data': score::VARCHAR}, {'data': notes}]}
         ) AS best_candidate_id
             FROM job_applications
             GROUP BY department
             ORDER BY department; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -100,7 +109,7 @@ def test_llm_first_with_group_by(integration_setup, model_config):
     # Should have header + 2 department groups (Engineering, Marketing)
     assert len(lines) >= 3, f"Expected at least 3 lines, got {len(lines)}"
     assert (
-        "engineering" in result.stdout.lower() or "marketing" in result.stdout.lower()
+            "engineering" in result.stdout.lower() or "marketing" in result.stdout.lower()
     )
 
 
@@ -109,8 +118,9 @@ def test_llm_first_with_batch_processing(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-first-batch_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-first-batch', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -135,13 +145,17 @@ def test_llm_first_with_batch_processing(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-            SELECT llm_first(
-                       {'model_name': 'test-first-batch', 'batch_size': 3},
+    query = (
+            """
+                SELECT llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """', 'batch_size': 3},
             {'prompt': 'Which investment option is best for a conservative investor? Return the ID number only.', 'context_columns': [{'data': name}, {'data': risk_level}, {'data': expected_return::VARCHAR}, {'data': description}]}
         ) AS best_conservative_investment
             FROM investment_options; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -153,8 +167,9 @@ def test_llm_first_with_model_parameters(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-first-params_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-first-params', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -181,14 +196,18 @@ def test_llm_first_with_model_parameters(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-            SELECT llm_first(
-                       {'model_name': 'test-first-params', 'tuple_format': 'Markdown',
+    query = (
+            """
+                SELECT llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """', 'tuple_format': 'Markdown',
                                                            'model_parameters': '{"temperature": 0.1}'},
             {'prompt': 'Which startup has the most promising business model for investment? Return the ID number only.', 'context_columns': [{'data': company_name}, {'data': sector}, {'data': funding_request::VARCHAR}, {'data': team_size::VARCHAR}, {'data': description}]}
         ) AS most_promising_startup
             FROM startup_pitches; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -200,8 +219,9 @@ def test_llm_first_multiple_criteria(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-first-multi_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-first-multi', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -227,13 +247,17 @@ def test_llm_first_multiple_criteria(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-            SELECT llm_first(
-                       {'model_name': 'test-first-multi'},
+    query = (
+            """
+                SELECT llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """'},
             {'prompt': 'Which course is best for someone new to programming with a budget of $300 and 12 weeks available? Return the ID number only.', 'context_columns': [{'data': course_name}, {'data': difficulty}, {'data': duration_weeks::VARCHAR}, {'data': cost::VARCHAR}, {'data': rating::VARCHAR}, {'data': prerequisites}]}
         ) AS best_course_for_beginner
             FROM course_options; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -245,8 +269,9 @@ def test_llm_first_empty_table(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-first-empty_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-first-empty', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -258,13 +283,17 @@ def test_llm_first_empty_table(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    query = """
-            SELECT llm_first(
-                       {'model_name': 'test-first-empty'},
+    query = (
+            """
+                SELECT llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """'},
             {'prompt': 'Select the best candidate', 'context_columns': [{'data': name}]}
         ) AS selected
             FROM empty_candidates; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -301,9 +330,9 @@ def test_llm_first_error_handling_invalid_model(integration_setup):
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert (
-        result.returncode != 0
-        or "error" in result.stderr.lower()
-        or "Error" in result.stdout
+            result.returncode != 0
+            or "error" in result.stderr.lower()
+            or "Error" in result.stdout
     )
 
 
@@ -312,8 +341,9 @@ def test_llm_first_error_handling_empty_prompt(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-first-empty-prompt_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-first-empty-prompt', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -331,13 +361,17 @@ def test_llm_first_error_handling_empty_prompt(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-            SELECT llm_first(
-                       {'model_name': 'test-first-empty-prompt'},
+    query = (
+            """
+                SELECT llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """'},
         {'prompt': '', 'context_columns': [{'data': text}]}
     ) AS result
             FROM test_data; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode != 0
@@ -348,17 +382,22 @@ def test_llm_first_error_handling_missing_arguments(integration_setup, model_con
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-first-missing-args_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-first-missing-args', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
     # Test with only 1 argument (should fail since llm_first requires 2)
-    query = """
-    SELECT llm_first(
-        {'model_name': 'test-first-missing-args'}
+    query = (
+            """
+        SELECT llm_first(
+            {'model_name': '"""
+            + test_model_name
+            + """'}
     ) AS result;
     """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode != 0, "Expected error for missing second argument"
@@ -369,8 +408,9 @@ def test_llm_first_with_special_characters(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-first-unicode_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-first-unicode', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -395,13 +435,17 @@ def test_llm_first_with_special_characters(integration_setup, model_config):
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
-            SELECT llm_first(
-                       {'model_name': 'test-first-unicode'},
+    query = (
+            """
+                SELECT llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """'},
             {'prompt': 'Which university offers the best combination of prestige and innovation for engineering? Return the ID number only.', 'context_columns': [{'data': name}, {'data': location}, {'data': ranking::VARCHAR}, {'data': description}]}
         ) AS top_engineering_university
             FROM international_universities; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -413,8 +457,9 @@ def _test_llm_first_performance_large_dataset(integration_setup, model_config):
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
 
+    test_model_name = f"test-first-perf_{model_name}"
     create_model_query = (
-        f"CREATE MODEL('test-first-perf', '{model_name}', '{provider}');"
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
     run_cli(duckdb_cli_path, db_path, create_model_query)
 
@@ -429,16 +474,20 @@ def _test_llm_first_performance_large_dataset(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    query = """
-            SELECT category,
-                   llm_first(
-                       {'model_name': 'test-first-perf', 'batch_size': 5},
+    query = (
+            """
+                SELECT category,
+                       llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """', 'batch_size': 5},
             {'prompt': 'Who is the best candidate in this category based on score? Return the ID number only.', 'context_columns': [{'data': name}, {'data': score::VARCHAR}]}
         ) AS best_candidate
             FROM large_candidate_pool
             GROUP BY category
             ORDER BY category LIMIT 3; \
             """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
@@ -447,3 +496,202 @@ def _test_llm_first_performance_large_dataset(integration_setup, model_config):
         f"Expected at least 4 lines (header + 3 categories), got {len(lines)}"
     )
     assert "category" in result.stdout.lower()
+
+
+def test_llm_first_with_image_integration(integration_setup, model_config):
+    """Test llm_first with image data integration."""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    test_model_name = f"test-image-first-model_{model_name}"
+    create_model_query = (
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE pet_images (
+        id INTEGER,
+        pet_name VARCHAR,
+        image_url VARCHAR,
+        breed VARCHAR,
+        age INTEGER
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    # Insert data with Unsplash pet image URLs
+    insert_data_query = """
+                        INSERT INTO pet_images
+                        VALUES (1, 'Buddy', 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400',
+                                'Golden Retriever', 3),
+                               (2, 'Whiskers', 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400',
+                                'Persian Cat', 2),
+                               (3, 'Max', 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400',
+                                'German Shepherd', 4); \
+                        """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = (
+            """
+                SELECT llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """'},
+            {
+                'prompt': 'Which pet image shows the youngest animal? Return the pet name only.',
+                'context_columns': [
+                    {'data': pet_name},
+                    {'data': image_url, 'type': 'image'},
+                    {'data': age::VARCHAR}
+                ]
+            }
+        ) AS youngest_pet
+            FROM pet_images;
+            """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+    assert "youngest_pet" in result.stdout.lower()
+    assert len(result.stdout.strip().split("\n")) >= 2
+
+
+def test_llm_first_image_with_group_by(integration_setup, model_config):
+    """Test llm_first with images and GROUP BY clause."""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    test_model_name = f"test-image-group-first_{model_name}"
+    create_model_query = (
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE artwork_images (
+        id INTEGER,
+        title VARCHAR,
+        image_url VARCHAR,
+        artist VARCHAR,
+        style VARCHAR,
+        year_created INTEGER
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    # Insert data with Unsplash artwork image URLs
+    insert_data_query = """
+                        INSERT INTO artwork_images
+                        VALUES (1, 'Abstract Composition',
+                                'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400', 'Modern Artist',
+                                'Abstract', 2020),
+                               (2, 'Landscape Painting',
+                                'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400', 'Nature Painter',
+                                'Realistic', 2019),
+                               (3, 'Portrait Study',
+                                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', 'Portrait Artist',
+                                'Realistic', 2021),
+                               (4, 'Modern Sculpture',
+                                'https://images.unsplash.com/photo-1672343385650-8d5bb804580a?w=400', 'Sculptor',
+                                'Contemporary', 2022);
+                        """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = (
+            """
+                SELECT llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """'},
+            {
+                'prompt': 'Which artwork in this style is the most recent? Return the title only.',
+                'context_columns': [
+                    {'data': title},
+                    {'data': image_url, 'type': 'image'},
+                    {'data': year_created::VARCHAR}
+                ]
+            }
+        ) AS most_recent_artwork
+            FROM artwork_images
+            GROUP BY style;
+            """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+    lines = result.stdout.strip().split("\n")
+    assert len(lines) >= 4, (
+        f"Expected at least 4 lines (header + 3 styles), got {len(lines)}"
+    )
+    assert "most_recent_artwork" in result.stdout.lower()
+
+
+def test_llm_first_image_batch_processing(integration_setup, model_config):
+    """Test llm_first with multiple images in batch processing."""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    test_model_name = f"test-image-batch-first_{model_name}"
+    create_model_query = (
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE building_images (
+        id INTEGER,
+        building_name VARCHAR,
+        image_url VARCHAR,
+        city VARCHAR,
+        height_meters INTEGER,
+        year_built INTEGER
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    # Insert data with Unsplash building image URLs
+    insert_data_query = """
+                        INSERT INTO building_images
+                        VALUES (1, 'Skyscraper A', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400',
+                                'New York', 300, 2015),
+                               (2, 'Office Tower', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400',
+                                'Chicago', 250, 2018),
+                               (3, 'Modern Complex',
+                                'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400', 'Los Angeles',
+                                200, 2020),
+                               (4, 'Corporate Center',
+                                'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400', 'Miami', 180,
+                                2019); \
+                        """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = (
+            """
+                SELECT city,
+                       llm_first(
+                           {'model_name': '"""
+            + test_model_name
+            + """', 'batch_size': 2},
+            {
+                'prompt': 'Which building in this city has the highest height? Return the building name only.',
+                'context_columns': [
+                    {'data': building_name},
+                    {'data': image_url, 'type': 'image'},
+                    {'data': height_meters::VARCHAR}
+                ]
+            }
+        ) AS tallest_building
+            FROM building_images
+            GROUP BY city
+            ORDER BY city; \
+            """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+    lines = result.stdout.strip().split("\n")
+    assert len(lines) >= 4, (
+        f"Expected at least 4 lines (header + 3 cities), got {len(lines)}"
+    )
+    assert "tallest_building" in result.stdout.lower()
