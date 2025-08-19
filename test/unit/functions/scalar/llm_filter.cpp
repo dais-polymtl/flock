@@ -110,7 +110,7 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
     ASSERT_EQ(results->RowCount(), input_count);
 
     // Verify the first few results match expected
-    for (size_t i = 0; i < std::min<size_t>(input_count, size_t(5)); i++) {
+    for (size_t i = 0; i < std::min(input_count, size_t(5)); i++) {
         auto result_value = results->GetValue(0, i).GetValue<std::string>();
         auto expected_value = expected_response["items"][i].get<bool>() ? "true" : "false";
         EXPECT_EQ(result_value, expected_value);
