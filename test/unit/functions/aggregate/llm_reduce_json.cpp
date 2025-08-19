@@ -40,9 +40,9 @@ protected:
     }
 };
 
-// Test llm_reduce_json with SQL queries without GROUP BY
+// Test llm_reduce_json with SQL queries without GROUP BY - new API
 TEST_F(LLMReduceJsonTest, LLMReduceJsonWithoutGroupBy) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
@@ -52,18 +52,20 @@ TEST_F(LLMReduceJsonTest, LLMReduceJsonWithoutGroupBy) {
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
                                             "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'Summarize the following product descriptions as JSON with summary, key_themes, and product_count fields'}, "
-                                            "{'description': description}"
-                                            ") AS product_summary FROM test_products;");
+                                            "{'prompt': 'Summarize the following product descriptions as JSON with summary, key_themes, and product_count fields', 'context_columns': [{'data': description}]}"
+                                            ") AS product_summary FROM VALUES "
+                                            "('High-performance running shoes with advanced cushioning'), "
+                                            "('Wireless noise-cancelling headphones for immersive audio'), "
+                                            "('Smart fitness tracker with heart rate monitoring') AS products(description);");
 
     ASSERT_EQ(results->RowCount(), 1);
     const auto expected_json = GetExpectedJsonResponse()["items"][0].dump();
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_json);
 }
 
-// Test llm_reduce_json with SQL queries with GROUP BY
+// Test llm_reduce_json with SQL queries with GROUP BY - new API
 TEST_F(LLMReduceJsonTest, LLMReduceJsonWithGroupBy) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(3);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
@@ -72,17 +74,20 @@ TEST_F(LLMReduceJsonTest, LLMReduceJsonWithGroupBy) {
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
-            "SELECT " + GetFunctionName() + "("
-                                            "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'Summarize the following product descriptions as JSON with summary, key_themes, and product_count fields'}, "
-                                            "{'description': description}"
-                                            ") AS description_summary FROM test_products GROUP BY description;");
+            "SELECT category, " + GetFunctionName() + "("
+                                                      "{'model_name': 'gpt-4o'}, "
+                                                      "{'prompt': 'Summarize the following product descriptions as JSON with summary, key_themes, and product_count fields', 'context_columns': [{'data': description}]}"
+                                                      ") AS description_summary FROM VALUES "
+                                                      "('electronics', 'High-performance running shoes with advanced cushioning'), "
+                                                      "('audio', 'Wireless noise-cancelling headphones for immersive audio'), "
+                                                      "('fitness', 'Smart fitness tracker with heart rate monitoring') "
+                                                      "AS products(category, description) GROUP BY category;");
 
     ASSERT_EQ(results->RowCount(), 3);
     const auto expected_json = GetExpectedJsonResponse()["items"][0].dump();
-    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_json);
-    ASSERT_EQ(results->GetValue(0, 1).GetValue<std::string>(), expected_json);
-    ASSERT_EQ(results->GetValue(0, 2).GetValue<std::string>(), expected_json);
+    ASSERT_EQ(results->GetValue(1, 0).GetValue<std::string>(), expected_json);
+    ASSERT_EQ(results->GetValue(1, 1).GetValue<std::string>(), expected_json);
+    ASSERT_EQ(results->GetValue(1, 2).GetValue<std::string>(), expected_json);
 }
 
 // Test argument validation
@@ -95,11 +100,11 @@ TEST_F(LLMReduceJsonTest, Operation_InvalidArguments_ThrowsException) {
     TestOperationInvalidArguments();
 }
 
-// Test operation with multiple input scenarios for JSON output
+// Test operation with multiple input scenarios for JSON output - new API
 TEST_F(LLMReduceJsonTest, Operation_MultipleInputs_ProcessesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(3);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(3)
@@ -108,25 +113,28 @@ TEST_F(LLMReduceJsonTest, Operation_MultipleInputs_ProcessesCorrectly) {
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
-            "SELECT " + GetFunctionName() + "("
-                                            "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'Analyze the following product information and return JSON with summary, categories, and insights'}, "
-                                            "{'name': name, 'description': description}"
-                                            ") AS comprehensive_analysis FROM test_products GROUP BY name;");
+            "SELECT name, " + GetFunctionName() + "("
+                                                  "{'model_name': 'gpt-4o'}, "
+                                                  "{'prompt': 'Analyze the following product information and return JSON with summary, categories, and insights', 'context_columns': [{'data': name}, {'data': description}]}"
+                                                  ") AS comprehensive_analysis FROM VALUES "
+                                                  "('Running Shoes', 'High-performance running shoes with advanced cushioning'), "
+                                                  "('Headphones', 'Wireless noise-cancelling headphones for immersive audio'), "
+                                                  "('Fitness Tracker', 'Smart fitness tracker with heart rate monitoring') "
+                                                  "AS products(name, description) GROUP BY name;");
 
     ASSERT_EQ(results->RowCount(), 3);
     const auto expected_json = GetExpectedJsonResponse()["items"][0].dump();
-    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_json);
-    ASSERT_EQ(results->GetValue(0, 1).GetValue<std::string>(), expected_json);
-    ASSERT_EQ(results->GetValue(0, 2).GetValue<std::string>(), expected_json);
+    ASSERT_EQ(results->GetValue(1, 0).GetValue<std::string>(), expected_json);
+    ASSERT_EQ(results->GetValue(1, 1).GetValue<std::string>(), expected_json);
+    ASSERT_EQ(results->GetValue(1, 2).GetValue<std::string>(), expected_json);
 }
 
-// Test large input set processing with JSON output
+// Test large input set processing with JSON output - new API
 TEST_F(LLMReduceJsonTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(100);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(100)
@@ -135,24 +143,24 @@ TEST_F(LLMReduceJsonTest, Operation_LargeInputSet_ProcessesCorrectly) {
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
-            "SELECT " + GetFunctionName() + "("
-                                            "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'Create a JSON summary of all product descriptions with summary, total_items, and status fields'}, "
-                                            "{'id': id, 'description': description}"
-                                            ") AS large_json_summary FROM test_large_json_dataset GROUP BY id;");
+            "SELECT id, " + GetFunctionName() + "("
+                                                "{'model_name': 'gpt-4o'}, "
+                                                "{'prompt': 'Create a JSON summary of all product descriptions with summary, total_items, and status fields', 'context_columns': [{'data': id::TEXT}, {'data': 'Product description ' || id::TEXT}]}"
+                                                ") AS large_json_summary FROM range(" +
+            std::to_string(input_count) + ") AS t(id) GROUP BY id;");
 
     ASSERT_EQ(results->RowCount(), 100);
     for (size_t i = 0; i < input_count; i++) {
         const auto expected_json = GetExpectedJsonResponse()["items"][0].dump();
-        ASSERT_EQ(results->GetValue(0, i).GetValue<std::string>(), expected_json);
+        ASSERT_EQ(results->GetValue(1, i).GetValue<std::string>(), expected_json);
     }
 }
 
-// Test JSON-specific functionality - ensure output is valid JSON
+// Test JSON-specific functionality - ensure output is valid JSON - new API
 TEST_F(LLMReduceJsonTest, Operation_ValidJsonOutput_ParsesCorrectly) {
     const nlohmann::json expected_response = GetExpectedJsonResponse();
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
@@ -162,9 +170,11 @@ TEST_F(LLMReduceJsonTest, Operation_ValidJsonOutput_ParsesCorrectly) {
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
                                             "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'Return a JSON object with product analysis including summary and metadata'}, "
-                                            "{'description': description}"
-                                            ") AS json_analysis FROM test_products;");
+                                            "{'prompt': 'Return a JSON object with product analysis including summary and metadata', 'context_columns': [{'data': description}]}"
+                                            ") AS json_analysis FROM VALUES "
+                                            "('High-performance running shoes with advanced cushioning'), "
+                                            "('Wireless noise-cancelling headphones for immersive audio'), "
+                                            "('Smart fitness tracker with heart rate monitoring') AS products(description);");
 
     ASSERT_EQ(results->RowCount(), 1);
     const std::string result = results->GetValue(0, 0).GetValue<std::string>();
@@ -176,7 +186,7 @@ TEST_F(LLMReduceJsonTest, Operation_ValidJsonOutput_ParsesCorrectly) {
     });
 }
 
-// Test complex JSON structure output
+// Test complex JSON structure output - new API
 TEST_F(LLMReduceJsonTest, Operation_ComplexJsonStructure_HandlesCorrectly) {
     nlohmann::json complex_response;
     nlohmann::json item;
@@ -192,7 +202,7 @@ TEST_F(LLMReduceJsonTest, Operation_ComplexJsonStructure_HandlesCorrectly) {
 
     complex_response["items"].push_back(item);
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{complex_response}));
@@ -202,9 +212,11 @@ TEST_F(LLMReduceJsonTest, Operation_ComplexJsonStructure_HandlesCorrectly) {
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
                                             "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'Provide a detailed JSON analysis with nested metadata, insights, and summary'}, "
-                                            "{'name': name, 'description': description}"
-                                            ") AS complex_analysis FROM test_products;");
+                                            "{'prompt': 'Provide a detailed JSON analysis with nested metadata, insights, and summary', 'context_columns': [{'data': name}, {'data': description}]}"
+                                            ") AS complex_analysis FROM VALUES "
+                                            "('Running Shoes', 'High-performance running shoes with advanced cushioning'), "
+                                            "('Headphones', 'Wireless noise-cancelling headphones for immersive audio'), "
+                                            "('Fitness Tracker', 'Smart fitness tracker with heart rate monitoring') AS products(name, description);");
 
     ASSERT_EQ(results->RowCount(), 1);
     const std::string result = results->GetValue(0, 0).GetValue<std::string>();

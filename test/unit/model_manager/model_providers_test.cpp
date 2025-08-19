@@ -26,7 +26,7 @@ TEST(ModelProvidersTest, OpenAIProviderTest) {
     const std::string test_prompt = "Test prompt for completion";
     const json expected_complete_response = {{"response", "This is a test response"}};
 
-    EXPECT_CALL(mock_provider, AddCompletionRequest(test_prompt, 1, OutputType::STRING))
+    EXPECT_CALL(mock_provider, AddCompletionRequest(test_prompt, 1, OutputType::STRING, nlohmann::json::array()))
             .Times(1);
     EXPECT_CALL(mock_provider, CollectCompletions("application/json"))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
@@ -41,7 +41,7 @@ TEST(ModelProvidersTest, OpenAIProviderTest) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_embedding_response}));
 
     // Test the mocked methods
-    mock_provider.AddCompletionRequest(test_prompt, 1, OutputType::STRING);
+    mock_provider.AddCompletionRequest(test_prompt, 1, OutputType::STRING, nlohmann::json::array());
     auto complete_results = mock_provider.CollectCompletions("application/json");
     ASSERT_EQ(complete_results.size(), 1);
     EXPECT_EQ(complete_results[0], expected_complete_response);
@@ -71,7 +71,7 @@ TEST(ModelProvidersTest, AzureProviderTest) {
     const std::string test_prompt = "Test prompt for completion";
     const json expected_complete_response = {{"response", "This is a test response from Azure"}};
 
-    EXPECT_CALL(mock_provider, AddCompletionRequest(test_prompt, 1, OutputType::STRING))
+    EXPECT_CALL(mock_provider, AddCompletionRequest(test_prompt, 1, OutputType::STRING, nlohmann::json::array()))
             .Times(1);
     EXPECT_CALL(mock_provider, CollectCompletions("application/json"))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
@@ -86,7 +86,7 @@ TEST(ModelProvidersTest, AzureProviderTest) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_embedding_response}));
 
     // Test the mocked methods
-    mock_provider.AddCompletionRequest(test_prompt, 1, OutputType::STRING);
+    mock_provider.AddCompletionRequest(test_prompt, 1, OutputType::STRING, nlohmann::json::array());
     auto complete_results = mock_provider.CollectCompletions("application/json");
     ASSERT_EQ(complete_results.size(), 1);
     EXPECT_EQ(complete_results[0], expected_complete_response);
@@ -113,7 +113,7 @@ TEST(ModelProvidersTest, OllamaProviderTest) {
     const std::string test_prompt = "Test prompt for Ollama completion";
     const json expected_complete_response = {{"response", "This is a test response from Ollama"}};
 
-    EXPECT_CALL(mock_provider, AddCompletionRequest(test_prompt, 1, OutputType::STRING))
+    EXPECT_CALL(mock_provider, AddCompletionRequest(test_prompt, 1, OutputType::STRING, nlohmann::json::array()))
             .Times(1);
     EXPECT_CALL(mock_provider, CollectCompletions("application/json"))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
@@ -128,7 +128,7 @@ TEST(ModelProvidersTest, OllamaProviderTest) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_embedding_response}));
 
     // Test the mocked methods
-    mock_provider.AddCompletionRequest(test_prompt, 1, OutputType::STRING);
+    mock_provider.AddCompletionRequest(test_prompt, 1, OutputType::STRING, nlohmann::json::array());
     auto complete_results = mock_provider.CollectCompletions("application/json");
     ASSERT_EQ(complete_results.size(), 1);
     EXPECT_EQ(complete_results[0], expected_complete_response);

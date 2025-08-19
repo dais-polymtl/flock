@@ -23,13 +23,19 @@ void AggregateFunctionBase::ValidateArguments(duckdb::Vector inputs[], idx_t inp
     }
 }
 
-std::tuple<nlohmann::json, nlohmann::json, std::vector<nlohmann::json>>
+std::tuple<nlohmann::json, nlohmann::json, nlohmann::json>
 AggregateFunctionBase::CastInputsToJson(duckdb::Vector inputs[], idx_t count) {
-    auto model_details_json = CastVectorOfStructsToJson(inputs[0], 1)[0];
-    auto prompt_details_json = CastVectorOfStructsToJson(inputs[1], 1)[0];
-    auto tuples = CastVectorOfStructsToJson(inputs[2], count);
+    auto model_details_json = CastVectorOfStructsToJson(inputs[0], 1);
+    auto prompt_context_json = CastVectorOfStructsToJson(inputs[1], count);
+    auto context_columns = nlohmann::json::array();
+    if (prompt_context_json.contains("context_columns")) {
+        context_columns = prompt_context_json["context_columns"];
+        prompt_context_json.erase("context_columns");
+    } else {
+        throw std::runtime_error("Expected 'context_columns' in prompt details");
+    }
 
-    return std::make_tuple(model_details_json, prompt_details_json, tuples);
+    return std::make_tuple(model_details_json, prompt_context_json, context_columns);
 }
 
 }// namespace flockmtl

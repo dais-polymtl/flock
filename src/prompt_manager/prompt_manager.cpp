@@ -37,13 +37,13 @@ std::string PromptManager::ReplaceSection(const std::string& prompt_template, co
     return prompt;
 }
 
-std::string PromptManager::ConstructInputTuplesHeader(const nlohmann::json& tuples,
+std::string PromptManager::ConstructInputTuplesHeader(const nlohmann::json& columns,
                                                       const std::string& tuple_format) {
-    switch (const auto format = stringToTupleFormat(tuple_format)) {
+    switch (stringToTupleFormat(tuple_format)) {
         case TupleFormat::XML:
-            return ConstructInputTuplesHeaderXML(tuples);
+            return ConstructInputTuplesHeaderXML(columns);
         case TupleFormat::Markdown:
-            return ConstructInputTuplesHeaderMarkdown(tuples);
+            return ConstructInputTuplesHeaderMarkdown(columns);
         case TupleFormat::JSON:
             return "";
         default:
@@ -51,81 +51,107 @@ std::string PromptManager::ConstructInputTuplesHeader(const nlohmann::json& tupl
     }
 }
 
-std::string PromptManager::ConstructInputTuplesHeaderXML(const nlohmann::json& tuples) {
-    if (tuples.empty()) {
+std::string PromptManager::ConstructInputTuplesHeaderXML(const nlohmann::json& columns) {
+    if (columns.empty()) {
         return "<header></header>\n";
     }
     auto header = std::string("<header>");
-    for (const auto& key: tuples[0].items()) {
-        header += "<col>" + key.key() + "</col>";
+    auto column_idx = 1u;
+    for (const auto& column: columns) {
+        auto column_name = column.contains("name") ? column["name"].get<std::string>() : "COLUMN " + std::to_string(column_idx++);
+        header += "<column>" + column_name + "</column>";
     }
     header += "</header>\n";
     return header;
 }
 
-std::string PromptManager::ConstructInputTuplesHeaderMarkdown(const nlohmann::json& tuples) {
-    if (tuples.empty()) {
-        return "| Empty |\n|---|\n";
+std::string PromptManager::ConstructInputTuplesHeaderMarkdown(const nlohmann::json& columns) {
+    if (columns.empty()) {
+        return " | Empty | \n | ----- | \n";
     }
-    auto header = std::string("|");
-    for (const auto& key: tuples[0].items()) {
-        header += key.key() + "|";
+    auto header = std::string(" | ");
+    auto column_idx = 1u;
+    for (const auto& column: columns) {
+        if (column.contains("name")) {
+            header += "COLUMN_" + column["name"].get<std::string>() + " | ";
+        } else {
+            header += "COLUMN " + std::to_string(column_idx++) + " | ";
+        }
     }
-    header += "\n|";
-    for (const auto& key: tuples[0].items()) {
-        header += "---|";
+    header += "\n | ";
+    column_idx = 1u;
+    for (const auto& column: columns) {
+        auto column_name = column.contains("name") ? column["name"].get<std::string>() : "COLUMN " + std::to_string(column_idx++);
+        header += std::string(column_name.length(), '-') + " | ";
     }
     header += "\n";
     return header;
 }
 
-std::string PromptManager::ConstructSingleInputTuple(const nlohmann::json& tuple, const std::string& tuple_format) {
-    switch (const auto format = stringToTupleFormat(tuple_format)) {
-        case TupleFormat::XML:
-            return ConstructSingleInputTupleXML(tuple);
-        case TupleFormat::Markdown:
-            return ConstructSingleInputTupleMarkdown(tuple);
-        case TupleFormat::JSON:
-            return ConstructSingleInputTupleJSON(tuple);
-        default:
-            throw std::runtime_error("Invalid tuple format provided `" + tuple_format + "`");
+std::string PromptManager::ConstructInputTuplesXML(const nlohmann::json& columns) {
+    if (columns.empty() || columns[0]["data"].empty()) {
+        return "<row></row>\n";
     }
+
+    auto tuples_str = std::string("");
+    for (auto i = 0; i < static_cast<int>(columns[0]["data"].size()); i++) {
+        tuples_str += "<row>";
+        for (const auto& column: columns) {
+            tuples_str += "<column>" + column["data"][i].get<std::string>() + "</column>";
+        }
+        tuples_str += "</row>\n";
+    }
+    return tuples_str;
 }
 
-std::string PromptManager::ConstructSingleInputTupleXML(const nlohmann::json& tuple) {
-    auto tuple_str = std::string("<tuple>");
-    for (const auto& key: tuple.items()) {
-        tuple_str += "<col>" + key.value().dump() + "</col>";
+std::string PromptManager::ConstructInputTuplesMarkdown(const nlohmann::json& columns) {
+    if (columns.empty() || columns[0]["data"].empty()) {
+        return "";
     }
-    tuple_str += "</tuple>\n";
-    return tuple_str;
+
+    auto tuples_str = std::string("");
+    for (auto i = 0; i < static_cast<int>(columns[0]["data"].size()); i++) {
+        tuples_str += " | ";
+        for (const auto& column: columns) {
+            tuples_str += column["data"][i].dump() + " | ";
+        }
+        tuples_str += "\n";
+    }
+    return tuples_str;
 }
 
-std::string PromptManager::ConstructSingleInputTupleMarkdown(const nlohmann::json& tuple) {
-    auto tuple_str = std::string("|");
-    for (const auto& key: tuple.items()) {
-        tuple_str += key.value().dump() + "|";
+std::string PromptManager::ConstructInputTuplesJSON(const nlohmann::json& columns) {
+    auto tuples_json = nlohmann::json::object();
+    auto column_idx = 1u;
+    for (const auto& column: columns) {
+        auto column_name = column.contains("name") ? column["name"].get<std::string>() : "COLUMN " + std::to_string(column_idx++);
+        tuples_json[column_name] = column["data"];
     }
-    tuple_str += "\n";
-    return tuple_str;
-}
-
-std::string PromptManager::ConstructSingleInputTupleJSON(const nlohmann::json& tuple) {
-    return tuple.dump() + "\n";
+    auto tuples_str = tuples_json.dump(4);
+    tuples_str += "\n";
+    return tuples_str;
 }
 
 std::string PromptManager::ConstructNumTuples(const int num_tuples) {
     return "- The Number of Tuples to Generate Responses for: " + std::to_string(num_tuples) + "\n\n";
 }
 
-std::string PromptManager::ConstructInputTuples(const nlohmann::json& tuples, const std::string& tuple_format) {
+std::string PromptManager::ConstructInputTuples(const nlohmann::json& columns, const std::string& tuple_format) {
     auto tuples_str = std::string("");
-    tuples_str += PromptManager::ConstructNumTuples(static_cast<int>(tuples.size()));
-    tuples_str += PromptManager::ConstructInputTuplesHeader(tuples, tuple_format);
-    for (const auto& tuple: tuples) {
-        tuples_str += PromptManager::ConstructSingleInputTuple(tuple, tuple_format);
+    const auto num_tuples = columns.size() > 0 ? static_cast<int>(columns[0]["data"].size()) : 0;
+
+    tuples_str += PromptManager::ConstructNumTuples(num_tuples);
+    tuples_str += PromptManager::ConstructInputTuplesHeader(columns, tuple_format);
+    switch (const auto format = stringToTupleFormat(tuple_format)) {
+        case TupleFormat::XML:
+            return tuples_str + ConstructInputTuplesXML(columns);
+        case TupleFormat::Markdown:
+            return tuples_str + ConstructInputTuplesMarkdown(columns);
+        case TupleFormat::JSON:
+            return tuples_str + ConstructInputTuplesJSON(columns);
+        default:
+            throw std::runtime_error("Invalid tuple format provided `" + tuple_format + "`");
     }
-    return tuples_str;
 }
 
 PromptDetails PromptManager::CreatePromptDetails(const nlohmann::json& prompt_details_json) {

@@ -4,15 +4,15 @@ namespace flockmtl {
 
 std::vector<int> LlmRerank::RerankBatch(const nlohmann::json& tuples) {
     nlohmann::json data;
-    auto prompt =
+    auto [prompt, media_data] =
             PromptManager::Render(user_query, tuples, AggregateFunctionType::RERANK, model.GetModelDetails().tuple_format);
-    model.AddCompletionRequest(prompt, static_cast<int>(tuples.size()), OutputType::INTEGER);
+    model.AddCompletionRequest(prompt, static_cast<int>(tuples[0]["data"].size()), OutputType::INTEGER, media_data);
     auto responses = model.CollectCompletions();
     return responses[0]["items"];
 };
 
 nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
-    const auto num_tuples = static_cast<int>(tuples.size());
+    const auto num_tuples = static_cast<int>(tuples[0]["data"].size());
     auto final_ranked_tuples = nlohmann::json::array();
     auto carry_forward_tuples = nlohmann::json::array();
     auto start_index = 0;
@@ -28,29 +28,41 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
     }
 
     while (start_index < num_tuples || !carry_forward_tuples.empty()) {
-        auto window_tuples = nlohmann::json::array();
-
-        // First add carry forward tuples from previous batch
-        for (const auto& tuple: carry_forward_tuples) {
-            window_tuples.push_back(tuple);
-        }
+        auto window_tuples = carry_forward_tuples;
 
         // Then add new tuples up to batch_size
-        auto remaining_space = batch_size - static_cast<int>(carry_forward_tuples.size());
+        auto remaining_space = batch_size - static_cast<int>(window_tuples[0]["data"].size());
         auto end_index = std::min<int>(start_index + remaining_space, num_tuples);
-        for (auto i = start_index; i < end_index; i++) {
-            window_tuples.push_back(tuples[i]);
+        for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
+            if (i >= static_cast<int>(window_tuples.size())) {
+                window_tuples.push_back(nlohmann::json::object());
+            }
+            for (const auto& item: tuples[i].items()) {
+                if (item.key() == "data") {
+                    for (auto j = start_index; j < end_index; j++) {
+                        if (j == 0) {
+                            window_tuples[i]["data"] = nlohmann::json::array();
+                        }
+                        window_tuples[i]["data"].push_back(item.value()[j]);
+                    }
+                } else {
+                    window_tuples[i][item.key()] = item.value();
+                }
+            }
         }
 
         // Clear carry forward for next iteration
         carry_forward_tuples.clear();
 
         try {
-            auto indexed_tuples = nlohmann::json::array();
-            for (auto i = 0; i < static_cast<int>(window_tuples.size()); i++) {
-                auto indexed_tuple = window_tuples[i];
-                indexed_tuple["flockmtl_tuple_id"] = i;
-                indexed_tuples.push_back(indexed_tuple);
+            auto indexed_tuples = window_tuples;
+            indexed_tuples.push_back(nlohmann::json::object());
+            for (auto i = 0; i < static_cast<int>(window_tuples[0]["data"].size()); i++) {
+                if (i == 0) {
+                    indexed_tuples.back()["name"] = "flockmtl_row_id";
+                    indexed_tuples.back()["data"] = nlohmann::json::array();
+                }
+                indexed_tuples.back()["data"].push_back(std::to_string(i));
             }
 
             auto ranked_indices = RerankBatch(indexed_tuples);
@@ -58,28 +70,32 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
             // Add the bottom half to final results (they won't be re-ranked)
             auto half_batch = static_cast<int>(ranked_indices.size()) / 2;
             for (auto i = half_batch; i < static_cast<int>(ranked_indices.size()); i++) {
-                auto ranked_tuple = window_tuples[ranked_indices[i]];
-                if (ranked_tuple.contains("flockmtl_tuple_id")) {
-                    ranked_tuple.erase("flockmtl_tuple_id");
+                auto idx = 0u;
+                for (auto& column: window_tuples) {
+                    final_ranked_tuples[idx]["data"].push_back(column["data"][ranked_indices[i]]);
+                    idx++;
                 }
-                final_ranked_tuples.push_back(ranked_tuple);
             }
 
             // Carry forward top half to next batch for re-ranking
             for (auto i = 0; i < half_batch; i++) {
-                auto carry_tuple = window_tuples[ranked_indices[i]];
-                if (carry_tuple.contains("flockmtl_tuple_id")) {
-                    carry_tuple.erase("flockmtl_tuple_id");
+                auto idx = 0u;
+                for (auto& column: window_tuples) {
+                    carry_forward_tuples[idx]["data"].push_back(column["data"][ranked_indices[i]]);
+                    idx++;
                 }
-                carry_forward_tuples.push_back(carry_tuple);
             }
 
             start_index = end_index;
 
             // If we've processed all input tuples, add remaining carry forward to final results
             if (start_index >= num_tuples && !carry_forward_tuples.empty()) {
-                for (const auto& tuple: carry_forward_tuples) {
-                    final_ranked_tuples.insert(final_ranked_tuples.begin(), tuple);
+                auto idx = 0u;
+                for (const auto& column: carry_forward_tuples) {
+                    for (const auto& i: column["data"]) {
+                        final_ranked_tuples[idx]["data"].push_back(i);
+                    }
+                    idx++;
                 }
                 carry_forward_tuples.clear();
             }

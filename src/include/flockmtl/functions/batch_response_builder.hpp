@@ -6,6 +6,6 @@
 
 namespace flockmtl {
 
-std::vector<nlohmann::json> CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, int size);
+nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, int size);
 
 }// namespace flockmtl

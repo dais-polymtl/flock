@@ -2,11 +2,14 @@
 
 #include "fmt/format.h"
 #include <nlohmann/json.hpp>
+#include <regex>
 
 #include "flockmtl/model_manager/providers/handlers/handler.hpp"
 #include "flockmtl/model_manager/repository.hpp"
 
 namespace flockmtl {
+
+bool is_base64(const std::string& str);
 
 enum class OutputType {
     STRING,
@@ -23,7 +26,7 @@ public:
     explicit IProvider(const ModelDetails& model_details) : model_details_(model_details) {};
     virtual ~IProvider() = default;
 
-    virtual void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type) = 0;
+    virtual void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) = 0;
     virtual void AddEmbeddingRequest(const std::vector<std::string>& inputs) = 0;
 
     virtual std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json") {

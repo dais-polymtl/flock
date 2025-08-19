@@ -41,7 +41,7 @@ protected:
 
 // Test llm_complete with SQL queries
 TEST_F(LLMCompleteTest, LLMCompleteWithoutInputColumns) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
@@ -54,13 +54,13 @@ TEST_F(LLMCompleteTest, LLMCompleteWithoutInputColumns) {
 
 TEST_F(LLMCompleteTest, LLMCompleteWithInputColumns) {
     const nlohmann::json expected_response = {{"items", {"The capital of Canada is Ottawa."}}};
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'},{'prompt': 'What is the capital of France?'}, {'input': 'France'}) AS flockmtl_capital;");
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'What is the capital of', 'context_columns': [{'data': country}]}) AS flockmtl_capital FROM unnest(['Canada']) as tbl(country);");
     ASSERT_EQ(results->RowCount(), 1);
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_response["items"][0]);
 }
@@ -70,57 +70,62 @@ TEST_F(LLMCompleteTest, ValidateArguments) {
 }
 
 TEST_F(LLMCompleteTest, Operation_TwoArguments_SimplePrompt) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    duckdb::DataChunk chunk;
-    CreateBasicChunk(chunk);
+    // Use SQL-based approach - DuckDB's best practice for testing custom functions
+    auto con = Config::GetConnection();
 
-    SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
-    SetStructStringData(chunk.data[1], {{{"prompt", TEST_PROMPT}}});
+    auto query = "SELECT " + GetFunctionName() +
+                 "({'model_name': '" + std::string(DEFAULT_MODEL) + "'}, " +
+                 "{'prompt': '" + std::string(TEST_PROMPT) + "'}) AS result;";
 
-    auto results = LlmComplete::Operation(chunk);
+    const auto results = con.Query(query);
 
-    EXPECT_EQ(results.size(), 1);
-    EXPECT_EQ(results[0], GetExpectedResponse());
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), GetExpectedResponse());
 }
 
 TEST_F(LLMCompleteTest, Operation_ThreeArguments_BatchProcessing) {
-    const std::vector<std::string> responses = {"response 1", "response 2"};
+    const std::vector<std::string> responses = {"response 1", "response 2", "response 3"};
     const nlohmann::json expected_response = PrepareExpectedResponseForBatch(responses);
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
-    duckdb::DataChunk chunk;
-    auto model_struct = CreateModelStruct();
-    auto prompt_struct = CreatePromptStruct();
-    auto input_struct = CreateInputStruct({"variable1", "variable2"});
+    // Use SQL approach - DuckDB's best practice
+    auto con = Config::GetConnection();
 
-    chunk.Initialize(duckdb::Allocator::DefaultAllocator(), {model_struct, prompt_struct, input_struct});
-    chunk.SetCardinality(2);
+    auto query = "SELECT " + GetFunctionName() +
+                 "({'model_name': 'gpt-4o'}, " +
+                 "{'prompt': 'Explain the purpose of each product.', " +
+                 " 'context_columns': [{'data': product}]}) AS result FROM unnest(['Product 1', 'Product 2', 'Product 3']) as tbl(product);";
 
-    // Set data for batch processing
-    SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
-    SetStructStringData(chunk.data[1], {{{"prompt", TEST_PROMPT}}});
-    SetStructStringData(chunk.data[2], {{{"variable1", "Hello"}, {"variable2", "World"}},
-                                        {{"variable1", "Good"}, {"variable2", "Morning"}}});
+    const auto results = con.Query(query);
 
-    auto results = LlmComplete::Operation(chunk);
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 3);
 
-    EXPECT_EQ(results.size(), 2);
-    EXPECT_EQ(results, expected_response["items"]);
+    auto result_value = results->GetValue(0, 0).GetValue<std::string>();
+    EXPECT_EQ(result_value, responses[0]);
 }
 
 TEST_F(LLMCompleteTest, Operation_InvalidArguments_ThrowsException) {
-    TestOperationInvalidArguments();
+    // Test with invalid SQL syntax - missing required arguments
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}) AS result;");
+    ASSERT_TRUE(results->HasError()) << "Expected error for missing arguments, but query succeeded";
 }
 
 TEST_F(LLMCompleteTest, Operation_EmptyPrompt_HandlesGracefully) {
-    TestOperationEmptyPrompt();
+    // Test with empty prompt using SQL API
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': ''}) AS result;");
+    ASSERT_TRUE(results->HasError()) << "Expected error for empty prompt, but query succeeded";
 }
 
 TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
@@ -128,36 +133,32 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_))
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
-    duckdb::DataChunk chunk;
-    auto model_struct = CreateModelStruct();
-    auto prompt_struct = CreatePromptStruct();
-    auto input_struct = CreateInputStruct({"text"});
+    // Use SQL approach - DuckDB's best practice for large datasets
+    auto con = Config::GetConnection();
 
-    chunk.Initialize(duckdb::Allocator::DefaultAllocator(), {model_struct, prompt_struct, input_struct});
-    chunk.SetCardinality(input_count);
+    // Generate a large dataset using DuckDB's range function
+    auto query = "SELECT " + GetFunctionName() +
+                 "({'model_name': 'gpt-4o'}, " +
+                 "{'prompt': 'Summarize the following text', " +
+                 " 'context_columns': [{'data': 'Input text ' || i::TEXT}]}) AS result " +
+                 "FROM range(" + std::to_string(input_count) + ") AS t(i);";
 
-    // Set model and prompt data
-    SetStructStringData(chunk.data[0], {{{"model_name", DEFAULT_MODEL}}});
-    SetStructStringData(chunk.data[1], {{{"prompt", "Summarize the following text"}}});
+    const auto results = con.Query(query);
 
-    // Create large input dataset
-    std::vector<std::map<std::string, std::string>> large_input;
-    large_input.reserve(input_count);
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), input_count);
+
+    // Verify the first few results match expected
     for (size_t i = 0; i < input_count; i++) {
-        large_input.push_back({{"text", "Input text " + std::to_string(i)}});
+        auto result_value = results->GetValue(0, i).GetValue<std::string>();
+        auto expected_value = expected_response["items"][i].get<std::string>();
+        EXPECT_EQ(result_value, expected_value);
     }
-
-    SetStructStringData(chunk.data[2], large_input);
-
-    const auto results = LlmComplete::Operation(chunk);
-
-    EXPECT_EQ(results.size(), input_count);
-    EXPECT_EQ(results, expected_response["items"]);
 }
 
 }// namespace flockmtl

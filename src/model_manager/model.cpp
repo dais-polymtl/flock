@@ -3,6 +3,13 @@
 
 namespace flockmtl {
 
+// Regular expression to match a valid Base64 string
+const std::regex base64_regex(R"(^[A-Za-z0-9+/=]+$)");
+
+bool is_base64(const std::string& str) {
+    return std::regex_match(str, base64_regex);
+}
+
 Model::Model(const nlohmann::json& model_json) {
     LoadModelDetails(model_json);
     ConstructProvider();
@@ -91,8 +98,8 @@ void Model::ConstructProvider() {
 
 ModelDetails Model::GetModelDetails() { return model_details_; }
 
-void Model::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type) {
-    provider_->AddCompletionRequest(prompt, num_output_tuples, output_type);
+void Model::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
+    provider_->AddCompletionRequest(prompt, num_output_tuples, output_type, media_data);
 }
 
 void Model::AddEmbeddingRequest(const std::vector<std::string>& inputs) {

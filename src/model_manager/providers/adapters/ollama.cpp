@@ -2,7 +2,7 @@
 
 namespace flockmtl {
 
-void OllamaProvider::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type) {
+void OllamaProvider::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
     nlohmann::json request_payload = {{"model", model_details_.model},
                                       {"prompt", prompt},
                                       {"stream", false}};

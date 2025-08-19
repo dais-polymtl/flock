@@ -18,14 +18,26 @@ std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataC
     // LlmEmbedding::ValidateArguments(args);
 
     auto inputs = CastVectorOfStructsToJson(args.data[1], args.size());
-    auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1)[0];
+    for (const auto& item: inputs.items()) {
+        if (item.key() != "context_columns") {
+            throw std::runtime_error(duckdb_fmt::format("Unexpected key in inputs: {}", item.key()));
+        }
+    }
+    for (const auto& context_column: inputs["context_columns"]) {
+        if (context_column.contains("type") && context_column["type"].get<std::string>() == "image") {
+            throw std::runtime_error("Image embedding is not supported yet. Please use text data for embedding.");
+        }
+    }
+
+    auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1);
     Model model(model_details_json);
 
     std::vector<std::string> prepared_inputs;
-    for (auto& row: inputs) {
+    auto num_rows = inputs["context_columns"][0]["data"].size();
+    for (size_t row_idx = 0; row_idx < num_rows; row_idx++) {
         std::string concat_input;
-        for (auto& item: row.items()) {
-            concat_input += item.value().get<std::string>() + " ";
+        for (auto& context_column: inputs["context_columns"]) {
+            concat_input += context_column["data"][row_idx].get<std::string>() + " ";
         }
         prepared_inputs.push_back(concat_input);
     }

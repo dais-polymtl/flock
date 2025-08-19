@@ -107,9 +107,10 @@ SecretManager::ConstructBaseSecret(duckdb::vector<std::string>& prefix_paths_p, 
 std::unordered_map<std::string, std::string> SecretManager::GetSecret(const std::string& secret_name) {
     std::unordered_map<std::string, std::string> secret_map;
     auto& instance = Config::db;
-    auto& secret_manager = instance->GetSecretManager();
+    auto secret_manager = &instance->GetSecretManager();
     auto transaction = duckdb::CatalogTransaction::GetSystemTransaction(*instance);
-    auto secret = secret_manager.GetSecretByName(transaction, secret_name);
+    auto secret = secret_manager->GetSecretByName(transaction, secret_name);
+    secret = secret_manager->GetSecretByName(transaction, secret_name);
     if (secret == nullptr) {
         throw duckdb::InvalidInputException("Secret not found : %s", secret_name.c_str());
     }
