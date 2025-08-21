@@ -8,7 +8,7 @@ protected:
     // The LLM response (for mocking) - for llm_last, it should select the last index
     static constexpr const char* LLM_RESPONSE = R"({"items":[0]})";
     // The expected function output (selected data from the last position)
-    static constexpr const char* EXPECTED_RESPONSE = R"({"data":["High-performance running shoes with advanced cushioning"]})";
+    static constexpr const char* EXPECTED_RESPONSE = R"([{"data":["High-performance running shoes with advanced cushioning"]}])";
 
     std::string GetExpectedResponse() const override {
         return EXPECTED_RESPONSE;
@@ -85,7 +85,7 @@ TEST_F(LLMLastTest, LLMLastWithGroupBy) {
     for (idx_t i = 0; i < results->RowCount(); i++) {
         EXPECT_NO_THROW({
             nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
-            EXPECT_TRUE(parsed.contains("data"));
+            EXPECT_TRUE(parsed[0].contains("data"));
         });
     }
 }
@@ -126,7 +126,7 @@ TEST_F(LLMLastTest, Operation_MultipleInputs_ProcessesCorrectly) {
     for (idx_t i = 0; i < results->RowCount(); i++) {
         EXPECT_NO_THROW({
             nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
-            EXPECT_TRUE(parsed.contains("data"));
+            EXPECT_TRUE(parsed[0].contains("data"));
         });
     }
 }
@@ -155,7 +155,7 @@ TEST_F(LLMLastTest, Operation_LargeInputSet_ProcessesCorrectly) {
     for (idx_t i = 0; i < results->RowCount(); i++) {
         EXPECT_NO_THROW({
             nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
-            EXPECT_TRUE(parsed.contains("data"));
+            EXPECT_TRUE(parsed[0].contains("data"));
         });
     }
 }
