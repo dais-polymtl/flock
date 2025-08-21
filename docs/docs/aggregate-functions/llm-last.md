@@ -19,14 +19,17 @@ Retrieve the least relevant product feature across all rows:
 
 ```sql
 SELECT llm_last(
-    {'model_name': 'gpt-4'},
-    {'prompt': 'What is the least relevant detail for these products, based on their names and descriptions?'},
-    {'product_name': product_name, 'product_description': product_description}
+    {'model_name': 'gpt-4o'},
+    {'prompt': 'professional work productivity', 'context_columns': [{'data': product_name}, {'data': product_description}]}
 ) AS last_product_feature
-FROM products;
+FROM VALUES
+    ('MacBook Pro', 'High-performance laptop with M2 chip and Retina display'),
+    ('AirPods Pro', 'Wireless earbuds with active noise cancellation'),
+    ('iPad Air', 'Lightweight tablet perfect for creativity and productivity')
+AS t(product_name, product_description);
 ```
 
-This query will return the least relevant feature from all product descriptions and product names.
+**Description**: This query returns the product least relevant to the given sentence from all product descriptions and product names.
 
 ### 1.2. **Example with `GROUP BY`**
 
@@ -35,54 +38,69 @@ Retrieve the least relevant product feature for each product category:
 ```sql
 SELECT category,
        llm_last(
-           {'model_name': 'gpt-4'},
-           {'prompt': 'What is the least relevant detail for these products, based on their names and descriptions?'},
-           {'product_name': product_name, 'product_description': product_description}
+           {'model_name': 'gpt-4o'},
+           {'prompt': 'high-quality audio equipment for entertainment', 'context_columns': [{'data': product_name}, {'data': product_description}]}
        ) AS last_product_feature
-FROM products
+FROM VALUES
+    ('Electronics', 'Premium Headphones', 'High-quality wireless headphones with superior sound', 89.99),
+    ('Electronics', 'Gaming Mouse', 'Precision gaming mouse with RGB lighting', 45.99),
+    ('Electronics', 'Wireless Keyboard', 'Ergonomic wireless keyboard with backlight', 79.99),
+    ('Books', 'Python Programming', 'Complete guide to Python programming language', 39.99),
+    ('Books', 'Data Science Guide', 'Comprehensive data science methodology book', 49.99),
+    ('Books', 'Machine Learning', 'Introduction to machine learning algorithms', 59.99)
+AS products(category, product_name, product_description, price)
 GROUP BY category;
 ```
 
-In this case, the query groups products by category and returns the least relevant feature for each category.
+**Description**: The query groups the products by category and returns the product least relevant to the given sentence for each group.
 
 ### 1.3. **Using a Named Prompt with `GROUP BY`**
 
-Use a reusable prompt such as "least-relevant-detail" to extract the least relevant feature for each product category:
+Use a reusable prompt, such as "least-relevant-detail", to extract the least relevant feature for each product category:
 
 ```sql
 SELECT category,
        llm_last(
-           {'model_name': 'gpt-4', 'secret_name': 'my_key'},
-           {'prompt_name': 'least-relevant-detail', 'version': 1},
-           {'product_name': product_name, 'product_description': product_description}
+           {'model_name': 'gpt-4o', 'secret_name': 'product_key'},
+           {'prompt_name': 'least-relevant-detail', 'version': 1, 'context_columns': [{'data': product_name}, {'data': product_description}]}
        ) AS last_product_feature
-FROM products
+FROM (
+    SELECT * FROM (
+        VALUES
+            ('Electronics', 'MacBook Pro', 'High-performance laptop with M2 chip'),
+            ('Electronics', 'iPhone 15', 'Latest smartphone with advanced camera system'),
+            ('Accessories', 'Magic Mouse', 'Wireless mouse with multi-touch surface'),
+            ('Accessories', 'USB-C Cable', 'Fast charging cable for modern devices')
+    ) AS t(category, product_name, product_description)
+)
 GROUP BY category;
 ```
 
-If the `version` parameter is omitted, the system will use the latest version of the `least-relevant-detail` prompt by default.
+**Description**: This example leverages a named prompt (`least-relevant-detail`) to extract the least relevant feature for each product category. The query groups the results by category.
 
 ### 1.4. **Advanced Example with Multiple Columns and `GROUP BY`**
 
 Retrieve the least relevant feature for products grouped by category, using both the product name and description:
 
 ```sql
-WITH product_info AS (
-    SELECT category, product_name, product_description
-    FROM products
-    WHERE category = 'Electronics'
+WITH sample_products AS (
+    SELECT * FROM (
+        VALUES
+            ('Electronics', 'MacBook Pro', 'High-performance laptop with M2 chip'),
+            ('Electronics', 'iPhone 15', 'Latest smartphone with advanced camera'),
+            ('Electronics', 'iPad Air', 'Lightweight tablet for creativity')
+    ) AS t(category, product_name, product_description)
 )
 SELECT category,
        llm_last(
-           {'model_name': 'gpt-4'},
-           {'prompt': 'What is the least relevant detail for these products, based on their names and descriptions?'},
-           {'product_name': product_name, 'product_description': product_description}
+           {'model_name': 'gpt-4o'},
+           {'prompt': 'mobile communication and calls', 'context_columns': [{'data': product_name}, {'data': product_description}]}
        ) AS last_product_feature
-FROM product_info
+FROM sample_products
 GROUP BY category;
 ```
 
-This example will extract the least relevant feature from both the product name and description for each product category.
+**Description**: This query extracts the product least relevant to the given sentence from both the `product_name` and `product_description` columns, grouped by product category.
 
 ## 2. **Input Parameters**
 
@@ -95,7 +113,7 @@ This example will extract the least relevant feature from both the product name 
 - **Description**: Specifies the model used for text generation.
 - **Example**:
   ```sql
-  { 'model_name': 'gpt-4' }
+  { 'model_name': 'gpt-4o' }
   ```
 
 #### 2.1.2 Model Selection with Secret
@@ -103,7 +121,7 @@ This example will extract the least relevant feature from both the product name 
 - **Description**: Specifies the model along with the secret name to be used for authentication when accessing the model.
 - **Example**:
   ```sql
-  { 'model_name': 'gpt-4', 'secret_name': 'your_secret_name' }
+  { 'model_name': 'gpt-4o', 'secret_name': 'your_secret_name' }
   ```
 
 ### 2.2. **Prompt Configuration**
@@ -112,10 +130,10 @@ Two types of prompts can be used:
 
 1. **Inline Prompt**
 
-   - Directly provides the prompt in the query.
+   - Directly provides the prompt in the query with context columns.
    - **Example**:
      ```sql
-     {'prompt': 'What is the least relevant detail for these products, based on their names and descriptions?'}
+     {'prompt': 'professional audio equipment', 'context_columns': [{'data': product_name}, {'data': product_description}]}
      ```
 
 2. **Named Prompt**
@@ -133,13 +151,20 @@ Two types of prompts can be used:
      {'prompt_name': 'least-relevant-detail', 'version': 1}
      ```
 
-### 2.3. **Column Mappings (Optional)**
+### 2.3. **Context Columns Configuration**
 
-- **Key**: Column mappings.
-- **Purpose**: Maps table columns to prompt variables for input.
+- **Key**: `context_columns` array.
+- **Purpose**: Maps table columns to provide input data for the model. Each column can have three properties:
+  - `data`: The SQL column data (required)
+  - `name`: Custom name for the column to be referenced in the prompt (optional)
+  - `type`: Data type - "tabular" (default) or "image" (optional)
 - **Example**:
   ```sql
-  {'product_name': product_name, 'product_description': product_description}
+  'context_columns': [
+    {'data': product_name, 'name': 'product'},
+    {'data': product_description},
+    {'data': image_url, 'type': 'image'}
+  ]
   ```
 
 ## 3. **Output**

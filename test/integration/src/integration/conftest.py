@@ -3,6 +3,8 @@ import subprocess
 import pytest
 from pathlib import Path
 from dotenv import load_dotenv
+import base64
+import requests
 from integration.setup_test_db import setup_test_db
 
 load_dotenv()
@@ -30,3 +32,26 @@ def run_cli(duckdb_cli_path, db_path, query):
         text=True,
         check=False,
     )
+
+def get_image_data_for_provider(image_url, provider):
+    """
+    Get image data in the appropriate format based on the provider.
+    OpenAI uses URLs directly, Ollama uses base64 encoding.
+    """
+    if provider == "openai":
+        return image_url
+    elif provider == "ollama":
+        # Fetch the image and convert to base64
+        try:
+            response = requests.get(image_url, timeout=10)
+            response.raise_for_status()
+            image_base64 = base64.b64encode(response.content).decode("utf-8")
+            return image_base64
+        except Exception as e:
+            # Fallback to URL if fetching fails
+            print(
+                f"Warning: Failed to fetch image {image_url}: {e}. Using URL instead."
+            )
+            return image_url
+    else:
+        return image_url

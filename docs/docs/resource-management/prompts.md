@@ -60,7 +60,7 @@ Generate a description for products using a predefined prompt:
 
 ```sql
 SELECT llm_complete(
-    {'model_name': 'gpt-4'},
+    {'model_name': 'gpt-4o'},
     {'prompt_name': 'product-description'},
     {'input_text': product_description}
 ) AS generated_description
@@ -86,7 +86,7 @@ Prompt creation is database specific if you want it to be available irrespective
 
 ### Create Prompts
 
-*   Create a global prompt:
+- Create a global prompt:
 
 ```sql
 CREATE GLOBAL PROMPT('prompt_name', 'prompt');

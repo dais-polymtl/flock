@@ -19,7 +19,7 @@ import TOCInline from '@theme/TOCInline';
 Models are stored in a table with the following structure:
 
 | **Column Name**     | **Description**                                                                                                                                                                                                                                   |
-|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Model Name**      | Unique identifier for the model                                                                                                                                                                                                                   |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                                                                                                                                                                                     |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`)                                                                                                                                                                                           |
@@ -168,7 +168,7 @@ CREATE GLOBAL MODEL
 );
 CREATE GLOBAL MODEL
 (
-    'model_name', 'model_type', 'provider', 
+    'model_name', 'model_type', 'provider',
     {
         "tuple_format": "XML",
         "batch_size": 8
@@ -176,7 +176,7 @@ CREATE GLOBAL MODEL
 );
 CREATE GLOBAL MODEL
 (
-    'model_name', 'model_type', 'provider', 
+    'model_name', 'model_type', 'provider',
     {
         "tuple_format": "Markdown"
     }
@@ -188,7 +188,7 @@ CREATE GLOBAL MODEL
 ```sql
 CREATE LOCAL MODEL('model_name', 'model_type', 'provider');
 CREATE LOCAL MODEL(
-    'model_name', 'model_type', 'provider', 
+    'model_name', 'model_type', 'provider',
     {
         "tuple_format": "JSON",
         "batch_size": 8,
@@ -199,7 +199,7 @@ CREATE LOCAL MODEL(
 );
 CREATE LOCAL MODEL
 (
-    'model_name', 'model_type', 'provider', 
+    'model_name', 'model_type', 'provider',
     {
         "tuple_format": "XML",
         "batch_size": 8,
@@ -281,7 +281,7 @@ All other queries remain the same for both global and local models.
 
 ```sql
 SELECT llm_complete(
-    {'model_name': 'gpt-4'},
+    {'model_name': 'gpt-4o'},
     {'prompt_name': 'product-description'},
     {'input_text': product_description}
 ) AS generated_description
