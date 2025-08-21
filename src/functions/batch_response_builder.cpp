@@ -20,7 +20,7 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
                 for (auto context_column_idx = 0; context_column_idx < static_cast<int>(context_columns.size()); context_column_idx++) {
                     auto context_column = context_columns[context_column_idx];
                     auto context_column_json = CastVectorOfStructsToJson(duckdb::Vector(context_column), 1);
-                    auto allowed_keys = {"name", "data", "type"};
+                    auto allowed_keys = {"name", "data", "type", "detail"};
                     for (const auto& key: context_column_json.items()) {
                         if (std::find(std::begin(allowed_keys), std::end(allowed_keys), key.key()) == std::end(allowed_keys)) {
                             throw std::runtime_error(duckdb_fmt::format("Unexpected key in 'context_columns': {}", key.key()));
