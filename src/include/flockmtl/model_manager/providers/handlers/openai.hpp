@@ -19,6 +19,9 @@ public:
             _api_base_url = "https://api.openai.com/v1/";
         } else {
             _api_base_url = api_base_url;
+            if (_api_base_url.back() != '/') {
+                _api_base_url += '/';
+            }
         }
         _session.setUrl(_api_base_url);
     }

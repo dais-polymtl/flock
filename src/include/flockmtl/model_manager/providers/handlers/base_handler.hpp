@@ -51,7 +51,7 @@ public:
         for (const auto& h: getExtraHeaders()) {
             headers = curl_slist_append(headers, h.c_str());
         }
-        std::string url = is_completion ? getCompletionUrl() : getEmbedUrl();
+        auto url = is_completion ? getCompletionUrl() : getEmbedUrl();
         for (size_t i = 0; i < jsons.size(); ++i) {
             requests[i].payload = jsons[i].dump();
             requests[i].easy = curl_easy_init();
