@@ -1,6 +1,7 @@
 import pytest
 from integration.conftest import run_cli, get_image_data_for_provider
 
+
 @pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
 def model_config(request):
     """Fixture to test with different models."""
@@ -520,9 +521,9 @@ def test_llm_first_with_image_integration(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    buddy_url = 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400'
-    whiskers_url = 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400'
-    max_url = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400'
+    buddy_url = "https://images.unsplash.com/photo-1552053831-71594a27632d?w=400"
+    whiskers_url = "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400"
+    max_url = "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400"
 
     # Get image data in appropriate format for provider
     buddy_image = get_image_data_for_provider(buddy_url, provider)
@@ -590,10 +591,10 @@ def test_llm_first_image_with_group_by(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    abstract_url = 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400'
-    landscape_url = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400'
-    portrait_url = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400'
-    sculpture_url = 'https://images.unsplash.com/photo-1672343385650-8d5bb804580a?w=400'
+    abstract_url = "https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400"
+    landscape_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400"
+    portrait_url = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400"
+    sculpture_url = "https://images.unsplash.com/photo-1672343385650-8d5bb804580a?w=400"
 
     # Get image data in appropriate format for provider
     abstract_image = get_image_data_for_provider(abstract_url, provider)
@@ -672,10 +673,12 @@ def test_llm_first_image_batch_processing(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    skyscraper_url = 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400'
-    office_url = 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400'
-    modern_url = 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400'
-    corporate_url = 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400'
+    skyscraper_url = (
+        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400"
+    )
+    office_url = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400"
+    modern_url = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400"
+    corporate_url = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400"
 
     # Get image data in appropriate format for provider
     skyscraper_image = get_image_data_for_provider(skyscraper_url, provider)

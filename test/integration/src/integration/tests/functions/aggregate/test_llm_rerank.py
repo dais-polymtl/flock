@@ -1,6 +1,7 @@
 import pytest
 from integration.conftest import run_cli, get_image_data_for_provider
 
+
 @pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
 def model_config(request):
     """Fixture to test with different models."""
@@ -531,9 +532,11 @@ def test_llm_rerank_with_image_integration(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    dress_url = 'https://plus.unsplash.com/premium_photo-1687279093043-73bd1bf3f0bf?w=400'
-    coat_url = 'https://images.unsplash.com/photo-1519944159858-806d435dc86b?w=400'
-    blouse_url = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400'
+    dress_url = (
+        "https://plus.unsplash.com/premium_photo-1687279093043-73bd1bf3f0bf?w=400"
+    )
+    coat_url = "https://images.unsplash.com/photo-1519944159858-806d435dc86b?w=400"
+    blouse_url = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400"
 
     # Get image data in appropriate format for provider
     dress_image = get_image_data_for_provider(dress_url, provider)
@@ -604,10 +607,10 @@ def test_llm_rerank_image_with_group_by(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    living_url = 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400'
-    kitchen_url = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400'
-    bedroom_url = 'https://images.unsplash.com/photo-1505693314120-0d443867891c?w=400'
-    dining_url = 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400'
+    living_url = "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400"
+    kitchen_url = "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400"
+    bedroom_url = "https://images.unsplash.com/photo-1505693314120-0d443867891c?w=400"
+    dining_url = "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400"
 
     # Get image data in appropriate format for provider
     living_image = get_image_data_for_provider(living_url, provider)
@@ -686,10 +689,10 @@ def test_llm_rerank_image_batch_processing(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    beach_url = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400'
-    mountain_url = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400'
-    city_url = 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400'
-    desert_url = 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400'
+    beach_url = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400"
+    mountain_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400"
+    city_url = "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400"
+    desert_url = "https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400"
 
     # Get image data in appropriate format for provider
     beach_image = get_image_data_for_provider(beach_url, provider)

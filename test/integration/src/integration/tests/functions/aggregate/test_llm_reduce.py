@@ -1,6 +1,7 @@
 import pytest
 from integration.conftest import run_cli, get_image_data_for_provider
 
+
 @pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
 def model_config(request):
     """Fixture to test with different models."""
@@ -576,9 +577,9 @@ def test_llm_reduce_with_image_integration(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    lion_url = 'https://images.unsplash.com/photo-1549366021-9f761d450615?w=400'
-    elephant_url = 'https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=400'
-    giraffe_url = 'https://images.unsplash.com/photo-1534567110243-8875d64ca8ff?w=400'
+    lion_url = "https://images.unsplash.com/photo-1549366021-9f761d450615?w=400"
+    elephant_url = "https://images.unsplash.com/photo-1557050543-4d5f4e07ef46?w=400"
+    giraffe_url = "https://images.unsplash.com/photo-1534567110243-8875d64ca8ff?w=400"
 
     # Get image data in appropriate format for provider
     lion_image = get_image_data_for_provider(lion_url, provider)
@@ -645,11 +646,13 @@ def test_llm_reduce_image_with_group_by(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    chair_url = 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400'
-    smartphone_url = 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400'
-    coffee_url = 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400'
-    laptop_url = 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400'
-    lamp_url = 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400'
+    chair_url = "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400"
+    smartphone_url = (
+        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400"
+    )
+    coffee_url = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
+    laptop_url = "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400"
+    lamp_url = "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400"
 
     # Get image data in appropriate format for provider
     chair_image = get_image_data_for_provider(chair_url, provider)
@@ -728,11 +731,11 @@ def test_llm_reduce_image_batch_processing(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    mountain_url = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400'
-    forest_url = 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400'
-    beach_url = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400'
-    desert_url = 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400'
-    lake_url = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400'
+    mountain_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400"
+    forest_url = "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=400"
+    beach_url = "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400"
+    desert_url = "https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400"
+    lake_url = "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400"
 
     # Get image data in appropriate format for provider
     mountain_image = get_image_data_for_provider(mountain_url, provider)

@@ -1,6 +1,7 @@
 import pytest
 from integration.conftest import run_cli, get_image_data_for_provider
 
+
 @pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
 def model_config(request):
     """Fixture to test with different models."""
@@ -37,11 +38,11 @@ def test_llm_last_basic_functionality(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_last(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {'prompt': 'Which product offers the worst value for money? Return the ID number only.', 'context_columns': [{'data': name}, {'data': price::VARCHAR}, {'data': rating::VARCHAR}]}
         ) AS worst_value_product
             FROM products; \
@@ -87,14 +88,14 @@ def test_llm_last_with_group_by(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
             SELECT *
             FROM duckdb_secrets();
             SELECT city,
                    llm_last(
                        {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {'prompt': 'Which restaurant has the worst reviews in this city? Return the ID number only.', 'context_columns': [{'data': restaurant_name}, {'data': rating::VARCHAR}, {'data': review}]}
         ) AS worst_restaurant_id
             FROM restaurant_reviews
@@ -146,11 +147,11 @@ def test_llm_last_with_batch_processing(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_last(
                            {'model_name': '"""
-            + test_model_name
-            + """', 'batch_size': 3},
+        + test_model_name
+        + """', 'batch_size': 3},
             {'prompt': 'Which service provider offers the worst overall service considering rating, response time, and reliability? Return the ID number only.', 'context_columns': [{'data': company_name}, {'data': customer_rating::VARCHAR}, {'data': response_time_hours::VARCHAR}, {'data': price_per_hour::VARCHAR}, {'data': reliability_score::VARCHAR}]}
         ) AS worst_service_provider
             FROM service_providers; \
@@ -197,11 +198,11 @@ def test_llm_last_with_model_parameters(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_last(
                            {'model_name': '"""
-            + test_model_name
-            + """', 'tuple_format': 'Markdown',
+        + test_model_name
+        + """', 'tuple_format': 'Markdown',
                                                           'model_parameters': '{"temperature": 0.1}'},
             {'prompt': 'Which movie was the biggest disappointment considering its budget and reviews? Return the ID number only.', 'context_columns': [{'data': title}, {'data': genre}, {'data': rating::VARCHAR}, {'data': review}, {'data': box_office::VARCHAR}]}
         ) AS biggest_disappointment
@@ -248,11 +249,11 @@ def test_llm_last_multiple_criteria(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_last(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
                     {'prompt': 'Which housing option offers the worst value considering price, location quality, commute time, and living conditions? Return the ID number only.',
                     'context_columns': [{'data': address}, {'data': price_per_month::VARCHAR}, {'data': size_sqft::VARCHAR}, {'data': commute_time_minutes::VARCHAR}, {'data': neighborhood_rating::VARCHAR}, {'data': condition_score::VARCHAR}]}
         ) AS worst_housing_value
@@ -285,11 +286,11 @@ def test_llm_last_empty_table(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     query = (
-            """
+        """
                 SELECT llm_last(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
                     {'prompt': 'Select the worst product', 'context_columns': [{'data': name}]}
         ) AS selected
             FROM empty_products; \
@@ -331,9 +332,9 @@ def test_llm_last_error_handling_invalid_model(integration_setup):
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert (
-            result.returncode != 0
-            or "error" in result.stderr.lower()
-            or "Error" in result.stdout
+        result.returncode != 0
+        or "error" in result.stderr.lower()
+        or "Error" in result.stdout
     )
 
 
@@ -363,11 +364,11 @@ def test_llm_last_error_handling_empty_prompt(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_last(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
         {'prompt': '', 'context_columns': [{'data': text}]}
     ) AS result
             FROM test_data; \
@@ -391,11 +392,11 @@ def test_llm_last_error_handling_missing_arguments(integration_setup, model_conf
 
     # Test with only 1 argument (should fail since llm_last requires 2)
     query = (
-            """
+        """
         SELECT llm_last(
             {'model_name': '"""
-            + test_model_name
-            + """'}
+        + test_model_name
+        + """'}
     ) AS result;
     """
     )
@@ -436,11 +437,11 @@ def test_llm_last_with_special_characters(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_last(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
                     {'prompt': 'Which destination is the least safe and appealing for tourists? Return the ID number only.', 'context_columns': [{'data': destination}, {'data': cost_per_day::VARCHAR}, {'data': safety_rating::VARCHAR}, {'data': weather_score::VARCHAR}, {'data': description}]}
         ) AS least_appealing_destination
             FROM travel_destinations; \
@@ -475,12 +476,12 @@ def _test_llm_last_performance_large_dataset(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     query = (
-            """
+        """
                 SELECT category,
                        llm_last(
                            {'model_name': '"""
-            + test_model_name
-            + """', 'batch_size': 8},
+        + test_model_name
+        + """', 'batch_size': 8},
                      {'prompt': 'Which product has the lowest quality in this category? Return the ID number only.', 'context_columns': [{'data': name}, {'data': quality_score::VARCHAR}]}
         ) AS worst_product
             FROM large_product_pool
@@ -520,9 +521,9 @@ def test_llm_last_with_image_integration(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    rose_url = 'https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=400'
-    tulip_url = 'https://images.unsplash.com/photo-1520763185298-1b434c919102?w=400'
-    sunflower_url = 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=400'
+    rose_url = "https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=400"
+    tulip_url = "https://images.unsplash.com/photo-1520763185298-1b434c919102?w=400"
+    sunflower_url = "https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=400"
 
     # Get image data in appropriate format for provider
     rose_image = get_image_data_for_provider(rose_url, provider)
@@ -586,10 +587,10 @@ def test_llm_last_image_with_group_by(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    sedan_url = 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400'
-    suv_url = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
-    hatchback_url = 'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=400'
-    sports_url = 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400'
+    sedan_url = "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400"
+    suv_url = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400"
+    hatchback_url = "https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=400"
+    sports_url = "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400"
 
     # Get image data in appropriate format for provider
     sedan_image = get_image_data_for_provider(sedan_url, provider)
@@ -661,10 +662,10 @@ def test_llm_last_image_batch_processing(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    italian_url = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400'
-    sushi_url = 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400'
-    burger_url = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400'
-    french_url = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400'
+    italian_url = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400"
+    sushi_url = "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400"
+    burger_url = "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400"
+    french_url = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400"
 
     # Get image data in appropriate format for provider
     italian_image = get_image_data_for_provider(italian_url, provider)
