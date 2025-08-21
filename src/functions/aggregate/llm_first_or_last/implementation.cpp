@@ -69,7 +69,7 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
 
     batch_tuples.erase(batch_tuples.end() - 1);
 
-    return batch_tuples[0];
+    return batch_tuples;
 }
 
 void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,

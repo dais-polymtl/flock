@@ -1,6 +1,5 @@
 import pytest
-from integration.conftest import run_cli
-
+from integration.conftest import run_cli, get_image_data_for_provider
 
 @pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
 def model_config(request):
@@ -38,11 +37,11 @@ def test_llm_first_basic_functionality(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {'prompt': 'Which candidate is best suited for a senior software engineer position? Return the ID number only.', 'context_columns': [{'data': name}, {'data': experience}, {'data': skills}]}
         ) AS selected_candidate
             FROM candidates; \
@@ -87,14 +86,14 @@ def test_llm_first_with_group_by(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
             SELECT *
             FROM duckdb_secrets();
             SELECT department,
                    llm_first(
                        {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {'prompt': 'Who is the best candidate for this department? Return the ID number only.', 'context_columns': [{'data': candidate_name}, {'data': score::VARCHAR}, {'data': notes}]}
         ) AS best_candidate_id
             FROM job_applications
@@ -109,7 +108,7 @@ def test_llm_first_with_group_by(integration_setup, model_config):
     # Should have header + 2 department groups (Engineering, Marketing)
     assert len(lines) >= 3, f"Expected at least 3 lines, got {len(lines)}"
     assert (
-            "engineering" in result.stdout.lower() or "marketing" in result.stdout.lower()
+        "engineering" in result.stdout.lower() or "marketing" in result.stdout.lower()
     )
 
 
@@ -146,11 +145,11 @@ def test_llm_first_with_batch_processing(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """', 'batch_size': 3},
+        + test_model_name
+        + """', 'batch_size': 3},
             {'prompt': 'Which investment option is best for a conservative investor? Return the ID number only.', 'context_columns': [{'data': name}, {'data': risk_level}, {'data': expected_return::VARCHAR}, {'data': description}]}
         ) AS best_conservative_investment
             FROM investment_options; \
@@ -197,11 +196,11 @@ def test_llm_first_with_model_parameters(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """', 'tuple_format': 'Markdown',
+        + test_model_name
+        + """', 'tuple_format': 'Markdown',
                                                            'model_parameters': '{"temperature": 0.1}'},
             {'prompt': 'Which startup has the most promising business model for investment? Return the ID number only.', 'context_columns': [{'data': company_name}, {'data': sector}, {'data': funding_request::VARCHAR}, {'data': team_size::VARCHAR}, {'data': description}]}
         ) AS most_promising_startup
@@ -248,11 +247,11 @@ def test_llm_first_multiple_criteria(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {'prompt': 'Which course is best for someone new to programming with a budget of $300 and 12 weeks available? Return the ID number only.', 'context_columns': [{'data': course_name}, {'data': difficulty}, {'data': duration_weeks::VARCHAR}, {'data': cost::VARCHAR}, {'data': rating::VARCHAR}, {'data': prerequisites}]}
         ) AS best_course_for_beginner
             FROM course_options; \
@@ -284,11 +283,11 @@ def test_llm_first_empty_table(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     query = (
-            """
+        """
                 SELECT llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {'prompt': 'Select the best candidate', 'context_columns': [{'data': name}]}
         ) AS selected
             FROM empty_candidates; \
@@ -330,9 +329,9 @@ def test_llm_first_error_handling_invalid_model(integration_setup):
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert (
-            result.returncode != 0
-            or "error" in result.stderr.lower()
-            or "Error" in result.stdout
+        result.returncode != 0
+        or "error" in result.stderr.lower()
+        or "Error" in result.stdout
     )
 
 
@@ -362,11 +361,11 @@ def test_llm_first_error_handling_empty_prompt(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
         {'prompt': '', 'context_columns': [{'data': text}]}
     ) AS result
             FROM test_data; \
@@ -390,11 +389,11 @@ def test_llm_first_error_handling_missing_arguments(integration_setup, model_con
 
     # Test with only 1 argument (should fail since llm_first requires 2)
     query = (
-            """
+        """
         SELECT llm_first(
             {'model_name': '"""
-            + test_model_name
-            + """'}
+        + test_model_name
+        + """'}
     ) AS result;
     """
     )
@@ -436,11 +435,11 @@ def test_llm_first_with_special_characters(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {'prompt': 'Which university offers the best combination of prestige and innovation for engineering? Return the ID number only.', 'context_columns': [{'data': name}, {'data': location}, {'data': ranking::VARCHAR}, {'data': description}]}
         ) AS top_engineering_university
             FROM international_universities; \
@@ -475,12 +474,12 @@ def _test_llm_first_performance_large_dataset(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     query = (
-            """
+        """
                 SELECT category,
                        llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """', 'batch_size': 5},
+        + test_model_name
+        + """', 'batch_size': 5},
             {'prompt': 'Who is the best candidate in this category based on score? Return the ID number only.', 'context_columns': [{'data': name}, {'data': score::VARCHAR}]}
         ) AS best_candidate
             FROM large_candidate_pool
@@ -520,24 +519,34 @@ def test_llm_first_with_image_integration(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash pet image URLs
-    insert_data_query = """
+    # Image URLs
+    buddy_url = 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400'
+    whiskers_url = 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400'
+    max_url = 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400'
+
+    # Get image data in appropriate format for provider
+    buddy_image = get_image_data_for_provider(buddy_url, provider)
+    whiskers_image = get_image_data_for_provider(whiskers_url, provider)
+    max_image = get_image_data_for_provider(max_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO pet_images
-                        VALUES (1, 'Buddy', 'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400',
+                        VALUES (1, 'Buddy', '{buddy_image}',
                                 'Golden Retriever', 3),
-                               (2, 'Whiskers', 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400',
+                               (2, 'Whiskers', '{whiskers_image}',
                                 'Persian Cat', 2),
-                               (3, 'Max', 'https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=400',
+                               (3, 'Max', '{max_image}',
                                 'German Shepherd', 4); \
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {
                 'prompt': 'Which pet image shows the youngest animal? Return the pet name only.',
                 'context_columns': [
@@ -580,30 +589,42 @@ def test_llm_first_image_with_group_by(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash artwork image URLs
-    insert_data_query = """
+    # Image URLs
+    abstract_url = 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400'
+    landscape_url = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400'
+    portrait_url = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400'
+    sculpture_url = 'https://images.unsplash.com/photo-1672343385650-8d5bb804580a?w=400'
+
+    # Get image data in appropriate format for provider
+    abstract_image = get_image_data_for_provider(abstract_url, provider)
+    landscape_image = get_image_data_for_provider(landscape_url, provider)
+    portrait_image = get_image_data_for_provider(portrait_url, provider)
+    sculpture_image = get_image_data_for_provider(sculpture_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO artwork_images
                         VALUES (1, 'Abstract Composition',
-                                'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=400', 'Modern Artist',
+                                '{abstract_image}', 'Modern Artist',
                                 'Abstract', 2020),
                                (2, 'Landscape Painting',
-                                'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400', 'Nature Painter',
+                                '{landscape_image}', 'Nature Painter',
                                 'Realistic', 2019),
                                (3, 'Portrait Study',
-                                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400', 'Portrait Artist',
+                                '{portrait_image}', 'Portrait Artist',
                                 'Realistic', 2021),
                                (4, 'Modern Sculpture',
-                                'https://images.unsplash.com/photo-1672343385650-8d5bb804580a?w=400', 'Sculptor',
+                                '{sculpture_image}', 'Sculptor',
                                 'Contemporary', 2022);
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {
                 'prompt': 'Which artwork in this style is the most recent? Return the title only.',
                 'context_columns': [
@@ -650,29 +671,41 @@ def test_llm_first_image_batch_processing(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash building image URLs
-    insert_data_query = """
+    # Image URLs
+    skyscraper_url = 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400'
+    office_url = 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400'
+    modern_url = 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400'
+    corporate_url = 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400'
+
+    # Get image data in appropriate format for provider
+    skyscraper_image = get_image_data_for_provider(skyscraper_url, provider)
+    office_image = get_image_data_for_provider(office_url, provider)
+    modern_image = get_image_data_for_provider(modern_url, provider)
+    corporate_image = get_image_data_for_provider(corporate_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO building_images
-                        VALUES (1, 'Skyscraper A', 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400',
+                        VALUES (1, 'Skyscraper A', '{skyscraper_image}',
                                 'New York', 300, 2015),
-                               (2, 'Office Tower', 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400',
+                               (2, 'Office Tower', '{office_image}',
                                 'Chicago', 250, 2018),
                                (3, 'Modern Complex',
-                                'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400', 'Los Angeles',
+                                '{modern_image}', 'Los Angeles',
                                 200, 2020),
                                (4, 'Corporate Center',
-                                'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400', 'Miami', 180,
+                                '{corporate_image}', 'Miami', 180,
                                 2019); \
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
                 SELECT city,
                        llm_first(
                            {'model_name': '"""
-            + test_model_name
-            + """', 'batch_size': 2},
+        + test_model_name
+        + """', 'batch_size': 2},
             {
                 'prompt': 'Which building in this city has the highest height? Return the building name only.',
                 'context_columns': [

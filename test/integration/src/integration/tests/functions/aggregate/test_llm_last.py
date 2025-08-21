@@ -1,6 +1,5 @@
 import pytest
-from integration.conftest import run_cli
-
+from integration.conftest import run_cli, get_image_data_for_provider
 
 @pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
 def model_config(request):
@@ -520,15 +519,25 @@ def test_llm_last_with_image_integration(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash flower image URLs
-    insert_data_query = """
+    # Image URLs
+    rose_url = 'https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=400'
+    tulip_url = 'https://images.unsplash.com/photo-1520763185298-1b434c919102?w=400'
+    sunflower_url = 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=400'
+
+    # Get image data in appropriate format for provider
+    rose_image = get_image_data_for_provider(rose_url, provider)
+    tulip_image = get_image_data_for_provider(tulip_url, provider)
+    sunflower_image = get_image_data_for_provider(sunflower_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO flower_images
-                        VALUES (1, 'Rose', 'https://images.unsplash.com/photo-1496062031456-07b8f162a322?w=400',
+                        VALUES (1, 'Rose', '{rose_image}',
                                 'Red', 'Spring'),
-                               (2, 'Tulip', 'https://images.unsplash.com/photo-1520763185298-1b434c919102?w=400',
+                               (2, 'Tulip', '{tulip_image}',
                                 'Yellow', 'Spring'),
                                (3, 'Sunflower',
-                                'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?w=400',
+                                '{sunflower_image}',
                                 'Yellow', 'Summer');
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
@@ -576,16 +585,28 @@ def test_llm_last_image_with_group_by(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash car image URLs
-    insert_data_query = """
+    # Image URLs
+    sedan_url = 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400'
+    suv_url = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
+    hatchback_url = 'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=400'
+    sports_url = 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400'
+
+    # Get image data in appropriate format for provider
+    sedan_image = get_image_data_for_provider(sedan_url, provider)
+    suv_image = get_image_data_for_provider(suv_url, provider)
+    hatchback_image = get_image_data_for_provider(hatchback_url, provider)
+    sports_image = get_image_data_for_provider(sports_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO car_images
-                        VALUES (1, 'Sedan A', 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400',
+                        VALUES (1, 'Sedan A', '{sedan_image}',
                                 'Brand X', 2020, 'Mid-range'),
-                               (2, 'SUV B', 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+                               (2, 'SUV B', '{suv_image}',
                                 'Brand Y', 2019, 'High-end'),
-                               (3, 'Hatchback C', 'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=400',
+                               (3, 'Hatchback C', '{hatchback_image}',
                                 'Brand Z', 2021, 'Budget'),
-                               (4, 'Sports Car D', 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400',
+                               (4, 'Sports Car D', '{sports_image}',
                                 'Brand X', 2022, 'Luxury');
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
@@ -639,17 +660,29 @@ def test_llm_last_image_batch_processing(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash restaurant image URLs
-    insert_data_query = """
+    # Image URLs
+    italian_url = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400'
+    sushi_url = 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400'
+    burger_url = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400'
+    french_url = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400'
+
+    # Get image data in appropriate format for provider
+    italian_image = get_image_data_for_provider(italian_url, provider)
+    sushi_image = get_image_data_for_provider(sushi_url, provider)
+    burger_image = get_image_data_for_provider(burger_url, provider)
+    french_image = get_image_data_for_provider(french_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO restaurant_images
                         VALUES (1, 'Italian Bistro',
-                                'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', 'Italian', 4.2,
+                                '{italian_image}', 'Italian', 4.2,
                                 2),
-                               (2, 'Sushi Bar', 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400',
+                               (2, 'Sushi Bar', '{sushi_image}',
                                 'Japanese', 4.5, 3),
-                               (3, 'Burger Joint', 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400',
+                               (3, 'Burger Joint', '{burger_image}',
                                 'American', 3.8, 1),
-                               (4, 'French Cafe', 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400',
+                               (4, 'French Cafe', '{french_image}',
                                 'French', 4.7, 4);
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)

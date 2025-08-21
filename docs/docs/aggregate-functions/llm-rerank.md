@@ -37,14 +37,18 @@ Rerank documents based on their relevance to a given query:
 
 ```sql
 SELECT llm_rerank(
-    {'model_name': 'gpt-4'},
-    {'prompt': 'Rank documents by title keywords (AI, emerging tech), content relevance (innovative approaches), recency, and credibility.'},
-    {'document_title': document_title, 'document_content': document_content}
+    {'model_name': 'gpt-4o'},
+    {'prompt': 'AI and machine learning innovations', 'context_columns': [{'data': document_title}, {'data': document_content}]}
 ) AS reranked_documents
-FROM documents;
+FROM VALUES
+    ('Introduction to AI', 'This document covers the basics of artificial intelligence and its applications'),
+    ('Machine Learning Fundamentals', 'Comprehensive guide to machine learning algorithms and techniques'),
+    ('Advanced Neural Networks', 'Deep dive into neural network architectures and optimization'),
+    ('Data Science Overview', 'General overview of data science methodologies and tools')
+AS t(document_title, document_content);
 ```
 
-This query will return the documents ordered by relevance based on the provided prompt.
+**Description**: This query will return the documents ordered by relevance based on the provided prompt.
 
 ### 2.2. **Example with `GROUP BY`**
 
@@ -53,50 +57,68 @@ Rerank documents for each category based on their relevance:
 ```sql
 SELECT category,
        llm_rerank(
-           {'model_name': 'gpt-4'},
-           {'prompt': 'Rank documents by title keywords (AI, emerging tech), content relevance (innovative approaches), recency, and credibility.'},
-           {'document_title': document_title, 'document_content': document_content}
+           {'model_name': 'gpt-4o'},
+           {'prompt': 'emerging technology trends', 'context_columns': [{'data': document_title}, {'data': document_content}]}
        ) AS reranked_documents
-FROM documents
+FROM VALUES
+    ('AI', 'Machine Learning Basics', 'Introduction to supervised and unsupervised learning'),
+    ('AI', 'Deep Learning Guide', 'Advanced neural networks and deep learning techniques'),
+    ('AI', 'Computer Vision', 'Image processing and computer vision applications'),
+    ('Blockchain', 'Cryptocurrency Overview', 'Understanding Bitcoin and blockchain technology'),
+    ('Blockchain', 'Smart Contracts', 'Ethereum smart contracts and decentralized applications'),
+    ('IoT', 'IoT Fundamentals', 'Internet of Things devices and connectivity')
+AS documents(category, document_title, document_content)
 GROUP BY category;
 ```
 
-In this case, the query groups documents by category and reranks them within each category based on relevance.
+**Description**: In this case, the query groups documents by category and reranks them within each category based on relevance.
 
 ### 2.3. **Using a Named Prompt with `GROUP BY`**
 
-Use a reusable prompt such as "document-ranking" to rank documents based on relevance to a specific query:
+Use a reusable prompt, such as "document-ranking", to rank documents based on relevance to a specific query:
 
 ```sql
 SELECT category,
        llm_rerank(
-           {'model_name': 'gpt-4', 'secret_name': 'school_key'},
-           {'prompt_name': 'document-ranking', 'version': 1},
-           {'document_title': document_title, 'document_content': document_content}
+           {'model_name': 'gpt-4o', 'secret_name': 'school_key'},
+           {'prompt_name': 'document-ranking', 'version': 1, 'context_columns': [{'data': document_title}, {'data': document_content}]}
        ) AS reranked_documents
-FROM documents
+FROM (
+    SELECT * FROM (
+        VALUES
+            ('Technology', 'Artificial Intelligence', 'AI applications in modern technology'),
+            ('Technology', 'Cloud Computing', 'Scalable cloud infrastructure solutions'),
+            ('Science', 'Quantum Physics', 'Quantum mechanics and its applications'),
+            ('Science', 'Molecular Biology', 'DNA structure and genetic engineering')
+    ) AS t(category, document_title, document_content)
+)
 GROUP BY category;
 ```
+
+**Description**: This example leverages a named prompt (`document-ranking`) to rerank documents within each category.
 
 ### 2.4. **Advanced Example**
 
 Use the `llm_rerank` function to rerank documents based on their content:
 
 ```sql
-WITH ranked_documents AS (
-    SELECT document_title, document_content
-    FROM documents
-    WHERE category = 'AI'
+WITH sample_documents AS (
+    SELECT * FROM (
+        VALUES
+            ('Advanced AI Techniques', 'Deep learning and neural network optimization'),
+            ('Machine Learning Ethics', 'Ethical considerations in AI development'),
+            ('Natural Language Processing', 'Text processing and language understanding'),
+            ('Computer Vision Applications', 'Image recognition and visual processing')
+    ) AS t(document_title, document_content)
 )
 SELECT llm_rerank(
-           {'model_name': 'gpt-4'},
-           {'prompt': 'Rank documents by title keywords (AI, emerging tech), content relevance (innovative approaches), recency, and credibility.'},
-           {'document_title': document_title, 'document_content': document_content}
+           {'model_name': 'gpt-4o'},
+           {'prompt': 'cutting-edge AI research', 'context_columns': [{'data': document_title}, {'data': document_content}]}
        ) AS reranked_documents
-FROM ranked_documents;
+FROM sample_documents;
 ```
 
-This example will rerank the documents within the defined subset.
+**Description**: This example will rerank the documents within the defined subset based on their relevance to cutting-edge AI research.
 
 ## 3. **Input Parameters**
 
@@ -109,7 +131,7 @@ This example will rerank the documents within the defined subset.
 - **Description**: Specifies the model used for text generation.
 - **Example**:
   ```sql
-  { 'model_name': 'gpt-4' }
+  { 'model_name': 'gpt-4o' }
   ```
 
 #### 3.1.2 Model Selection with Secret
@@ -117,7 +139,7 @@ This example will rerank the documents within the defined subset.
 - **Description**: Specifies the model along with the secret name to be used for authentication when accessing the model.
 - **Example**:
   ```sql
-  { 'model_name': 'gpt-4', 'secret_name': 'your_secret_name' }
+  { 'model_name': 'gpt-4o', 'secret_name': 'your_secret_name' }
   ```
 
 ### 3.2. **Prompt Configuration**
@@ -129,7 +151,7 @@ Two types of prompts can be used:
    - Directly provides the prompt in the query.
    - **Example**:
      ```sql
-     {'prompt': 'Rank documents by title keywords (AI, emerging tech), content relevance (innovative approaches), recency, and credibility.'}
+     {'prompt': 'AI and machine learning innovations', 'context_columns': [{'data': document_title}, {'data': document_content}]}
      ```
 
 2. **Named Prompt**
@@ -147,13 +169,20 @@ Two types of prompts can be used:
      {'prompt_name': 'document-ranking', 'version': 1}
      ```
 
-### 3.3. **Column Mappings (Optional)**
+### 3.3. **Context Columns Configuration**
 
-- **Key**: Column mappings.
-- **Purpose**: Maps table columns to prompt variables for input.
+- **Key**: `context_columns` array.
+- **Purpose**: Maps table columns to provide input data for the model. Each column can have three properties:
+  - `data`: The SQL column data (required)
+  - `name`: Custom name for the column to be referenced in the prompt (optional)
+  - `type`: Data type - "tabular" (default) or "image" (optional)
 - **Example**:
   ```sql
-  {'document_title': document_title, 'document_content': document_content}
+  'context_columns': [
+    {'data': document_title, 'name': 'title'},
+    {'data': document_content},
+    {'data': image_url, 'type': 'image'}
+  ]
   ```
 
 ## 4. **Output**

@@ -7,6 +7,19 @@ void OllamaProvider::AddCompletionRequest(const std::string& prompt, const int n
                                       {"prompt", prompt},
                                       {"stream", false}};
 
+    auto images = nlohmann::json::array();
+    if (!media_data.empty()) {
+        for (const auto& column: media_data) {
+            for (const auto& image: column["data"]) {
+                auto image_str = image.get<std::string>();
+                images.push_back(image_str);
+            }
+        }
+    }
+    if (!images.empty()) {
+        request_payload["images"] = images;
+    }
+
     if (!model_details_.model_parameters.empty()) {
         request_payload.update(model_details_.model_parameters);
     }

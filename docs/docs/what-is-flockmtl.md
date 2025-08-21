@@ -17,18 +17,27 @@ import TOCInline from '@theme/TOCInline';
 FlockMTL offers a suite of semantic functions that allow users to perform various language model operations:
 
 - **Scalar Map Functions**:
-    - [`llm_complete`](/docs/scalar-functions/llm-complete): Generates text completions using a specified language model.
-    - [`llm_filter`](/docs/scalar-functions/llm-filter): Filters data based on language model evaluations, returning boolean values.
-    - [`llm_embedding`](/docs/scalar-functions/llm-embedding): Generates embeddings for input text, useful for semantic similarity tasks.
+
+  - [`llm_complete`](/docs/scalar-functions/llm-complete): Generates text completions using a specified language model.
+  - [`llm_filter`](/docs/scalar-functions/llm-filter): Filters data based on language model evaluations, returning boolean values.
+  - [`llm_embedding`](/docs/scalar-functions/llm-embedding): Generates embeddings for input text, useful for semantic similarity tasks.
 
 - **Aggregate Reduce Functions**:
-    - [`llm_reduce`](/docs/aggregate-functions/llm-reduce): Aggregates multiple inputs into a single output using a language model.
-    - [`llm_rerank`](/docs/aggregate-functions/llm-rerank): Reorders query results based on relevance scores from a language model.
-    - [`llm_first`](/docs/aggregate-functions/llm-first): Selects the top-ranked result after reranking.
-    - [`llm_last`](/docs/aggregate-functions/llm-last): Selects the bottom-ranked result after reranking.
-
+  - [`llm_reduce`](/docs/aggregate-functions/llm-reduce): Aggregates multiple inputs into a single output using a language model.
+  - [`llm_rerank`](/docs/aggregate-functions/llm-rerank): Reorders query results based on relevance scores from a language model.
+  - [`llm_first`](/docs/aggregate-functions/llm-first): Selects the top-ranked result after reranking.
+  - [`llm_last`](/docs/aggregate-functions/llm-last): Selects the bottom-ranked result after reranking.
 
 This allows users to perform tasks such as text generation, summarization, classification, filtering, fusion, and embedding generation.
+
+## Image Support
+
+FlockMTL provides comprehensive [**image support**](/docs/image-support) capabilities, allowing you to analyze, describe, filter, and process images alongside traditional tabular data. This enables powerful multimodal AI applications directly within your SQL workflows, including:
+
+- Image content analysis and description generation
+- Visual filtering and content moderation
+- Image similarity search using embeddings
+- Combining image and text data in unified queries
 
 ## Hybrid Search Functions
 
@@ -53,10 +62,12 @@ FlockMTL introduces a [**resource management**](/docs/resource-management) frame
 ## System Requirements
 
 FlockMTL is supported by the different operating systems and platforms, such as:
+
 - Linux
 - macOS
 - Windows
 
 And to ensure stable and reliable performance, it is important to meet only two requirements:
+
 - **DuckDB Setup**: Version 1.1.1 or later. FlockMTL is compatible with the latest stable release of DuckDB, which can be installed from the official [DuckDB installation guide](https://duckdb.org/docs/installation/index?version=stable&environment=cli&platform=linux&download_method=direct&architecture=x86_64).
 - **Provider API Key**: FlockMTL supports multiple providers such as **OpenAI**, **Azure**, and **Ollama**. Configure the provider of your choice to get started.

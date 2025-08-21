@@ -20,11 +20,14 @@ Summarize all product descriptions into one single result:
 
 ```sql
 SELECT llm_reduce(
-           {'model_name': 'gpt-4'},
-    {'prompt': 'Summarize the following product descriptions'},
-    {'product_description': product_description}
+           {'model_name': 'gpt-4o'},
+    {'prompt': 'Summarize the following product descriptions', 'context_columns': [{'data': product_description}]}
 ) AS product_summary
-FROM products;
+FROM UNNEST([
+    'High-performance laptop with M2 chip and stunning Retina display',
+    'Wireless earbuds with active noise cancellation and spatial audio',
+    'Lightweight tablet perfect for creativity and productivity on the go'
+]) AS t(product_description);
 ```
 
 **Description**: This example aggregates all product descriptions into one summary. The `llm_reduce` function processes
@@ -37,11 +40,15 @@ Group the products by category and summarize their descriptions into one for eac
 ```sql
 SELECT category,
        llm_reduce(
-           {'model_name': 'gpt-4'},
-           {'prompt': 'Summarize the following product descriptions'},
-           {'product_description': product_description}
+           {'model_name': 'gpt-4o'},
+           {'prompt': 'Summarize the following product descriptions', 'context_columns': [{'data': product_description}]}
        ) AS summarized_product_info
-FROM products
+FROM VALUES
+      ('Electronics', 'High-performance laptop with M2 chip and stunning display'),
+      ('Electronics', 'Latest smartphone with advanced camera system and A17 Pro chip'),
+      ('Accessories', 'Wireless mouse with multi-touch surface and rechargeable battery'),
+      ('Accessories', 'Fast charging cable with USB-C connector and durable design')
+    AS t(category, product_description)
 GROUP BY category;
 ```
 
@@ -55,11 +62,15 @@ Leverage a reusable named prompt for summarization, grouped by category:
 ```sql
 SELECT category,
        llm_reduce(
-           {'model_name': 'gpt-4', 'secret_name': 'azure_key'},
-           {'prompt_name': 'summarizer', 'version': 1},
-           {'product_description': product_description}
+           {'model_name': 'gpt-4o', 'secret_name': 'azure_key'},
+           {'prompt_name': 'summarizer', 'version': 1, 'context_columns': [{'data': product_description}]}
        ) AS summarized_product_info
-FROM products
+FROM VALUES
+    ('Electronics', 'High-performance laptop with M2 chip and stunning display'),
+    ('Electronics', 'Latest smartphone with advanced camera system'),
+    ('Accessories', 'Wireless mouse with multi-touch surface'),
+    ('Accessories', 'Fast charging cable with USB-C connector')
+AS t(category, product_description)
 GROUP BY category;
 ```
 
@@ -71,16 +82,20 @@ descriptions. The results are grouped by category, with one summary per category
 Summarize product details by category, using both the product name and description:
 
 ```sql
-WITH product_info AS (SELECT category, product_name, product_description
-                      FROM products
-                      WHERE category = 'Electronics')
+WITH sample_electronics AS (
+    SELECT * FROM (
+        VALUES
+            ('Electronics', 'MacBook Pro', 'High-performance laptop with M2 chip and stunning Retina display'),
+            ('Electronics', 'iPhone 15 Pro', 'Latest smartphone with titanium design and advanced camera system'),
+            ('Electronics', 'iPad Air', 'Lightweight tablet with M1 chip perfect for creativity and productivity')
+    ) AS t(category, product_name, product_description)
+)
 SELECT category,
        llm_reduce(
-           {'model_name': 'gpt-4'},
-           {'prompt': 'Summarize the following product details'},
-           {'product_name': product_name, 'product_description': product_description}
+           {'model_name': 'gpt-4o'},
+           {'prompt': 'Summarize the following product details', 'context_columns': [{'data': product_name}, {'data': product_description}]}
        ) AS detailed_summary
-FROM product_info
+FROM sample_electronics
 GROUP BY category;
 ```
 
@@ -98,7 +113,7 @@ columns for products in the "Electronics" category, generating a detailed summar
 - **Description**: Specifies the model used for text generation.
 - **Example**:
   ```sql
-  { 'model_name': 'gpt-4' }
+  { 'model_name': 'gpt-4o' }
   ```
 
 #### 2.1.2 Model Selection with Secret
@@ -107,7 +122,7 @@ columns for products in the "Electronics" category, generating a detailed summar
   model.
 - **Example**:
   ```sql
-  { 'model_name': 'gpt-4', 'secret_name': 'your_secret_name' }
+  { 'model_name': 'gpt-4o', 'secret_name': 'your_secret_name' }
   ```
 
 ### 2.2. **Prompt Configuration**
@@ -116,34 +131,41 @@ Two types of prompts can be used:
 
 1. **Inline Prompt**
 
-    - Directly provides the prompt in the query.
-    - **Example**:
-      ```sql
-      {'prompt': 'Summarize the following product descriptions'}
-      ```
+   - Directly provides the prompt in the query.
+   - **Example**:
+     ```sql
+     {'prompt': 'Summarize the following product descriptions'}
+     ```
 
 2. **Named Prompt**
 
-    - Refers to a pre-configured prompt by name.
-    - **Example**:
-      ```sql
-      {'prompt_name': 'summarizer'}
-      ```
+   - Refers to a pre-configured prompt by name.
+   - **Example**:
+     ```sql
+     {'prompt_name': 'summarizer'}
+     ```
 
 3. **Named Prompt with Version**
-    - Refers to a specific version of a pre-configured prompt.
-    - **Example**:
-      ```sql
-      {'prompt_name': 'summarizer', 'version': 1}
-      ```
+   - Refers to a specific version of a pre-configured prompt.
+   - **Example**:
+     ```sql
+     {'prompt_name': 'summarizer', 'version': 1}
+     ```
 
-### 2.3. **Column Mappings (Optional)**
+### 2.3. **Context Columns Configuration**
 
-- **Key**: Column mappings.
-- **Purpose**: Maps table columns to prompt variables for input.
+- **Key**: `context_columns` array.
+- **Purpose**: Maps table columns to provide input data for the model. Each column can have three properties:
+  - `data`: The SQL column data (required)
+  - `name`: Custom name for the column to be referenced in the prompt (optional)
+  - `type`: Data type - "tabular" (default) or "image" (optional)
 - **Example**:
   ```sql
-  {'product_name': product_name, 'product_description': product_description}
+  'context_columns': [
+    {'data': product_name, 'name': 'product'},
+    {'data': product_description},
+    {'data': image_url, 'type': 'image'}
+  ]
   ```
 
 ## 3. **Output**
@@ -157,9 +179,9 @@ For a query that aggregates product descriptions, the result could look like:
 
 - **Input Rows**:
 
-    - `product_name`: _"Running Shoes"_
-    - `product_name`: _"Wireless Headphones"_
-    - `product_name`: _"Smart Watch"_
+  - `product_name`: _"Running Shoes"_
+  - `product_name`: _"Wireless Headphones"_
+  - `product_name`: _"Smart Watch"_
 
 - **Output**:  
   `"A variety of products including running shoes, wireless headphones, and smart watches, each designed for comfort, convenience, and performance in their respective categories."`

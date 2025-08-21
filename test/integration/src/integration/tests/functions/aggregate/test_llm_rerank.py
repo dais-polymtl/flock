@@ -1,6 +1,5 @@
 import pytest
-from integration.conftest import run_cli
-
+from integration.conftest import run_cli, get_image_data_for_provider
 
 @pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
 def model_config(request):
@@ -531,16 +530,26 @@ def test_llm_rerank_with_image_integration(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash fashion image URLs
-    insert_data_query = """
+    # Image URLs
+    dress_url = 'https://plus.unsplash.com/premium_photo-1687279093043-73bd1bf3f0bf?w=400'
+    coat_url = 'https://images.unsplash.com/photo-1519944159858-806d435dc86b?w=400'
+    blouse_url = 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400'
+
+    # Get image data in appropriate format for provider
+    dress_image = get_image_data_for_provider(dress_url, provider)
+    coat_image = get_image_data_for_provider(coat_url, provider)
+    blouse_image = get_image_data_for_provider(blouse_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO fashion_images
                         VALUES (1, 'Summer Dress',
-                                'https://plus.unsplash.com/premium_photo-1687279093043-73bd1bf3f0bf?w=400',
+                                '{dress_image}',
                                 'Casual', 'Summer', 'Mid-range'),
-                               (2, 'Winter Coat', 'https://images.unsplash.com/photo-1519944159858-806d435dc86b?w=400',
+                               (2, 'Winter Coat', '{coat_image}',
                                 'Formal', 'Winter', 'High-end'),
                                (3, 'Spring Blouse',
-                                'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400', 'Business',
+                                '{blouse_image}', 'Business',
                                 'Spring', 'Mid-range'); \
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
@@ -594,18 +603,30 @@ def test_llm_rerank_image_with_group_by(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash interior image URLs
-    insert_data_query = """
+    # Image URLs
+    living_url = 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400'
+    kitchen_url = 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400'
+    bedroom_url = 'https://images.unsplash.com/photo-1505693314120-0d443867891c?w=400'
+    dining_url = 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400'
+
+    # Get image data in appropriate format for provider
+    living_image = get_image_data_for_provider(living_url, provider)
+    kitchen_image = get_image_data_for_provider(kitchen_url, provider)
+    bedroom_image = get_image_data_for_provider(bedroom_url, provider)
+    dining_image = get_image_data_for_provider(dining_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO interior_images
                         VALUES (1, 'Living Room A',
-                                'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400', 'Modern',
+                                '{living_image}', 'Modern',
                                 'Neutral', 'Living'),
-                               (2, 'Kitchen B', 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400',
+                               (2, 'Kitchen B', '{kitchen_image}',
                                 'Contemporary', 'Warm', 'Kitchen'),
-                               (3, 'Bedroom C', 'https://images.unsplash.com/photo-1505693314120-0d443867891c?w=400',
+                               (3, 'Bedroom C', '{bedroom_image}',
                                 'Minimalist', 'Cool', 'Bedroom'),
                                (4, 'Dining Room D',
-                                'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400', 'Traditional',
+                                '{dining_image}', 'Traditional',
                                 'Rich', 'Dining'); \
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
@@ -664,17 +685,29 @@ def test_llm_rerank_image_batch_processing(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash travel destination image URLs
-    insert_data_query = """
+    # Image URLs
+    beach_url = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400'
+    mountain_url = 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400'
+    city_url = 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400'
+    desert_url = 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400'
+
+    # Get image data in appropriate format for provider
+    beach_image = get_image_data_for_provider(beach_url, provider)
+    mountain_image = get_image_data_for_provider(mountain_url, provider)
+    city_image = get_image_data_for_provider(city_url, provider)
+    desert_image = get_image_data_for_provider(desert_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO travel_destination_images
-                        VALUES (1, 'Beach Resort', 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400',
+                        VALUES (1, 'Beach Resort', '{beach_image}',
                                 'Maldives', 'Tropical', 4.8),
                                (2, 'Mountain Retreat',
-                                'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400', 'Switzerland',
+                                '{mountain_image}', 'Switzerland',
                                 'Alpine', 4.6),
-                               (3, 'City Break', 'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=400',
+                               (3, 'City Break', '{city_image}',
                                 'Paris', 'Temperate', 4.7),
-                               (4, 'Desert Oasis', 'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400',
+                               (4, 'Desert Oasis', '{desert_image}',
                                 'Morocco', 'Arid', 4.3); \
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
