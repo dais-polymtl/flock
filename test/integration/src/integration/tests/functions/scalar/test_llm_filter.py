@@ -1,5 +1,5 @@
 import pytest
-from integration.conftest import run_cli
+from integration.conftest import run_cli, get_image_data_for_provider
 
 
 @pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
@@ -34,13 +34,13 @@ def test_llm_filter_basic_functionality(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
         SELECT 
             text,
             llm_filter(
                 {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
                     {'prompt': 'Is this text positive? Answer true or false.', 'context_columns': [{'data': text}]}
         ) AS is_positive
     FROM test_data 
@@ -84,14 +84,14 @@ def test_llm_filter_batch_processing(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
         SELECT 
             text,
             category,
             llm_filter(
                 {'model_name': '"""
-            + test_model_name
-            + """', 'batch_size': 2},
+        + test_model_name
+        + """', 'batch_size': 2},
                     {'prompt': 'Is this item technology-related? Answer true or false.', 'context_columns': [{'data': text}]}
         ) AS is_tech
     FROM test_items;
@@ -132,9 +132,9 @@ def test_llm_filter_error_handling_invalid_model(integration_setup):
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert (
-            result.returncode != 0
-            or "error" in result.stderr.lower()
-            or "Error" in result.stdout
+        result.returncode != 0
+        or "error" in result.stderr.lower()
+        or "Error" in result.stdout
     )
 
 
@@ -163,11 +163,11 @@ def test_llm_filter_error_handling_empty_prompt(integration_setup, model_config)
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
         SELECT llm_filter(
             {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
         {'prompt': '', 'context_columns': [{'data': text}]}
     ) AS result
     FROM test_data;
@@ -205,13 +205,13 @@ def test_llm_filter_with_special_characters(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
         SELECT 
             text,
             llm_filter(
                 {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
                     {'prompt': 'Does this text contain non-ASCII characters? Answer true or false.', 'context_columns': [{'data': text}]}
         ) AS has_unicode
     FROM special_text
@@ -249,13 +249,13 @@ def test_llm_filter_with_model_params(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
         SELECT 
             text,
             llm_filter(
                 {'model_name': '"""
-            + test_model_name
-            + """', 'tuple_format': 'Markdown', 'batch_size': 1, 'model_parameters': '{"temperature": 0}'},
+        + test_model_name
+        + """', 'tuple_format': 'Markdown', 'batch_size': 1, 'model_parameters': '{"temperature": 0}'},
                     {'prompt': 'Is this text expressing positive sentiment? Answer true or false only.', 'context_columns': [{'data': text}]}
         ) AS is_positive
     FROM test_data;
@@ -293,13 +293,13 @@ def test_llm_filter_with_structured_output(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
         SELECT
             name,
             llm_filter(
                 {'model_name': '"""
-            + test_model_name
-            + """',
+        + test_model_name
+        + """',
                 'model_parameters': '{
                     "response_format": {
                         "type": "json_schema",
@@ -344,11 +344,11 @@ def test_llm_filter_error_handling_missing_arguments(integration_setup, model_co
 
     # Test with only 1 argument (should fail since llm_filter requires 2)
     query = (
-            """
+        """
         SELECT llm_filter(
             {'model_name': '"""
-            + test_model_name
-            + """'}
+        + test_model_name
+        + """'}
     ) AS result;
     """
     )
@@ -378,13 +378,13 @@ def _test_llm_filter_performance_large_dataset(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     query = (
-            """
+        """
         SELECT
             content,
             llm_filter(
                 {'model_name': '"""
-            + test_model_name
-            + """', 'batch_size': 5},
+        + test_model_name
+        + """', 'batch_size': 5},
                     {'prompt': 'Does this content contain the word "item"? Answer true or false.', 'context_columns': [{'data': content}]}
         ) AS filter_result
     FROM large_content
@@ -422,26 +422,36 @@ def test_llm_filter_with_image_integration(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash vehicle image URLs
-    insert_data_query = """
+    # Image URLs
+    car_url = "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400"
+    motorcycle_url = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400"
+    bicycle_url = "https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=400"
+
+    # Get image data in appropriate format for provider
+    car_image = get_image_data_for_provider(car_url, provider)
+    motorcycle_image = get_image_data_for_provider(motorcycle_url, provider)
+    bicycle_image = get_image_data_for_provider(bicycle_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO vehicle_images
-                        VALUES (1, 'Car', 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?w=400',
+                        VALUES (1, 'Car', '{car_image}',
                                 'Modern sedan car'),
-                               (2, 'Motorcycle', 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+                               (2, 'Motorcycle', '{motorcycle_image}',
                                 'Sport motorcycle'),
-                               (3, 'Bicycle', 'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=400',
+                               (3, 'Bicycle', '{bicycle_image}',
                                 'Mountain bike'); \
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
         SELECT 
             vehicle_type,
             llm_filter(
                 {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {
                 'prompt': 'Is this image showing a motorized vehicle? Answer true or false.',
                 'context_columns': [
@@ -482,27 +492,37 @@ def test_llm_filter_image_batch_processing(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash food image URLs
-    insert_data_query = """
+    # Image URLs
+    pizza_url = "https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400"
+    sushi_url = "https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400"
+    burger_url = "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400"
+
+    # Get image data in appropriate format for provider
+    pizza_image = get_image_data_for_provider(pizza_url, provider)
+    sushi_image = get_image_data_for_provider(sushi_url, provider)
+    burger_image = get_image_data_for_provider(burger_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO food_images
-                        VALUES (1, 'Pizza', 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=400',
+                        VALUES (1, 'Pizza', '{pizza_image}',
                                 'Italian'),
-                               (2, 'Sushi', 'https://images.unsplash.com/photo-1579584425555-c3ce17fd4351?w=400',
+                               (2, 'Sushi', '{sushi_image}',
                                 'Japanese'),
-                               (3, 'Burger', 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400',
+                               (3, 'Burger', '{burger_image}',
                                 'American'); \
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
         SELECT 
             food_name,
             cuisine_type,
             llm_filter(
                 {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {
                 'prompt': 'Does this food image look appetizing and well-presented? Answer true or false.',
                 'context_columns': [
@@ -547,28 +567,38 @@ def test_llm_filter_image_with_text_context(integration_setup, model_config):
     """
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
-    # Insert data with Unsplash clothing image URLs
-    insert_data_query = """
+    # Image URLs
+    jacket_url = "https://images.unsplash.com/photo-1706765779494-2705542ebe74?w=400"
+    dress_url = "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400"
+    shirt_url = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400"
+
+    # Get image data in appropriate format for provider
+    jacket_image = get_image_data_for_provider(jacket_url, provider)
+    dress_image = get_image_data_for_provider(dress_url, provider)
+    shirt_image = get_image_data_for_provider(shirt_url, provider)
+
+    # Insert data with provider-appropriate image data
+    insert_data_query = f"""
                         INSERT INTO clothing_images
                         VALUES (1, 'Winter Jacket',
-                                'https://images.unsplash.com/photo-1706765779494-2705542ebe74?w=400', 'Winter', 'High'),
-                               (2, 'Summer Dress', 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400',
+                                '{jacket_image}', 'Winter', 'High'),
+                               (2, 'Summer Dress', '{dress_image}',
                                 'Summer', 'Medium'),
-                               (3, 'Casual Shirt', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400',
+                               (3, 'Casual Shirt', '{shirt_image}',
                                 'All Seasons', 'Low'); \
                         """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
     query = (
-            """
+        """
         SELECT 
             item_name,
             season,
             price_range,
             llm_filter(
                 {'model_name': '"""
-            + test_model_name
-            + """'},
+        + test_model_name
+        + """'},
             {
                 'prompt': 'Based on the image and the season/price information, is this clothing item appropriate for its intended season and price range? Answer true or false.',
                 'context_columns': [
