@@ -36,6 +36,12 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
                         struct_json["context_columns"][context_column_idx]["data"].push_back(context_column_json["data"]);
                     } else {
                         struct_json["context_columns"].push_back(context_column_json);
+                        for (const auto& key: allowed_keys) {
+                            if (key != "data" && (!struct_json["context_columns"][context_column_idx].contains(key) ||
+                                                  struct_json["context_columns"][context_column_idx][key].get<std::string>() == "NULL")) {
+                                struct_json["context_columns"][context_column_idx].erase(key);
+                            }
+                        }
                         struct_json["context_columns"][context_column_idx]["data"] = nlohmann::json::array();
                         struct_json["context_columns"][context_column_idx]["data"].push_back(context_column_json["data"]);
                     }
