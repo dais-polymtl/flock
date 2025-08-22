@@ -22,14 +22,17 @@ void LlmFilter::ValidateArguments(duckdb::DataChunk& args) {
 std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
     // LlmFilter::ValidateArguments(args);
 
-    auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1)[0];
+    auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1);
     Model model(model_details_json);
-    auto prompt_details_json = CastVectorOfStructsToJson(args.data[1], 1)[0];
-    auto prompt_details = PromptManager::CreatePromptDetails(prompt_details_json);
+    auto prompt_context_json = CastVectorOfStructsToJson(args.data[1], args.size());
+    auto context_columns = nlohmann::json::array();
+    if (prompt_context_json.contains("context_columns")) {
+        context_columns = prompt_context_json["context_columns"];
+        prompt_context_json.erase("context_columns");
+    }
+    auto prompt_details = PromptManager::CreatePromptDetails(prompt_context_json);
 
-    auto tuples = CastVectorOfStructsToJson(args.data[2], args.size());
-
-    auto responses = BatchAndComplete(tuples, prompt_details.prompt, ScalarFunctionType::FILTER, model);
+    auto responses = BatchAndComplete(context_columns, prompt_details.prompt, ScalarFunctionType::FILTER, model);
 
     std::vector<std::string> results;
     results.reserve(responses.size());

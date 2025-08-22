@@ -2,10 +2,10 @@
 
 namespace flockmtl {
 
-int LlmFirstOrLast::GetFirstOrLastTupleId(const nlohmann::json& tuples) {
+int LlmFirstOrLast::GetFirstOrLastTupleId(nlohmann::json& tuples) {
     nlohmann::json data;
-    const auto prompt = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
-    model.AddCompletionRequest(prompt, 1, OutputType::INTEGER);
+    const auto [prompt, media_data] = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
+    model.AddCompletionRequest(prompt, 1, OutputType::INTEGER, media_data);
     auto response = model.CollectCompletions()[0];
     return response["items"][0];
 }
@@ -14,7 +14,7 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
     auto batch_tuples = nlohmann::json::array();
     int start_index = 0;
     model = Model(model_details);
-    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, static_cast<int>(tuples.size()));
+    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, static_cast<int>(tuples[0]["data"].size()));
 
     if (batch_size <= 0) {
         throw std::runtime_error("Batch size must be greater than zero");
@@ -22,16 +22,41 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
 
     do {
 
-        for (auto i = 0; i < batch_size && start_index < static_cast<int>(tuples.size()); i++) {
-            batch_tuples.push_back(tuples[start_index]);
+        for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
+            if (start_index == 0) {
+                batch_tuples.push_back(nlohmann::json::object());
+            }
+            for (const auto& item: tuples[i].items()) {
+                if (item.key() == "data") {
+                    for (auto j = 0; j < batch_size && start_index + j < static_cast<int>(item.value().size()); j++) {
+                        if (start_index == 0 && j == 0) {
+                            batch_tuples[i]["data"] = nlohmann::json::array();
+                        }
+                        batch_tuples[i]["data"].push_back(item.value()[start_index + j]);
+                    }
+                } else {
+                    batch_tuples[i][item.key()] = item.value();
+                }
+            }
         }
 
         start_index += batch_size;
 
         try {
             auto result_idx = GetFirstOrLastTupleId(batch_tuples);
+
             batch_tuples.clear();
-            batch_tuples.push_back(tuples[result_idx]);
+            for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
+                batch_tuples.push_back(nlohmann::json::object());
+                for (const auto& item: tuples[i].items()) {
+                    if (item.key() == "data") {
+                        batch_tuples[i]["data"] = nlohmann::json::array();
+                        batch_tuples[i]["data"].push_back(item.value()[result_idx]);
+                    } else {
+                        batch_tuples[i][item.key()] = item.value();
+                    }
+                }
+            }
         } catch (const ExceededMaxOutputTokensError&) {
             start_index -= batch_size;// Retry the current batch with reduced size
             batch_size = static_cast<int>(batch_size * 0.9);
@@ -40,11 +65,11 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
             }
         }
 
-    } while (start_index < static_cast<int>(tuples.size()));
+    } while (start_index < static_cast<int>(tuples[0]["data"].size()));
 
-    batch_tuples[0].erase("flockmtl_tuple_id");
+    batch_tuples.erase(batch_tuples.end() - 1);
 
-    return batch_tuples[0];
+    return batch_tuples;
 }
 
 void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
@@ -57,11 +82,14 @@ void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateIn
         auto* state = states_vector[idx];
 
         if (state && !state->value->empty()) {
-            auto tuples_with_ids = nlohmann::json::array();
-            for (auto j = 0; j < static_cast<int>(state->value->size()); j++) {
-                auto tuple_with_id = (*state->value)[j];
-                tuple_with_id["flockmtl_tuple_id"] = j;
-                tuples_with_ids.push_back(tuple_with_id);
+            auto tuples_with_ids = *state->value;
+            tuples_with_ids.push_back(nlohmann::json::object());
+            for (auto j = 0; j < static_cast<int>((*state->value)[0]["data"].size()); j++) {
+                if (j == 0) {
+                    tuples_with_ids.back()["name"] = "flockmtl_row_id";
+                    tuples_with_ids.back()["data"] = nlohmann::json::array();
+                }
+                tuples_with_ids.back()["data"].push_back(std::to_string(j));
             }
             LlmFirstOrLast function_instance;
             function_instance.function_type = function_type;

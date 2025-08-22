@@ -19,11 +19,14 @@ Retrieve the first relevant product feature across all rows:
 
 ```sql
 SELECT llm_first(
-    {'model_name': 'gpt-4'},
-    {'prompt': 'What is the most relevant detail for these products, based on their names and descriptions?'},
-    {'product_name': product_name, 'product_description': product_description}
+    {'model_name': 'gpt-4o'},
+    {'prompt': 'high-performance computing', 'context_columns': [{'data': product_name}, {'data': product_description}]}
 ) AS first_product_feature
-FROM products;
+FROM VALUES
+    ('MacBook Pro', 'High-performance laptop with M2 chip and Retina display'),
+    ('AirPods Pro', 'Wireless earbuds with active noise cancellation'),
+    ('iPad Air', 'Lightweight tablet perfect for creativity and productivity')
+AS t(product_name, product_description);
 ```
 
 **Description**: This query returns the first relevant feature from all product descriptions and product names, based on the provided prompt.
@@ -35,11 +38,17 @@ Retrieve the first relevant product feature for each product category:
 ```sql
 SELECT category,
        llm_first(
-           {'model_name': 'gpt-4'},
-           {'prompt': 'What is the most relevant detail for these products, based on their names and descriptions?'},
-           {'product_name': product_name, 'product_description': product_description}
+           {'model_name': 'gpt-4o'},
+           {'prompt': 'premium audio quality', 'context_columns': [{'data': product_name}, {'data': product_description}]}
        ) AS first_product_feature
-FROM products
+FROM VALUES
+    ('Electronics', 'Premium Headphones', 'High-quality wireless headphones with superior sound', 89.99),
+    ('Electronics', 'Gaming Mouse', 'Precision gaming mouse with RGB lighting', 45.99),
+    ('Electronics', 'Wireless Keyboard', 'Ergonomic wireless keyboard with backlight', 79.99),
+    ('Books', 'Python Programming', 'Complete guide to Python programming language', 39.99),
+    ('Books', 'Data Science Guide', 'Comprehensive data science methodology book', 49.99),
+    ('Books', 'Machine Learning', 'Introduction to machine learning algorithms', 59.99)
+AS products(category, product_name, product_description, price)
 GROUP BY category;
 ```
 
@@ -52,11 +61,18 @@ Use a reusable prompt, such as "first-relevant-detail", to extract the first rel
 ```sql
 SELECT category,
        llm_first(
-           {'model_name': 'gpt-4', 'secret_name': 'product_key'},
-           {'prompt_name': 'first-relevant-detail', 'version': 1},
-           {'product_name': product_name, 'product_description': product_description}
+           {'model_name': 'gpt-4o', 'secret_name': 'product_key'},
+           {'prompt_name': 'first-relevant-detail', 'version': 1, 'context_columns': [{'data': product_name}, {'data': product_description}]}
        ) AS first_product_feature
-FROM products
+FROM (
+    SELECT * FROM (
+        VALUES
+            ('Electronics', 'MacBook Pro', 'High-performance laptop with M2 chip'),
+            ('Electronics', 'iPhone 15', 'Latest smartphone with advanced camera system'),
+            ('Accessories', 'Magic Mouse', 'Wireless mouse with multi-touch surface'),
+            ('Accessories', 'USB-C Cable', 'Fast charging cable for modern devices')
+    ) AS t(category, product_name, product_description)
+)
 GROUP BY category;
 ```
 
@@ -67,18 +83,20 @@ GROUP BY category;
 Retrieve the first relevant feature for products grouped by category, using both the product name and description:
 
 ```sql
-WITH product_info AS (
-    SELECT category, product_name, product_description
-    FROM products
-    WHERE category = 'Electronics'
+WITH sample_products AS (
+    SELECT * FROM (
+        VALUES
+            ('Electronics', 'MacBook Pro', 'High-performance laptop with M2 chip'),
+            ('Electronics', 'iPhone 15', 'Latest smartphone with advanced camera'),
+            ('Electronics', 'iPad Air', 'Lightweight tablet for creativity')
+    ) AS t(category, product_name, product_description)
 )
 SELECT category,
        llm_first(
-           {'model_name': 'gpt-4'},
-           {'prompt': 'What is the most relevant detail for these products, based on their names and descriptions?'},
-           {'product_name': product_name, 'product_description': product_description}
+           {'model_name': 'gpt-4o'},
+           {'prompt': 'advanced camera technology', 'context_columns': [{'data': product_name}, {'data': product_description}]}
        ) AS first_product_feature
-FROM product_info
+FROM sample_products
 GROUP BY category;
 ```
 
@@ -95,7 +113,7 @@ GROUP BY category;
 - **Description**: Specifies the model used for text generation.
 - **Example**:
   ```sql
-  { 'model_name': 'gpt-4' }
+  { 'model_name': 'gpt-4o' }
   ```
 
 #### 2.1.2 Model Selection with Secret
@@ -103,7 +121,7 @@ GROUP BY category;
 - **Description**: Specifies the model along with the secret name to be used for authentication when accessing the model.
 - **Example**:
   ```sql
-  { 'model_name': 'gpt-4', 'secret_name': 'your_secret_name' }
+  { 'model_name': 'gpt-4o', 'secret_name': 'your_secret_name' }
   ```
 
 ### 2.2. **Prompt Configuration**
@@ -112,34 +130,41 @@ Two types of prompts can be used:
 
 1. **Inline Prompt**
 
-   - Directly provides the prompt in the query.
+   - Directly provides the prompt in the query with context columns.
    - **Example**:
      ```sql
-     {'prompt': 'What is the most relevant detail for these products, based on their names and descriptions?'}
+     {'prompt': 'premium audio quality', 'context_columns': [{'data': product_name}, {'data': product_description}]}
      ```
 
 2. **Named Prompt**
 
-   - Refers to a pre-configured prompt by name.
+   - Refers to a pre-configured prompt by name with context columns.
    - **Example**:
      ```sql
-     {'prompt_name': 'first-relevant-detail'}
+     {'prompt_name': 'first-relevant-detail', 'context_columns': [{'data': product_name}]}
      ```
 
 3. **Named Prompt with Version**
-   - Refers to a specific version of a pre-configured prompt.
+   - Refers to a specific version of a pre-configured prompt with context columns.
    - **Example**:
      ```sql
-     {'prompt_name': 'first-relevant-detail', 'version': 1}
+     {'prompt_name': 'first-relevant-detail', 'version': 1, 'context_columns': [{'data': product_name}]}
      ```
 
-### 2.3. **Column Mappings (Optional)**
+### 2.3. **Context Columns Configuration**
 
-- **Key**: Column mappings.
-- **Purpose**: Maps table columns to prompt variables for input.
+- **Key**: `context_columns` array.
+- **Purpose**: Maps table columns to provide input data for the model. Each column can have three properties:
+  - `data`: The SQL column data (required)
+  - `name`: Custom name for the column to be referenced in the prompt (optional)
+  - `type`: Data type - "tabular" (default) or "image" (optional)
 - **Example**:
   ```sql
-  {'product_name': product_name, 'product_description': product_description}
+  'context_columns': [
+    {'data': product_name, 'name': 'product'},
+    {'data': product_description},
+    {'data': image_url, 'type': 'image'}
+  ]
   ```
 
 ## 3. **Output**

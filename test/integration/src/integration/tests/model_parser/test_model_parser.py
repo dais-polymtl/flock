@@ -15,7 +15,7 @@ def test_create_and_get_model(integration_setup):
 
 def test_create_get_delete_global_model(integration_setup):
     duckdb_cli_path, db_path = integration_setup
-    create_query = "CREATE GLOBAL MODEL('global-test-model', 'gpt-4', 'openai');"
+    create_query = "CREATE GLOBAL MODEL('global-test-model', 'gpt-4o', 'openai');"
     run_cli(duckdb_cli_path, db_path, create_query)
     get_query = "GET MODEL 'global-test-model';"
     result = run_cli(duckdb_cli_path, db_path, get_query)
@@ -65,7 +65,7 @@ def test_update_model_content(integration_setup):
     duckdb_cli_path, db_path = integration_setup
     create_query = "CREATE MODEL('update-test-model', 'gpt-4o', 'openai');"
     run_cli(duckdb_cli_path, db_path, create_query)
-    update_query = "UPDATE MODEL('update-test-model', 'gpt-4', 'openai');"
+    update_query = "UPDATE MODEL('update-test-model', 'gpt-4o', 'openai');"
     run_cli(duckdb_cli_path, db_path, update_query)
     get_query = "GET MODEL 'update-test-model';"
     result = run_cli(duckdb_cli_path, db_path, get_query)
@@ -78,7 +78,7 @@ def test_update_model_with_args(integration_setup):
     duckdb_cli_path, db_path = integration_setup
     create_query = "CREATE MODEL('update-args-model', 'gpt-4o', 'openai');"
     run_cli(duckdb_cli_path, db_path, create_query)
-    update_query = "UPDATE MODEL('update-args-model', 'gpt-4', 'openai', '{\"batch_size\": 5, \"model_parameters\": {\"temperature\": 0.7}}');"
+    update_query = "UPDATE MODEL('update-args-model', 'gpt-4o', 'openai', '{\"batch_size\": 5, \"model_parameters\": {\"temperature\": 0.7}}');"
     run_cli(duckdb_cli_path, db_path, update_query)
     get_query = "GET MODEL 'update-args-model';"
     result = run_cli(duckdb_cli_path, db_path, get_query)
@@ -102,7 +102,7 @@ def test_update_model_scope_to_global(integration_setup):
 
 def test_update_model_scope_to_local(integration_setup):
     duckdb_cli_path, db_path = integration_setup
-    create_query = "CREATE GLOBAL MODEL('scope-test-model-2', 'gpt-4', 'openai');"
+    create_query = "CREATE GLOBAL MODEL('scope-test-model-2', 'gpt-4o', 'openai');"
     run_cli(duckdb_cli_path, db_path, create_query)
     update_query = "UPDATE MODEL 'scope-test-model-2' TO LOCAL;"
     run_cli(duckdb_cli_path, db_path, update_query)
@@ -132,7 +132,7 @@ def test_create_model_duplicate_error(integration_setup):
     duckdb_cli_path, db_path = integration_setup
     create_query = "CREATE MODEL('duplicate-model', 'gpt-4o', 'openai');"
     run_cli(duckdb_cli_path, db_path, create_query)
-    duplicate_query = "CREATE MODEL('duplicate-model', 'gpt-4', 'openai');"
+    duplicate_query = "CREATE MODEL('duplicate-model', 'gpt-4o', 'openai');"
     result = run_cli(duckdb_cli_path, db_path, duplicate_query)
     assert result.returncode != 0 or "already exist" in result.stderr
 
@@ -177,7 +177,7 @@ def test_delete_nonexistent_model(integration_setup):
 
 def test_update_nonexistent_model_error(integration_setup):
     duckdb_cli_path, db_path = integration_setup
-    update_query = "UPDATE MODEL('nonexistent-model', 'gpt-4', 'openai');"
+    update_query = "UPDATE MODEL('nonexistent-model', 'gpt-4o', 'openai');"
     result = run_cli(duckdb_cli_path, db_path, update_query)
     assert result.returncode != 0 or "doesn't exist" in result.stderr
 
@@ -244,7 +244,7 @@ def test_multiple_providers(integration_setup):
     duckdb_cli_path, db_path = integration_setup
 
     # Test different providers
-    openai_query = "CREATE MODEL('openai-model', 'gpt-4', 'openai');"
+    openai_query = "CREATE MODEL('openai-model', 'gpt-4o', 'openai');"
     azure_query = "CREATE MODEL('azure-model', 'gpt-4o', 'azure');"
     ollama_query = "CREATE MODEL('ollama-model', 'llama2', 'ollama');"
 

@@ -13,7 +13,7 @@ public:
                                                     model_details_.model, model_details_.secret["api_version"], true);
     }
 
-    void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type) override;
+    void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) override;
     void AddEmbeddingRequest(const std::vector<std::string>& inputs) override;
 };
 

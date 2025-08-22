@@ -11,7 +11,7 @@ namespace flockmtl {
 
 class AggregateFunctionState {
 public:
-    std::vector<nlohmann::json>* value;
+    nlohmann::basic_json<>* value;
     bool initialized;
 
     AggregateFunctionState() : value(nullptr), initialized(false) {}
@@ -40,7 +40,7 @@ public:
 
 public:
     static void ValidateArguments(duckdb::Vector inputs[], idx_t input_count);
-    static std::tuple<nlohmann::json, nlohmann::json, std::vector<nlohmann::json>>
+    static std::tuple<nlohmann::json, nlohmann::json, nlohmann::json>
     CastInputsToJson(duckdb::Vector inputs[], idx_t count);
 
     static bool IgnoreNull() { return true; };
@@ -61,17 +61,29 @@ public:
     template<class Derived>
     static void Operation(duckdb::Vector inputs[], duckdb::AggregateInputData& aggr_input_data, idx_t input_count,
                           duckdb::Vector& states, idx_t count) {
-        ValidateArguments(inputs, input_count);
+        // ValidateArguments(inputs, input_count);
 
-        auto [model_details_json, prompt_details, tuples] = CastInputsToJson(inputs, count);
+        auto [model_details_json, prompt_details, columns] = CastInputsToJson(inputs, count);
         model_details = model_details_json;
         user_query = PromptManager::CreatePromptDetails(prompt_details).prompt;
 
         auto state_map_p = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
         for (idx_t i = 0; i < count; i++) {
-            auto tuple = tuples[i];
             auto state = state_map_p[i];
+            auto tuple = nlohmann::json::array();
+            auto idx = 0u;
+            for (const auto& column: columns) {
+                tuple.push_back(nlohmann::json::object());
+                for (const auto& item: column.items()) {
+                    if (item.key() == "data") {
+                        tuple[idx][item.key()].push_back(item.value()[i]);
+                    } else {
+                        tuple[idx][item.key()] = item.value();
+                    }
+                }
+                idx++;
+            }
 
             if (state) {
                 state->Update(tuple);
@@ -82,20 +94,14 @@ public:
     template<class Derived>
     static void SimpleUpdate(duckdb::Vector inputs[], duckdb::AggregateInputData& aggr_input_data, idx_t input_count,
                              duckdb::data_ptr_t state_p, idx_t count) {
-        ValidateArguments(inputs, input_count);
+        // ValidateArguments(inputs, input_count);
 
         auto [model_details_json, prompt_details, tuples] = CastInputsToJson(inputs, count);
         model_details = model_details_json;
         user_query = PromptManager::CreatePromptDetails(prompt_details).prompt;
 
-        auto state = reinterpret_cast<AggregateFunctionState*>(state_p);
-
-        for (idx_t i = 0; i < count; i++) {
-            auto tuple = tuples[i];
-
-            if (state) {
-                state->Update(tuple);
-            }
+        if (const auto state = reinterpret_cast<AggregateFunctionState*>(state_p)) {
+            state->Update(tuples);
         }
     }
 

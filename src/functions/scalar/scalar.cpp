@@ -2,26 +2,27 @@
 
 namespace flockmtl {
 
-nlohmann::json ScalarFunctionBase::Complete(const nlohmann::json& tuples, const std::string& user_prompt,
+nlohmann::json ScalarFunctionBase::Complete(nlohmann::json& columns, const std::string& user_prompt,
                                             ScalarFunctionType function_type, Model& model) {
     nlohmann::json data;
-    const auto prompt = PromptManager::Render(user_prompt, tuples, function_type, model.GetModelDetails().tuple_format);
+    const auto [prompt, media_data] = PromptManager::Render(user_prompt, columns, function_type, model.GetModelDetails().tuple_format);
     OutputType output_type = OutputType::STRING;
     if (function_type == ScalarFunctionType::FILTER) {
         output_type = OutputType::BOOL;
     }
-    model.AddCompletionRequest(prompt, static_cast<int>(tuples.size()), output_type);
+
+    model.AddCompletionRequest(prompt, static_cast<int>(columns[0]["data"].size()), output_type, media_data);
     auto response = model.CollectCompletions();
     return response[0]["items"];
 };
 
-nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::json>& tuples,
+nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples,
                                                     const std::string& user_prompt,
                                                     const ScalarFunctionType function_type, Model& model) {
     const auto llm_template = PromptManager::GetTemplate(function_type);
 
     const auto model_details = model.GetModelDetails();
-    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, static_cast<int>(tuples.size()));
+    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, static_cast<int>(tuples[0]["data"].size()));
 
     auto responses = nlohmann::json::array();
 
@@ -35,8 +36,20 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::
     do {
         batch_tuples.clear();
 
-        for (auto i = 0; i < batch_size && start_index + i < static_cast<int>(tuples.size()); i++) {
-            batch_tuples.push_back(tuples[start_index + i]);
+        for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
+            batch_tuples.push_back(nlohmann::json::object());
+            for (const auto& item: tuples[i].items()) {
+                if (item.key() != "data") {
+                    batch_tuples[i][item.key()] = item.value();
+                } else {
+                    for (auto j = 0; j < batch_size && start_index + j < static_cast<int>(item.value().size()); j++) {
+                        if (j == 0) {
+                            batch_tuples[i]["data"] = nlohmann::json::array();
+                        }
+                        batch_tuples[i]["data"].push_back(item.value()[start_index + j]);
+                    }
+                }
+            }
         }
 
         start_index += batch_size;
@@ -44,11 +57,11 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::
         try {
             auto response = Complete(batch_tuples, user_prompt, function_type, model);
 
-            if (response.size() < batch_tuples.size()) {
-                for (auto i = static_cast<int>(response.size()); i < batch_tuples.size(); i++) {
+            if (response.size() < batch_tuples[0]["data"].size()) {
+                for (auto i = static_cast<int>(response.size()); i < batch_tuples[0]["data"].size(); i++) {
                     response.push_back(nullptr);
                 }
-            } else if (response.size() > batch_tuples.size()) {
+            } else if (response.size() > batch_tuples[0]["data"].size()) {
                 response.erase(response.begin() + batch_tuples.size(), response.end());
             }
 
@@ -63,7 +76,7 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const std::vector<nlohmann::
             }
         }
 
-    } while (start_index < static_cast<int>(tuples.size()));
+    } while (start_index < static_cast<int>(tuples[0]["data"].size()));
 
     return responses;
 }

@@ -23,14 +23,18 @@ void LlmComplete::ValidateArguments(duckdb::DataChunk& args) {
 
 std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
     // LlmComplete::ValidateArguments(args);
-
-    auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1)[0];
+    auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1);
     Model model(model_details_json);
-    auto prompt_details_json = CastVectorOfStructsToJson(args.data[1], 1)[0];
-    auto prompt_details = PromptManager::CreatePromptDetails(prompt_details_json);
+    auto prompt_context_json = CastVectorOfStructsToJson(args.data[1], args.size());
+    auto context_columns = nlohmann::json::array();
+    if (prompt_context_json.contains("context_columns")) {
+        context_columns = prompt_context_json["context_columns"];
+        prompt_context_json.erase("context_columns");
+    }
+    auto prompt_details = PromptManager::CreatePromptDetails(prompt_context_json);
 
     std::vector<std::string> results;
-    if (args.ColumnCount() == 2) {
+    if (context_columns.empty()) {
         auto template_str = prompt_details.prompt;
         model.AddCompletionRequest(template_str, 1, OutputType::STRING);
         auto response = model.CollectCompletions()[0]["items"][0];
@@ -40,13 +44,11 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
             results.push_back(response.dump());
         }
     } else {
-        auto tuples = CastVectorOfStructsToJson(args.data[2], args.size());
-
-        if (tuples.empty()) {
+        if (context_columns.empty()) {
             return results;
         }
 
-        auto responses = BatchAndComplete(tuples, prompt_details.prompt, ScalarFunctionType::COMPLETE, model);
+        auto responses = BatchAndComplete(context_columns, prompt_details.prompt, ScalarFunctionType::COMPLETE, model);
 
         results.reserve(responses.size());
         for (const auto& response: responses) {

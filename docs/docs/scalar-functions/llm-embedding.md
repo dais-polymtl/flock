@@ -17,10 +17,14 @@ import TOCInline from '@theme/TOCInline';
 
 ```sql
 SELECT llm_embedding(
-    {'model_name': 'text-embedding-3-small', 'secret_name': 'embedding_secret'}, 
-    {'product_name': product_name, 'product_description': product_description}
+    {'model_name': 'text-embedding-3-small', 'secret_name': 'embedding_secret'},
+    {'context_columns': [{'data': product_name}, {'data': product_description}]}
 ) AS product_embedding
-FROM products;
+FROM VALUES
+    ('Wireless Headphones', 'Premium noise-cancelling headphones with 30-hour battery life'),
+    ('Gaming Laptop', 'High-performance laptop with RTX graphics and 16GB RAM'),
+    ('Smart Watch', 'Fitness tracker with heart rate monitor and GPS')
+AS t(product_name, product_description);
 ```
 
 **Description**: This example generates vector embeddings for each product, combining the `product_name` and `product_description` columns using the `text-embedding-3-small` model. The output is a semantic vector that represents the content of the product's name and description.
@@ -28,19 +32,28 @@ FROM products;
 ### 1.2 Similarity Search
 
 ```sql
-WITH product_embeddings AS (
-    SELECT 
-        product_id, 
-        product_name, 
+WITH sample_products AS (
+    SELECT *
+    FROM (VALUES
+        (1, 'Wireless Headphones', 'Premium noise-cancelling headphones with 30-hour battery life'),
+        (2, 'Bluetooth Earbuds', 'Compact wireless earbuds with charging case'),
+        (3, 'Gaming Laptop', 'High-performance laptop with RTX graphics and 16GB RAM'),
+        (4, 'Office Laptop', 'Lightweight laptop perfect for business and productivity')
+    ) AS t(product_id, product_name, product_description)
+),
+product_embeddings AS (
+    SELECT
+        product_id,
+        product_name,
         llm_embedding(
-            {'model_name': 'text-embedding-3-small'}, 
-            {'product_name': product_name, 'product_description': product_description}
+            {'model_name': 'text-embedding-3-small'},
+            {'context_columns': [{'data': product_name}, {'data': product_description}]}
         ) AS product_embedding
-    FROM products
+    FROM sample_products
 )
-SELECT 
-    a.product_name, 
-    b.product_name, 
+SELECT
+    a.product_name,
+    b.product_name,
     array_cosine_similarity(a.product_embedding::DOUBLE[1536], b.product_embedding::DOUBLE[1536]) AS similarity
 FROM product_embeddings a
 JOIN product_embeddings b
@@ -63,7 +76,7 @@ The `llm_embedding` function accepts two primary inputs: model configuration and
 - **Description**: Specifies the model used for text generation.
 - **Example**:
   ```sql
-  { 'model_name': 'gpt-4' }
+  { 'model_name': 'gpt-4o' }
   ```
 
 #### 2.1.2 Model Selection with Secret
@@ -71,16 +84,19 @@ The `llm_embedding` function accepts two primary inputs: model configuration and
 - **Description**: Specifies the model along with the secret name to be used for authentication when accessing the model.
 - **Example**:
   ```sql
-  { 'model_name': 'gpt-4', 'secret_name': 'your_secret_name' }
+  { 'model_name': 'gpt-4o', 'secret_name': 'your_secret_name' }
   ```
 
-### 2.2 Column Mappings
+### 2.2 Context Columns Configuration
 
-- **Parameter**: Column mappings
-- **Description**: Specifies the columns from the table to be passed to the model for embedding generation.
+- **Parameter**: `context_columns` array
+- **Description**: Specifies the text columns from the table to be passed to the model for embedding generation. Each column can have two properties:
+  - `data`: The SQL column data (required)
+  - `name`: Custom name for the column (optional)
+- **Note**: The `llm_embedding` function currently supports only text data (no image support)
 - **Example**:
   ```sql
-  { 'product_name': product_name, 'product_description': product_description }
+  { 'context_columns': [{'data': product_name}, {'data': product_description}] }
   ```
 
 ## 3. Output
@@ -88,7 +104,7 @@ The `llm_embedding` function accepts two primary inputs: model configuration and
 The function returns a **JSON array** containing floating-point numbers that represent the semantic vector of the input text.
 
 **Example Output**:  
-For a product with the description *"Wireless headphones with noise cancellation"*, the output might look like this:
+For a product with the description _"Wireless headphones with noise cancellation"_, the output might look like this:
 
 ```json
 [0.342, -0.564, 0.123, ..., 0.789]

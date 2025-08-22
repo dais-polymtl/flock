@@ -8,8 +8,8 @@ class LlmReduce : public AggregateFunctionBase {
 public:
     explicit LlmReduce() = default;
 
-    nlohmann::json ReduceBatch(const nlohmann::json& tuples, const AggregateFunctionType& function_type);
-    nlohmann::json ReduceLoop(const std::vector<nlohmann::json>& tuples, const AggregateFunctionType& function_type);
+    nlohmann::json ReduceBatch(nlohmann::json& tuples, const AggregateFunctionType& function_type, const nlohmann::json& summary);
+    nlohmann::json ReduceLoop(const nlohmann::json& tuples, const AggregateFunctionType& function_type);
 
 public:
     static void Initialize(const duckdb::AggregateFunction& function, duckdb::data_ptr_t state_p) {

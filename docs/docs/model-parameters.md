@@ -103,7 +103,7 @@ Azure OpenAI supports the same parameters as OpenAI. For complete parameter refe
 
 ```sql
 {
-  'model_name': 'gpt-4',
+  'model_name': 'gpt-4o',
   'model_parameters': '{
     "temperature": 0.7,
     "max_tokens": 1000,
