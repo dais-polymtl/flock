@@ -3,11 +3,10 @@
 
 namespace flockmtl {
 
-void ScalarRegistry::RegisterLlmComplete(duckdb::DatabaseInstance& db) {
-    duckdb::ExtensionUtil::RegisterFunction(
-            db, duckdb::ScalarFunction("llm_complete",
-                                       {duckdb::LogicalType::ANY, duckdb::LogicalType::ANY},
-                                       duckdb::LogicalType::JSON(), LlmComplete::Execute));
+void ScalarRegistry::RegisterLlmComplete(duckdb::ExtensionLoader& loader) {
+    loader.RegisterFunction(duckdb::ScalarFunction("llm_complete",
+                                                   {duckdb::LogicalType::ANY, duckdb::LogicalType::ANY},
+                                                   duckdb::LogicalType::JSON(), LlmComplete::Execute));
 }
 
 }// namespace flockmtl

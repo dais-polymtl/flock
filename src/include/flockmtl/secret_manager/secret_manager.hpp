@@ -28,16 +28,16 @@ public:
                               OLLAMA };
     static std::unordered_map<std::string, SupportedProviders> providerNames;
 
-    static void Register(duckdb::DatabaseInstance& instance);
+    static void Register(duckdb::ExtensionLoader& loader);
     static std::unordered_map<std::string, std::string> GetSecret(const std::string& secret_name);
     static SupportedProviders GetProviderType(const std::string& provider);
     static void ValidateRequiredFields(const duckdb::CreateSecretInput& input,
                                        const std::vector<std::string>& required_fields);
 
 private:
-    static void RegisterSecretType(duckdb::DatabaseInstance& instance);
+    static void RegisterSecretType(duckdb::ExtensionLoader& loader);
 
-    static void RegisterSecretFunction(duckdb::DatabaseInstance& instance);
+    static void RegisterSecretFunction(duckdb::ExtensionLoader& loader);
 
     static duckdb::unique_ptr<duckdb::BaseSecret> CreateSecret(duckdb::ClientContext& context,
                                                                duckdb::CreateSecretInput& input);

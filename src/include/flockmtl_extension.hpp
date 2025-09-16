@@ -6,7 +6,7 @@ namespace duckdb {
 
 class FlockmtlExtension : public Extension {
 public:
-    void Load(DuckDB& db) override;
+    void Load(ExtensionLoader& db) override;
     std::string Name() override;
     std::string Version() const override;
 };
@@ -55,4 +55,4 @@ public:
     unique_ptr<ParserExtensionParseData> parse_data;
 };
 
-} // namespace duckdb
+}// namespace duckdb

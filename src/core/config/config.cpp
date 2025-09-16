@@ -78,9 +78,10 @@ void Config::ConfigureTables(duckdb::Connection& con, const ConfigType type) {
     con.Commit();
 }
 
-void Config::Configure(duckdb::DatabaseInstance& db) {
-    Registry::Register(db);
-    SecretManager::Register(db);
+void Config::Configure(duckdb::ExtensionLoader& loader) {
+    Registry::Register(loader);
+    SecretManager::Register(loader);
+    auto& db = loader.GetDatabaseInstance();
     if (const auto db_path = db.config.options.database_path; db_path != get_global_storage_path().string()) {
         SetupGlobalStorageLocation();
         ConfigureGlobal();
