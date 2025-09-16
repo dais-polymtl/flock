@@ -1,6 +1,6 @@
-#include "flockmtl/functions/scalar/fusion_rrf.hpp"
+#include "flock/functions/scalar/fusion_rrf.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 // performs RRF (Reciprocal Rank Fusion) to merge lists based on some score.
 // Different entries with the same RRF score are assigned different, consecutive, rankings arbitrarily
@@ -47,9 +47,9 @@ void FusionRRF::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state,
     auto results = FusionRRF::Operation(args);
 
     auto index = 0;
-    for (const auto& res : results) {
+    for (const auto& res: results) {
         result.SetValue(index++, duckdb::Value(res));
     }
 }
 
-} // namespace flockmtl
+}// namespace flock

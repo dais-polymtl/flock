@@ -1,6 +1,6 @@
 # Scalar Functions Overview
 
-Scalar functions in FlockMTL operate on data row-by-row, providing powerful operations for text processing, embeddings,
+Scalar functions in Flock operate on data row-by-row, providing powerful operations for text processing, embeddings,
 image analysis, and machine learning tasks directly within SQL queries.
 
 import TOCInline from '@theme/TOCInline';
@@ -9,9 +9,11 @@ import TOCInline from '@theme/TOCInline';
 
 ## 1. Available Functions
 
-- [`llm_complete`](/docs/scalar-functions/llm-complete): Generates text completions based on model and prompt, supports both text and image inputs
+- [`llm_complete`](/docs/scalar-functions/llm-complete): Generates text completions based on model and prompt, supports
+  both text and image inputs
 
-- [`llm_filter`](/docs/scalar-functions/llm-filter): Filters rows based on a prompt and returns boolean values, supports both text and image inputs
+- [`llm_filter`](/docs/scalar-functions/llm-filter): Filters rows based on a prompt and returns boolean values, supports
+  both text and image inputs
 
 - [`llm_embedding`](/docs/scalar-functions/llm-embedding): Generates vector embeddings for text data, used for
   similarity search and machine learning tasks (text only)

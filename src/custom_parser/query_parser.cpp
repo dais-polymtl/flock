@@ -1,11 +1,11 @@
-#include "flockmtl/custom_parser/query_parser.hpp"
+#include "flock/custom_parser/query_parser.hpp"
 
-#include "flockmtl/core/common.hpp"
+#include "flock/core/common.hpp"
 
 #include <sstream>
 #include <stdexcept>
 
-namespace flockmtl {
+namespace flock {
 
 std::string QueryParser::ParseQuery(const std::string& query) {
     Tokenizer tokenizer(query);
@@ -38,4 +38,4 @@ inline std::string QueryParser::ParsePromptOrModel(Tokenizer tokenizer, const st
     }
 }
 
-} // namespace flockmtl
+}// namespace flock

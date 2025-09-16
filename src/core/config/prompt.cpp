@@ -1,7 +1,7 @@
-#include "flockmtl/core/config.hpp"
 #include "filesystem.hpp"
+#include "flock/core/config.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 std::string Config::get_prompts_table_name() { return "FLOCKMTL_PROMPT_INTERNAL_TABLE"; }
 
@@ -30,4 +30,4 @@ void Config::ConfigPromptTable(duckdb::Connection& con, std::string& schema_name
     }
 }
 
-} // namespace flockmtl
+}// namespace flock

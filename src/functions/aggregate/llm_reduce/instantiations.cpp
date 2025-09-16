@@ -1,6 +1,6 @@
-#include "flockmtl/functions/aggregate/llm_reduce.hpp"
+#include "flock/functions/aggregate/llm_reduce.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 template void AggregateFunctionBase::Initialize<LlmReduce>(const duckdb::AggregateFunction& function,
                                                            duckdb::data_ptr_t state_p);
@@ -13,4 +13,4 @@ template void AggregateFunctionBase::Combine<LlmReduce>(duckdb::Vector&, duckdb:
 template void LlmReduce::Finalize<AggregateFunctionType::REDUCE>(duckdb::Vector&, duckdb::AggregateInputData&,
                                                                  duckdb::Vector&, idx_t, idx_t);
 
-}// namespace flockmtl
+}// namespace flock

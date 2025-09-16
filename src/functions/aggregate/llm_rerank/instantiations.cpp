@@ -1,6 +1,6 @@
-#include "flockmtl/functions/aggregate/llm_rerank.hpp"
+#include "flock/functions/aggregate/llm_rerank.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 template void AggregateFunctionBase::Initialize<LlmRerank>(const duckdb::AggregateFunction& function,
                                                            duckdb::data_ptr_t state_p);
@@ -11,4 +11,4 @@ template void AggregateFunctionBase::SimpleUpdate<LlmRerank>(duckdb::Vector[], d
 template void AggregateFunctionBase::Combine<LlmRerank>(duckdb::Vector&, duckdb::Vector&, duckdb::AggregateInputData&,
                                                         idx_t);
 
-} // namespace flockmtl
+}// namespace flock

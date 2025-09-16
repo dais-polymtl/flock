@@ -1,16 +1,16 @@
 #pragma once
 
 #include "../mock_provider.hpp"
-#include "flockmtl/core/config.hpp"
-#include "flockmtl/functions/aggregate/aggregate.hpp"
-#include "flockmtl/model_manager/model.hpp"
+#include "flock/core/config.hpp"
+#include "flock/functions/aggregate/aggregate.hpp"
+#include "flock/model_manager/model.hpp"
 #include "nlohmann/json.hpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
 
-namespace flockmtl {
+namespace flock {
 
 // Base template class for LLM aggregate function tests
 template<typename FunctionClass>
@@ -62,4 +62,4 @@ protected:
     virtual std::string FormatExpectedResult(const nlohmann::json& response) const = 0;
 };
 
-}// namespace flockmtl
+}// namespace flock

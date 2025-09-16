@@ -3,21 +3,21 @@
 <br />
 
 <div align="center">
-  <a href="https://dais-polymtl.github.io/flockmtl/">
-    <img src="docs/static/img/logo-dark.svg" alt="Logo" height="80">
+  <a href="https://dais-polymtl.github.io/flock/">
+    <img src="docs/static/flock-square-readme.png" alt="Logo" height="300">
   </a>
   <br /><br />
   <p align="center">
     A multimodal querying DBMS extension that deeply integrates LLM and RAG capabilities directly into OLAP systems.
     <br />
-    <a href="https://dais-polymtl.github.io/flockmtl/docs/what-is-flockmtl"><strong>Explore the docs »</strong></a>
+    <a href="https://dais-polymtl.github.io/flock/docs/what-is-flock"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://dais-polymtl.github.io/flockmtl/">Landing Page</a>
+    <a href="https://dais-polymtl.github.io/flock/">Landing Page</a>
     |
-    <a href="https://github.com/dais-polymtl/flockmtl/issues/new?labels=bug&template=bug-report.md">Report Bug</a>
+    <a href="https://github.com/dais-polymtl/flock/issues/new?labels=bug&template=bug-report.md">Report Bug</a>
     |
-    <a href="https://github.com/dais-polymtl/flockmtl/issues/new?labels=enhancement&template=feature-request.md">Request Feature</a>
+    <a href="https://github.com/dais-polymtl/flock/issues/new?labels=enhancement&template=feature-request.md">Request Feature</a>
   </p>
 </div>
 
@@ -49,14 +49,15 @@ FlockMTL is an advanced **DuckDB** extension that seamlessly integrates analytic
 
 To cite the project:
 ```
-@article{DBLP:journals/corr/abs-2504-01157,
-  author       = {Anas Dorbani and Sunny Yasser and Jimmy Lin and Amine Mhedhbi},
-  title        = {Beyond Quacking: Deep Integration of Language Models and {RAG} into DuckDB},
-  journal      = {CoRR},
-  volume       = {abs/2504.01157},
-  year         = {2025},
-  url          = {https://doi.org/10.48550/arXiv.2504.01157},
-  doi          = {10.48550/ARXIV.2504.01157}
+@article{10.14778/3750601.3750685,
+  author  = {Dorbani, Anas and Yasser, Sunny and Lin, Jimmy and Mhedhbi, Amine},
+  title   = {Beyond Quacking: Deep Integration of Language Models and RAG into DuckDB},
+  journal = {Proc. VLDB Endow.},
+  year    = {2025},
+  volume  = {18},
+  number  = {12},
+  doi     = {10.14778/3750601.3750685},
+  url     = {https://doi.org/10.14778/3750601.3750685}
 }
 ```
 
@@ -93,11 +94,11 @@ FlockMTL is a **Community Extension** available directly from DuckDB's community
 
 1. Install the extension:
    ```sql
-   INSTALL flockmtl FROM community;
+   INSTALL flock FROM community;
    ```
 2. Load the extension:
    ```sql
-   LOAD flockmtl;
+   LOAD flock;
    ```
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
@@ -117,13 +118,13 @@ SELECT llm_complete(
 FROM your_table;
 ```
 
-Explore more usage examples in the [documentation](https://dais-polymtl.github.io/flockmtl/docs/supported-providers/openai).
+Explore more usage examples in the [documentation](https://dais-polymtl.github.io/flock/docs/supported-providers/openai).
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
 ## 🛣️ Roadmap
 
-Our roadmap outlines upcoming features and improvements. Stay updated by checking out our [detailed plan](https://github.com/dais-polymtl/flockmtl/issues/39).
+Our roadmap outlines upcoming features and improvements. Stay updated by checking out our [detailed plan](https://github.com/dais-polymtl/flock/issues/39).
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
@@ -131,8 +132,8 @@ Our roadmap outlines upcoming features and improvements. Stay updated by checkin
 
 We value your feedback! If you’d like to report an issue or suggest a new feature, please use the links below:
 
-- <a href="https://github.com/dais-polymtl/flockmtl/issues/new?labels=bug&template=bug-report.md">Report a Bug</a>
-- <a href="https://github.com/dais-polymtl/flockmtl/issues/new?labels=enhancement&template=feature-request.md">Request a Feature</a>
+- <a href="https://github.com/dais-polymtl/flock/issues/new?labels=bug&template=bug-report.md">Report a Bug</a>
+- <a href="https://github.com/dais-polymtl/flock/issues/new?labels=enhancement&template=feature-request.md">Request a Feature</a>
 
 For contributing code or other contributions, please refer to our dedicated [Contribution Guidelines](#).
 

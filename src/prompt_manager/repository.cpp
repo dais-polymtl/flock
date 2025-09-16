@@ -1,8 +1,8 @@
-#include "flockmtl/prompt_manager/repository.hpp"
-#include "flockmtl/prompt_manager/prompt_manager.hpp"
+#include "flock/prompt_manager/repository.hpp"
+#include "flock/prompt_manager/prompt_manager.hpp"
 #include <algorithm>
 
-namespace flockmtl {
+namespace flock {
 
 template<>
 std::string INSTRUCTIONS::Get(ScalarFunctionType option) {
@@ -53,4 +53,4 @@ TupleFormat stringToTupleFormat(const std::string& format) {
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

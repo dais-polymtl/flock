@@ -6,7 +6,7 @@ sidebar_position: 1
 # Models Management
 
 The **Models Management** section provides guidance on how to manage and configure models for **analytics and semantic
-analysis tasks** within FlockMTL. These tasks involve processing and analyzing text, embeddings, and other data types
+analysis tasks** within Flock. These tasks involve processing and analyzing text, embeddings, and other data types
 using pre-configured models, either system-defined or user-defined, based on specific use cases. Each database is
 configured with its own model management table during the initial load.
 
@@ -19,7 +19,7 @@ import TOCInline from '@theme/TOCInline';
 Models are stored in a table with the following structure:
 
 | **Column Name**     | **Description**                                                                                                                                                                                                                                   |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **Model Name**      | Unique identifier for the model                                                                                                                                                                                                                   |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                                                                                                                                                                                     |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`)                                                                                                                                                                                           |

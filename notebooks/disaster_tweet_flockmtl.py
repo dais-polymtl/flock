@@ -21,7 +21,7 @@ from collections import Counter
 # %% [markdown]
 # ## Step 2: Download Dataset from Kaggle
 # 
-# Download and extract the disaster tweets dataset from Kaggle. Ensure you have set up your Kaggle API token. [Learn how to set up the Kaggle API token](https://github.com/dais-polymtl/flockmtl/blob/main/notebooks/README.md).
+# Download and extract the disaster tweets dataset from Kaggle. Ensure you have set up your Kaggle API token. [Learn how to set up the Kaggle API token](https://github.com/dais-polymtl/flock/blob/main/notebooks/README.md).
 
 # %%
 api = KaggleApi()
@@ -44,8 +44,8 @@ api.dataset_download_files(
 con = duckdb.connect(':memory:')
 
 # Load FlockMTL extension
-con.sql("INSTALL flockmtl FROM community")
-con.sql("LOAD flockmtl")
+con.sql("INSTALL flock FROM community")
+con.sql("LOAD flock")
 
 # %% [markdown]
 # ## Step 4: Load and Preview Dataset

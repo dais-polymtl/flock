@@ -1,6 +1,6 @@
-#include "flockmtl/functions/scalar/llm_filter.hpp"
+#include "flock/functions/scalar/llm_filter.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void LlmFilter::ValidateArguments(duckdb::DataChunk& args) {
     if (args.ColumnCount() != 3) {
@@ -56,4 +56,4 @@ void LlmFilter::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state,
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

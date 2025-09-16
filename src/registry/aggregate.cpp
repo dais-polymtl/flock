@@ -1,6 +1,6 @@
-#include "flockmtl/registry/aggregate.hpp"
+#include "flock/registry/aggregate.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void AggregateRegistry::Register(duckdb::ExtensionLoader& loader) {
     RegisterLlmFirst(loader);
@@ -9,4 +9,4 @@ void AggregateRegistry::Register(duckdb::ExtensionLoader& loader) {
     RegisterLlmReduce(loader);
 }
 
-}// namespace flockmtl
+}// namespace flock

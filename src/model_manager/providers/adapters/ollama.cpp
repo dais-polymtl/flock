@@ -1,6 +1,6 @@
-#include "flockmtl/model_manager/providers/adapters/ollama.hpp"
+#include "flock/model_manager/providers/adapters/ollama.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void OllamaProvider::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
     nlohmann::json request_payload = {{"model", model_details_.model},
@@ -51,4 +51,4 @@ void OllamaProvider::AddEmbeddingRequest(const std::vector<std::string>& inputs)
     }
 }
 
-}// namespace flockmtl
+}// namespace flock
