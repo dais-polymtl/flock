@@ -2,13 +2,13 @@
 
 namespace flockmtl {
 
-void Registry::Register(duckdb::DatabaseInstance& db) {
-    RegisterAggregateFunctions(db);
-    RegisterScalarFunctions(db);
+void Registry::Register(duckdb::ExtensionLoader& loader) {
+    RegisterAggregateFunctions(loader);
+    RegisterScalarFunctions(loader);
 }
 
-void Registry::RegisterAggregateFunctions(duckdb::DatabaseInstance& db) { AggregateRegistry::Register(db); }
+void Registry::RegisterAggregateFunctions(duckdb::ExtensionLoader& loader) { AggregateRegistry::Register(loader); }
 
-void Registry::RegisterScalarFunctions(duckdb::DatabaseInstance& db) { ScalarRegistry::Register(db); }
+void Registry::RegisterScalarFunctions(duckdb::ExtensionLoader& loader) { ScalarRegistry::Register(loader); }
 
-} // namespace flockmtl
+}// namespace flockmtl

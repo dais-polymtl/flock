@@ -3,9 +3,8 @@
 
 namespace flockmtl {
 
-void ScalarRegistry::RegisterLlmEmbedding(duckdb::DatabaseInstance& db) {
-    duckdb::ExtensionUtil::RegisterFunction(
-            db,
+void ScalarRegistry::RegisterLlmEmbedding(duckdb::ExtensionLoader& loader) {
+    loader.RegisterFunction(
             duckdb::ScalarFunction("llm_embedding", {duckdb::LogicalType::ANY, duckdb::LogicalType::ANY}, duckdb::LogicalType::LIST(duckdb::LogicalType::DOUBLE),
                                    LlmEmbedding::Execute));
 }

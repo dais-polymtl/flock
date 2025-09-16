@@ -2,15 +2,15 @@
 
 namespace flockmtl {
 
-void ScalarRegistry::Register(duckdb::DatabaseInstance& db) {
-    RegisterLlmComplete(db);
-    RegisterLlmEmbedding(db);
-    RegisterLlmFilter(db);
-    RegisterFusionRRF(db);
-    RegisterFusionCombANZ(db);
-    RegisterFusionCombMED(db);
-    RegisterFusionCombMNZ(db);
-    RegisterFusionCombSUM(db);
+void ScalarRegistry::Register(duckdb::ExtensionLoader& loader) {
+    RegisterLlmComplete(loader);
+    RegisterLlmEmbedding(loader);
+    RegisterLlmFilter(loader);
+    RegisterFusionRRF(loader);
+    RegisterFusionCombANZ(loader);
+    RegisterFusionCombMED(loader);
+    RegisterFusionCombMNZ(loader);
+    RegisterFusionCombSUM(loader);
 }
 
 }// namespace flockmtl
