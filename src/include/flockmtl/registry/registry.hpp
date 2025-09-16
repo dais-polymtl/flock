@@ -8,11 +8,11 @@ namespace flockmtl {
 
 class Registry {
 public:
-    static void Register(duckdb::DatabaseInstance& db);
+    static void Register(duckdb::ExtensionLoader& loader);
 
 private:
-    static void RegisterAggregateFunctions(duckdb::DatabaseInstance& db);
-    static void RegisterScalarFunctions(duckdb::DatabaseInstance& db);
+    static void RegisterAggregateFunctions(duckdb::ExtensionLoader& loader);
+    static void RegisterScalarFunctions(duckdb::ExtensionLoader& loader);
 };
 
-} // namespace flockmtl
+}// namespace flockmtl
