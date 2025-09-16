@@ -4,7 +4,7 @@
 #include <tuple>
 
 #include "flockmtl/core/common.hpp"
-#include "flockmtl/functions/batch_response_builder.hpp"
+#include "flockmtl/functions/input_parser.hpp"
 #include "flockmtl/model_manager/model.hpp"
 
 namespace flockmtl {
