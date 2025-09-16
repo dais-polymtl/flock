@@ -35,23 +35,23 @@ SecretManager::SupportedProviders SecretManager::GetProviderType(const std::stri
     return it->second;
 }
 
-void SecretManager::Register(duckdb::DatabaseInstance& instance) {
-    RegisterSecretType(instance);
-    RegisterSecretFunction(instance);
+void SecretManager::Register(duckdb::ExtensionLoader& loader) {
+    RegisterSecretType(loader);
+    RegisterSecretFunction(loader);
 }
 
-void SecretManager::RegisterSecretType(duckdb::DatabaseInstance& instance) {
+void SecretManager::RegisterSecretType(duckdb::ExtensionLoader& loader) {
     for (const auto& secret_detail: get_secret_details_list()) {
         duckdb::SecretType secret_type;
         secret_type.name = secret_detail.type;
         secret_type.deserializer = duckdb::KeyValueSecret::Deserialize<duckdb::KeyValueSecret>;
         secret_type.default_provider = secret_detail.provider;
 
-        duckdb::ExtensionUtil::RegisterSecretType(instance, secret_type);
+        loader.RegisterSecretType(secret_type);
     }
 }
 
-void SecretManager::RegisterSecretFunction(duckdb::DatabaseInstance& instance) {
+void SecretManager::RegisterSecretFunction(duckdb::ExtensionLoader& loader) {
     for (const auto& secret_details: get_secret_details_list()) {
         duckdb::CreateSecretFunction secret_function = {secret_details.type, secret_details.provider, CreateSecret};
 
@@ -59,7 +59,7 @@ void SecretManager::RegisterSecretFunction(duckdb::DatabaseInstance& instance) {
             secret_function.named_parameters[field] = duckdb::LogicalType::VARCHAR;
         }
 
-        duckdb::ExtensionUtil::RegisterFunction(instance, secret_function);
+        loader.RegisterFunction(secret_function);
     }
 }
 

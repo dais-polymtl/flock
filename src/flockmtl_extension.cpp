@@ -12,11 +12,11 @@
 
 namespace duckdb {
 
-static void LoadInternal(DatabaseInstance& instance) {
-    flockmtl::Config::Configure(instance);
+static void LoadInternal(ExtensionLoader& loader) {
+    flockmtl::Config::Configure(loader);
 
     // Register the custom parser
-    auto& config = DBConfig::GetConfig(instance);
+    auto& config = DBConfig::GetConfig(loader.GetDatabaseInstance());
     DuckParserExtension duck_parser;
     config.parser_extensions.push_back(duck_parser);
     config.operator_extensions.push_back(make_uniq<DuckOperatorExtension>());
@@ -34,7 +34,7 @@ ParserExtensionParseResult duck_parse(ParserExtensionInfo*, const std::string& q
     auto statements = std::move(parser.statements);
 
     return ParserExtensionParseResult(
-        make_uniq_base<ParserExtensionParseData, DuckParseData>(std::move(statements[0])));
+            make_uniq_base<ParserExtensionParseData, DuckParseData>(std::move(statements[0])));
 }
 
 ParserExtensionPlanResult duck_plan(ParserExtensionInfo*, ClientContext& context,
@@ -48,48 +48,35 @@ ParserExtensionPlanResult duck_plan(ParserExtensionInfo*, ClientContext& context
 
 BoundStatement duck_bind(ClientContext& context, Binder& binder, OperatorExtensionInfo* info, SQLStatement& statement) {
     switch (statement.type) {
-    case StatementType::EXTENSION_STATEMENT: {
-        auto& extension_statement = dynamic_cast<ExtensionStatement&>(statement);
-        if (extension_statement.extension.parse_function == duck_parse) {
-            if (const auto duck_state = context.registered_state->Get<DuckState>("duck")) {
-                const auto duck_binder = Binder::CreateBinder(context, &binder);
-                const auto duck_parse_data = dynamic_cast<DuckParseData*>(duck_state->parse_data.get());
-                auto bound_statement = duck_binder->Bind(*(duck_parse_data->statement));
-                BoundStatement result;
-                return bound_statement;
+        case StatementType::EXTENSION_STATEMENT: {
+            auto& extension_statement = dynamic_cast<ExtensionStatement&>(statement);
+            if (extension_statement.extension.parse_function == duck_parse) {
+                if (const auto duck_state = context.registered_state->Get<DuckState>("duck")) {
+                    const auto duck_binder = Binder::CreateBinder(context, &binder);
+                    const auto duck_parse_data = dynamic_cast<DuckParseData*>(duck_state->parse_data.get());
+                    auto bound_statement = duck_binder->Bind(*(duck_parse_data->statement));
+                    BoundStatement result;
+                    return bound_statement;
+                }
+                throw BinderException("Registered state not found");
             }
-            throw BinderException("Registered state not found");
         }
-    }
-    default:
-        // No-op empty
-        return {};
+        default:
+            // No-op empty
+            return {};
     }
 }
 
-void FlockmtlExtension::Load(DuckDB& db) { LoadInternal(*db.instance); }
+void FlockmtlExtension::Load(ExtensionLoader& loader) { LoadInternal(loader); }
 
 std::string FlockmtlExtension::Name() { return "flockmtl"; }
-std::string FlockmtlExtension::Version() const {
-#ifdef EXT_VERSION_FLOCKMTL
-    return EXT_VERSION_FLOCKMTL;
-#else
-    return "";
-#endif
-}
+std::string FlockmtlExtension::Version() const { return "v0.4.0"; }
 
-} // namespace duckdb
+}// namespace duckdb
 
 extern "C" {
 
-DUCKDB_EXTENSION_API void flockmtl_init(duckdb::DatabaseInstance& db) {
-    duckdb::DuckDB db_wrapper(db);
-    db_wrapper.LoadExtension<duckdb::FlockmtlExtension>();
+DUCKDB_CPP_EXTENSION_ENTRY(flockmtl, loader) {
+    duckdb::LoadInternal(loader);
 }
-
-DUCKDB_EXTENSION_API const char* flockmtl_version() { return duckdb::DuckDB::LibraryVersion(); }
 }
-
-#ifndef DUCKDB_EXTENSION_MAIN
-#error DUCKDB_EXTENSION_MAIN not defined
-#endif
