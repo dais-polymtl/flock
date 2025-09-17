@@ -1,6 +1,6 @@
-#include "flockmtl/functions/scalar/llm_complete.hpp"
+#include "flock/functions/scalar/llm_complete.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void LlmComplete::ValidateArguments(duckdb::DataChunk& args) {
     if (args.ColumnCount() < 2 || args.ColumnCount() > 3) {
@@ -77,4 +77,4 @@ void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& stat
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

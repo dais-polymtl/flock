@@ -1,6 +1,6 @@
-#include "flockmtl/functions/aggregate/llm_first_or_last.hpp"
+#include "flock/functions/aggregate/llm_first_or_last.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 template void AggregateFunctionBase::Initialize<LlmFirstOrLast>(const duckdb::AggregateFunction& function,
                                                                 duckdb::data_ptr_t state_p);
@@ -15,4 +15,4 @@ template void LlmFirstOrLast::Finalize<AggregateFunctionType::FIRST>(duckdb::Vec
 template void LlmFirstOrLast::Finalize<AggregateFunctionType::LAST>(duckdb::Vector&, duckdb::AggregateInputData&,
                                                                     duckdb::Vector&, idx_t, idx_t);
 
-} // namespace flockmtl
+}// namespace flock

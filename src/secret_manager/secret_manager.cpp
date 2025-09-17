@@ -1,21 +1,21 @@
-#include "flockmtl/secret_manager/secret_manager.hpp"
-#include "flockmtl/core/config.hpp"
+#include "flock/secret_manager/secret_manager.hpp"
+#include "flock/core/config.hpp"
 #include <unordered_map>
 
 #include <duckdb/main/secret/secret_manager.hpp>
 
-namespace flockmtl {
+namespace flock {
 
 SecretDetails get_openai_secret_details() {
-    return {"openai", "flockmtl", "openai://", {"base_url", "api_key"}, {"api_key"}, {"api_key"}};
+    return {"openai", "flock", "openai://", {"base_url", "api_key"}, {"api_key"}, {"api_key"}};
 }
 
 SecretDetails get_azure_secret_details() {
-    return {"azure_llm", "flockmtl", "azure_llm://", {"api_key", "resource_name", "api_version"}, {"api_key"}, {"api_key", "resource_name", "api_version"}};
+    return {"azure_llm", "flock", "azure_llm://", {"api_key", "resource_name", "api_version"}, {"api_key"}, {"api_key", "resource_name", "api_version"}};
 }
 
 SecretDetails get_ollama_secret_details() {
-    return {"ollama", "flockmtl", "ollama://", {"api_url"}, {"api_url"}, {"api_url"}};
+    return {"ollama", "flock", "ollama://", {"api_url"}, {"api_url"}, {"api_url"}};
 }
 
 std::vector<SecretDetails> get_secret_details_list() {
@@ -152,4 +152,4 @@ void SecretManager::ValidateRequiredFields(const duckdb::CreateSecretInput& inpu
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

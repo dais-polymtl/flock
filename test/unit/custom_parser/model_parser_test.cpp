@@ -1,9 +1,9 @@
-#include "flockmtl/custom_parser/query/model_parser.hpp"
-#include "flockmtl/custom_parser/tokenizer.hpp"
+#include "flock/custom_parser/query/model_parser.hpp"
+#include "flock/custom_parser/tokenizer.hpp"
 #include "gtest/gtest.h"
 #include <memory>
 
-using namespace flockmtl;
+using namespace flock;
 
 /**************************************************
  *                 Create Model                  *
@@ -87,7 +87,7 @@ TEST(ModelParserTest, ParseCreateGlobalModel) {
     EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
-    EXPECT_EQ(create_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(create_stmt->catalog, "flock_storage.");
 }
 
 TEST(ModelParserTest, ParseCreateGlobalModelWithSemicolon) {
@@ -103,7 +103,7 @@ TEST(ModelParserTest, ParseCreateGlobalModelWithSemicolon) {
     EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
-    EXPECT_EQ(create_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(create_stmt->catalog, "flock_storage.");
 }
 
 TEST(ModelParserTest, ParseCreateGlobalModelWithComment) {
@@ -119,7 +119,7 @@ TEST(ModelParserTest, ParseCreateGlobalModelWithComment) {
     EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
-    EXPECT_EQ(create_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(create_stmt->catalog, "flock_storage.");
 }
 
 TEST(ModelParserTest, ParseCreateLocalModel) {
@@ -443,7 +443,7 @@ TEST(ModelParserTest, ParseUpdateModelScopeToGlobal) {
     const auto update_stmt = dynamic_cast<UpdateModelScopeStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
     EXPECT_EQ(update_stmt->model_name, "test_model");
-    EXPECT_EQ(update_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(update_stmt->catalog, "flock_storage.");
 }
 
 TEST(ModelParserTest, ParseUpdateModelScopeToGlobalWithoutSemicolon) {
@@ -454,7 +454,7 @@ TEST(ModelParserTest, ParseUpdateModelScopeToGlobalWithoutSemicolon) {
     const auto update_stmt = dynamic_cast<UpdateModelScopeStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
     EXPECT_EQ(update_stmt->model_name, "test_model");
-    EXPECT_EQ(update_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(update_stmt->catalog, "flock_storage.");
 }
 
 TEST(ModelParserTest, ParseUpdateModelScopeToGlobalWithComment) {
@@ -465,7 +465,7 @@ TEST(ModelParserTest, ParseUpdateModelScopeToGlobalWithComment) {
     const auto update_stmt = dynamic_cast<UpdateModelScopeStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
     EXPECT_EQ(update_stmt->model_name, "test_model");
-    EXPECT_EQ(update_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(update_stmt->catalog, "flock_storage.");
 }
 
 TEST(ModelParserTest, ParseUpdateModelScopeToLocal) {

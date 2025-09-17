@@ -1,16 +1,16 @@
 #include "duckdb/main/secret/secret_manager.hpp"
-#include "flockmtl/core/config.hpp"
-#include "flockmtl/secret_manager/secret_manager.hpp"
+#include "flock/core/config.hpp"
+#include "flock/secret_manager/secret_manager.hpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-namespace flockmtl {
+namespace flock {
 
 // Test the SecretDetails functions
 TEST(SecretManager, OpenAIDetails) {
     auto details = get_openai_secret_details();
     EXPECT_EQ(details.type, "openai");
-    EXPECT_EQ(details.provider, "flockmtl");
+    EXPECT_EQ(details.provider, "flock");
     EXPECT_EQ(details.scope, "openai://");
     EXPECT_THAT(details.fields, testing::UnorderedElementsAre("base_url", "api_key"));
     EXPECT_THAT(details.redact_fields, testing::UnorderedElementsAre("api_key"));
@@ -20,7 +20,7 @@ TEST(SecretManager, OpenAIDetails) {
 TEST(SecretManager, AzureDetails) {
     auto details = get_azure_secret_details();
     EXPECT_EQ(details.type, "azure_llm");
-    EXPECT_EQ(details.provider, "flockmtl");
+    EXPECT_EQ(details.provider, "flock");
     EXPECT_EQ(details.scope, "azure_llm://");
     EXPECT_THAT(details.fields, testing::UnorderedElementsAre("api_key", "resource_name", "api_version"));
     EXPECT_THAT(details.redact_fields, testing::UnorderedElementsAre("api_key"));
@@ -30,7 +30,7 @@ TEST(SecretManager, AzureDetails) {
 TEST(SecretManager, OllamaDetails) {
     auto details = get_ollama_secret_details();
     EXPECT_EQ(details.type, "ollama");
-    EXPECT_EQ(details.provider, "flockmtl");
+    EXPECT_EQ(details.provider, "flock");
     EXPECT_EQ(details.scope, "ollama://");
     EXPECT_THAT(details.fields, testing::UnorderedElementsAre("api_url"));
     EXPECT_THAT(details.redact_fields, testing::UnorderedElementsAre("api_url"));
@@ -137,4 +137,4 @@ TEST(SecretManager, GetOllamaSecret) {
     EXPECT_EQ(result["api_url"], "127.0.0.1:11434");
 }
 
-}// namespace flockmtl
+}// namespace flock

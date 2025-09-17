@@ -1,7 +1,7 @@
-#include "flockmtl/registry/registry.hpp"
-#include "flockmtl/functions/scalar/fusion_rrf.hpp"
+#include "flock/registry/registry.hpp"
+#include "flock/functions/scalar/fusion_rrf.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void ScalarRegistry::RegisterFusionRRF(duckdb::ExtensionLoader& loader) {
     loader.RegisterFunction(duckdb::ScalarFunction("fusion_rrf", {}, duckdb::LogicalType::DOUBLE, FusionRRF::Execute, nullptr,
@@ -9,4 +9,4 @@ void ScalarRegistry::RegisterFusionRRF(duckdb::ExtensionLoader& loader) {
                                                    duckdb::FunctionStability::VOLATILE, duckdb::FunctionNullHandling::SPECIAL_HANDLING));
 }
 
-}// namespace flockmtl
+}// namespace flock

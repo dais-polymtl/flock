@@ -1,7 +1,7 @@
-#include "flockmtl/functions/scalar/llm_filter.hpp"
+#include "flock/functions/scalar/llm_filter.hpp"
 #include "llm_function_test_base.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 class LLMFilterTest : public LLMFunctionTestBase<LlmFilter> {
 protected:
@@ -117,4 +117,4 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

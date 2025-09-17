@@ -1,6 +1,6 @@
-#include "flockmtl/functions/scalar/fusion_combmed.hpp"
+#include "flock/functions/scalar/fusion_combmed.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 // performs CombMED to merge lists based on a calculated score.
 std::vector<double> FusionCombMED::Operation(duckdb::DataChunk& args) {
@@ -46,7 +46,7 @@ void FusionCombMED::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& st
     auto results = FusionCombMED::Operation(args);
 
     auto index = 0;
-    for (const auto& res : results) {
+    for (const auto& res: results) {
         result.SetValue(index++, duckdb::Value(res));
     }
 }
@@ -73,4 +73,4 @@ double FusionCombMED::calculateMedian(const std::vector<double>& scores) {
     }
 }
 
-} // namespace flockmtl
+}// namespace flock

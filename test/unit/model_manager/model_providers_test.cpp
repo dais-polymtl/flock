@@ -1,13 +1,13 @@
 #include "../functions/mock_provider.hpp"
-#include "flockmtl/model_manager/providers/adapters/azure.hpp"
-#include "flockmtl/model_manager/providers/adapters/ollama.hpp"
-#include "flockmtl/model_manager/providers/adapters/openai.hpp"
+#include "flock/model_manager/providers/adapters/azure.hpp"
+#include "flock/model_manager/providers/adapters/ollama.hpp"
+#include "flock/model_manager/providers/adapters/openai.hpp"
 #include "nlohmann/json.hpp"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <string>
 
-namespace flockmtl {
+namespace flock {
 using json = nlohmann::json;
 
 // Test OpenAI provider behavior
@@ -139,4 +139,4 @@ TEST(ModelProvidersTest, OllamaProviderTest) {
     EXPECT_EQ(embedding_results[0], expected_embedding_response);
 }
 
-}// namespace flockmtl
+}// namespace flock

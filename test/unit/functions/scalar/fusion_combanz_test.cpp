@@ -1,4 +1,4 @@
-#include <flockmtl/functions/scalar/fusion_combanz.hpp>
+#include <flock/functions/scalar/fusion_combanz.hpp>
 #include <gtest/gtest.h>
 
 using namespace duckdb;
@@ -22,7 +22,7 @@ TEST(FusionCombANZ, With2Doubles) {
     chunk.SetValue(1, 0, 0.2);
 
     // Call FusionCombANZ with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombANZ::Operation(chunk);
 
     // Verify the result
     ASSERT_EQ(result.size(), 1);
@@ -53,7 +53,7 @@ TEST(FusionCombANZ, With2Columns) {
     }
 
     // Call FusionCombANZ with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombANZ::Operation(chunk);
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {0.14 / 2, (0.41 + 0.4) / 2, 0.6 / 2, (0.8 + 1.0) / 2, (1.0 + 0.66) / 2};
@@ -89,7 +89,7 @@ TEST(FusionCombANZ, With3Columns) {
     }
 
     // Call FusionCombANZ with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombANZ::Operation(chunk);
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {(0.14 + 0.28) / 3, (0.4 + 0.41 + 0.5) / 3, (0.6 + 0.1) / 3, (0.8 + 1.0 + 0.8) / 3, (1.0 + 0.66 + 1.0) / 3};
@@ -133,7 +133,7 @@ TEST(FusionCombANZ, WithSomeNullNaNValues) {
     }
 
     // Call FusionCombANZ with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombANZ::Operation(chunk);
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {0.14 / 2, (0.41 + 0.4) / 2, 0.0, (0.8 + 1.0) / 2, 1.0 / 2};
@@ -166,7 +166,7 @@ TEST(FusionCombANZ, WithEntireNullNaNColumn) {
     }
 
     // Call FusionCombANZ with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombANZ::Operation(chunk);
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {0.046906565486452 / 2, 0.43271756518423 / 2, 0.75739696774139 / 2, 0.520761702528056 / 2, 0.58813126808257 / 2};
@@ -196,7 +196,7 @@ TEST(FusionCombANZ, WithOnlyNullNaNValues) {
     }
 
     // Call FusionCombANZ with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombANZ::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombANZ::Operation(chunk);
 
     for (size_t i = 0; i < 5; ++i) {
         ASSERT_EQ(result[i], 0.0);

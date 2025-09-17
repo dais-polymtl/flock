@@ -1,7 +1,7 @@
-#include "flockmtl/registry/registry.hpp"
-#include "flockmtl/functions/scalar/llm_complete.hpp"
+#include "flock/registry/registry.hpp"
+#include "flock/functions/scalar/llm_complete.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void ScalarRegistry::RegisterLlmComplete(duckdb::ExtensionLoader& loader) {
     loader.RegisterFunction(duckdb::ScalarFunction("llm_complete",
@@ -9,4 +9,4 @@ void ScalarRegistry::RegisterLlmComplete(duckdb::ExtensionLoader& loader) {
                                                    duckdb::LogicalType::JSON(), LlmComplete::Execute));
 }
 
-}// namespace flockmtl
+}// namespace flock

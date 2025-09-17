@@ -1,7 +1,7 @@
-#include "flockmtl/registry/registry.hpp"
-#include "flockmtl/functions/aggregate/llm_first_or_last.hpp"
+#include "flock/registry/registry.hpp"
+#include "flock/functions/aggregate/llm_first_or_last.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void AggregateRegistry::RegisterLlmFirst(duckdb::ExtensionLoader& loader) {
     loader.RegisterFunction(duckdb::AggregateFunction(
@@ -21,4 +21,4 @@ void AggregateRegistry::RegisterLlmLast(duckdb::ExtensionLoader& loader) {
             nullptr, LlmFirstOrLast::Destroy));
 }
 
-}// namespace flockmtl
+}// namespace flock

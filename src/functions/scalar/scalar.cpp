@@ -1,6 +1,6 @@
-#include "flockmtl/functions/scalar/scalar.hpp"
+#include "flock/functions/scalar/scalar.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 nlohmann::json ScalarFunctionBase::Complete(nlohmann::json& columns, const std::string& user_prompt,
                                             ScalarFunctionType function_type, Model& model) {
@@ -81,4 +81,4 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples
     return responses;
 }
 
-}// namespace flockmtl
+}// namespace flock

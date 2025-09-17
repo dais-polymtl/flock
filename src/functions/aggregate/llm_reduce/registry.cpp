@@ -1,7 +1,7 @@
-#include "flockmtl/registry/registry.hpp"
-#include "flockmtl/functions/aggregate/llm_reduce.hpp"
+#include "flock/registry/registry.hpp"
+#include "flock/functions/aggregate/llm_reduce.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void AggregateRegistry::RegisterLlmReduce(duckdb::ExtensionLoader& loader) {
     loader.RegisterFunction(duckdb::AggregateFunction(
@@ -12,4 +12,4 @@ void AggregateRegistry::RegisterLlmReduce(duckdb::ExtensionLoader& loader) {
             nullptr, LlmReduce::Destroy));
 }
 
-}// namespace flockmtl
+}// namespace flock

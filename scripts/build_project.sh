@@ -5,7 +5,7 @@ set -e
 
 # Set variables
 PROJ_DIR="$(dirname "$(realpath "$0")")/.."
-EXT_NAME="flockmtl"
+EXT_NAME="flock"
 EXT_CONFIG="${PROJ_DIR}/extension_config.cmake"
 GENERATOR="Ninja"  # Set this to the desired generator if different
 BUILD_FLAGS=""     # Add any additional CMake build flags here

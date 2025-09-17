@@ -1,8 +1,8 @@
-#include "flockmtl/custom_parser/query/model_parser.hpp"
+#include "flock/custom_parser/query/model_parser.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-namespace flockmtl {
+namespace flock {
 // Test CreateModelStatement
 TEST(ModelStatementTest, CreateModelStatement_DefaultInitialization) {
     CreateModelStatement stmt;
@@ -54,4 +54,4 @@ TEST(ModelStatementTest, GetAllModelStatement_DefaultInitialization) {
     EXPECT_EQ(stmt.type, StatementType::GET_ALL_MODEL);
 }
 
-}// namespace flockmtl
+}// namespace flock

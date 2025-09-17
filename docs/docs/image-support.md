@@ -3,9 +3,11 @@ title: Image Support
 sidebar_position: 6
 ---
 
-# Image Support in FlockMTL
+# Image Support in Flock
 
-FlockMTL provides comprehensive support for working with images in your SQL queries through its LLM functions. You can analyze, describe, filter, and process images alongside traditional tabular data, unlocking powerful multimodal AI capabilities directly within your database.
+Flock provides comprehensive support for working with images in your SQL queries through its LLM functions. You can
+analyze, describe, filter, and process images alongside traditional tabular data, unlocking powerful multimodal AI
+capabilities directly within your database.
 
 import TOCInline from '@theme/TOCInline';
 
@@ -13,7 +15,7 @@ import TOCInline from '@theme/TOCInline';
 
 ## Overview
 
-FlockMTL's image support allows you to:
+Flock's image support allows you to:
 
 - Analyze and describe image content
 - Filter records based on visual criteria
@@ -23,7 +25,7 @@ FlockMTL's image support allows you to:
 
 ## Supported Image Formats
 
-FlockMTL supports images in various formats:
+Flock supports images in various formats:
 
 - **JPEG** (.jpg, .jpeg)
 - **PNG** (.png)
@@ -70,7 +72,7 @@ Images can be provided in different formats depending on your model provider:
 
 ## Using Images in Context Columns
 
-To use images in FlockMTL functions, specify the column type as `'image'` in the `context_columns` array:
+To use images in Flock functions, specify the column type as `'image'` in the `context_columns` array:
 
 ```sql
 'context_columns': [
@@ -85,7 +87,8 @@ Each context column can have three properties:
 - **`data`** _(required)_: The SQL column containing image data (URL, path, or base64)
 - **`name`** _(optional)_: Custom name to reference this image in your prompt
 - **`type`** _(optional)_: Set to `'image'` for image data (default is `'tabular'`)
-- **`detail`** _(optional)_: Image detail level for OpenAI models - `'low'`, `'medium'`, or `'high'` (default is `'low'`)
+- **`detail`** _(optional)_: Image detail level for OpenAI models - `'low'`, `'medium'`, or `'high'` (default is
+  `'low'`)
 
 ### Image Detail Parameter (OpenAI Only)
 
@@ -273,7 +276,9 @@ AND price > 100;
 
 ### llm_embedding with Images
 
-**Note**: The `llm_embedding` function currently supports **only text data** and **does not support image inputs**. However, you can create a powerful workflow by first using `llm_complete` to generate descriptions from images, then creating embeddings from those descriptions.
+**Note**: The `llm_embedding` function currently supports **only text data** and **does not support image inputs**.
+However, you can create a powerful workflow by first using `llm_complete` to generate descriptions from images, then
+creating embeddings from those descriptions.
 
 #### Generating Image Descriptions and Embeddings
 
@@ -534,18 +539,19 @@ SELECT
 FROM critical_product_images;
 ```
 
-## FlockMTL Function Support
+## Flock Function Support
 
-FlockMTL's image support is available in the following functions:
+Flock's image support is available in the following functions:
 
 | Function        | Image Support | Description                                 |
-| --------------- | ------------- | ------------------------------------------- |
-| `llm_complete`  | ✅ Full       | Generate text based on image content        |
-| `llm_filter`    | ✅ Full       | Filter records based on visual criteria     |
-| `llm_embedding` | ❌ Text only  | Currently supports only text data           |
-| `llm_reduce`    | ✅ Full       | Aggregate operations on image collections   |
-| `llm_rerank`    | ✅ Full       | Rank items based on visual relevance        |
-| `llm_first`     | ✅ Full       | Select top item based on visual criteria    |
-| `llm_last`      | ✅ Full       | Select bottom item based on visual criteria |
+|-----------------|---------------|---------------------------------------------|
+| `llm_complete`  | ✅ Full        | Generate text based on image content        |
+| `llm_filter`    | ✅ Full        | Filter records based on visual criteria     |
+| `llm_embedding` | ❌ Text only   | Currently supports only text data           |
+| `llm_reduce`    | ✅ Full        | Aggregate operations on image collections   |
+| `llm_rerank`    | ✅ Full        | Rank items based on visual relevance        |
+| `llm_first`     | ✅ Full        | Select top item based on visual criteria    |
+| `llm_last`      | ✅ Full        | Select bottom item based on visual criteria |
 
-This comprehensive image support in FlockMTL opens up countless possibilities for multimodal AI applications directly within your SQL workflows.
+This comprehensive image support in Flock opens up countless possibilities for multimodal AI applications directly
+within your SQL workflows.

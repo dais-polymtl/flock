@@ -1,8 +1,8 @@
 #pragma once
-#include "flockmtl/model_manager/providers/provider.hpp"
+#include "flock/model_manager/providers/provider.hpp"
 #include <gmock/gmock.h>
 
-namespace flockmtl {
+namespace flock {
 
 class MockProvider : public IProvider {
 public:
@@ -14,4 +14,4 @@ public:
     MOCK_METHOD(std::vector<nlohmann::json>, CollectEmbeddings, (const std::string& contentType), (override));
 };
 
-}// namespace flockmtl
+}// namespace flock

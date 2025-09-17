@@ -1,7 +1,7 @@
-#include "flockmtl/registry/registry.hpp"
-#include "flockmtl/functions/aggregate/llm_rerank.hpp"
+#include "flock/registry/registry.hpp"
+#include "flock/functions/aggregate/llm_rerank.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void AggregateRegistry::RegisterLlmRerank(duckdb::ExtensionLoader& loader) {
     loader.RegisterFunction(duckdb::AggregateFunction(
@@ -11,4 +11,4 @@ void AggregateRegistry::RegisterLlmRerank(duckdb::ExtensionLoader& loader) {
             nullptr, LlmRerank::Destroy));
 }
 
-}// namespace flockmtl
+}// namespace flock
