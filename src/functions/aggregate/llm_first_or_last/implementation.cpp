@@ -1,6 +1,6 @@
-#include "flockmtl/functions/aggregate/llm_first_or_last.hpp"
+#include "flock/functions/aggregate/llm_first_or_last.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 int LlmFirstOrLast::GetFirstOrLastTupleId(nlohmann::json& tuples) {
     nlohmann::json data;
@@ -86,7 +86,7 @@ void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateIn
             tuples_with_ids.push_back(nlohmann::json::object());
             for (auto j = 0; j < static_cast<int>((*state->value)[0]["data"].size()); j++) {
                 if (j == 0) {
-                    tuples_with_ids.back()["name"] = "flockmtl_row_id";
+                    tuples_with_ids.back()["name"] = "flock_row_id";
                     tuples_with_ids.back()["data"] = nlohmann::json::array();
                 }
                 tuples_with_ids.back()["data"].push_back(std::to_string(j));
@@ -101,4 +101,4 @@ void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateIn
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

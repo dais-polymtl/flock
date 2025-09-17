@@ -1,6 +1,6 @@
-#include "flockmtl/functions/aggregate/llm_rerank.hpp"
+#include "flock/functions/aggregate/llm_rerank.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 std::vector<int> LlmRerank::RerankBatch(const nlohmann::json& tuples) {
     nlohmann::json data;
@@ -59,7 +59,7 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
             indexed_tuples.push_back(nlohmann::json::object());
             for (auto i = 0; i < static_cast<int>(window_tuples[0]["data"].size()); i++) {
                 if (i == 0) {
-                    indexed_tuples.back()["name"] = "flockmtl_row_id";
+                    indexed_tuples.back()["name"] = "flock_row_id";
                     indexed_tuples.back()["data"] = nlohmann::json::array();
                 }
                 indexed_tuples.back()["data"].push_back(std::to_string(i));
@@ -134,4 +134,4 @@ void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& agg
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

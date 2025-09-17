@@ -1,7 +1,7 @@
-#include "flockmtl/functions/aggregate/llm_first_or_last.hpp"
+#include "flock/functions/aggregate/llm_first_or_last.hpp"
 #include "llm_aggregate_function_test_base.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 class LLMFirstTest : public LLMAggregateTestBase<LlmFirstOrLast> {
 protected:
@@ -160,4 +160,4 @@ TEST_F(LLMFirstTest, Operation_LargeInputSet_ProcessesCorrectly) {
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

@@ -1,13 +1,12 @@
-#include "flockmtl/registry/registry.hpp"
-#include "flockmtl/functions/scalar/llm_embedding.hpp"
+#include "flock/registry/registry.hpp"
+#include "flock/functions/scalar/llm_embedding.hpp"
 
-namespace flockmtl {
+namespace flock {
 
-void ScalarRegistry::RegisterLlmEmbedding(duckdb::DatabaseInstance& db) {
-    duckdb::ExtensionUtil::RegisterFunction(
-            db,
+void ScalarRegistry::RegisterLlmEmbedding(duckdb::ExtensionLoader& loader) {
+    loader.RegisterFunction(
             duckdb::ScalarFunction("llm_embedding", {duckdb::LogicalType::ANY, duckdb::LogicalType::ANY}, duckdb::LogicalType::LIST(duckdb::LogicalType::DOUBLE),
                                    LlmEmbedding::Execute));
 }
 
-}// namespace flockmtl
+}// namespace flock

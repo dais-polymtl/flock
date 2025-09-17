@@ -8,7 +8,6 @@ on:
       - main
       - dev
     paths:
-      - .github/workflows/_extension_deploy.yml
       - .github/workflows/MainDistributionPipeline.yml
       - duckdb/**
       - extension-ci-tools/**
@@ -16,37 +15,27 @@ on:
       - test/**
       - CMakelists.txt
       - extension_config.cmake
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' && github.sha || '' }}
   cancel-in-progress: true
 
 jobs:
-  #  duckdb-next-build:
-  #    name: Build extension binaries
-  #    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@main
-  #    with:
-  #      duckdb_version: main
-  #      ci_tools_version: main
-  #      extension_name: flockmtl
-  #      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
+  duckdb-next-build:
+    name: Build extension binaries
+    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@main
+    with:
+      duckdb_version: v1.4.0
+      extension_name: flock
+      ci_tools_version: main
+      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
 
   duckdb-stable-build:
     name: Build extension binaries
-    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.3.2
+    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.4.0
     with:
-      duckdb_version: v1.3.2
-      ci_tools_version: v1.3.2
-      extension_name: flockmtl
-      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
-
-  duckdb-stable-deploy:
-    name: Deploy extension binaries
-    needs: duckdb-stable-build
-    uses: ./.github/workflows/_extension_deploy.yml
-    secrets: inherit
-    with:
-      duckdb_version: v1.3.2
-      extension_name: flockmtl
-      deploy_latest: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
+      duckdb_version: v1.4.0
+      ci_tools_version: v1.4.0
+      extension_name: flock
       exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'

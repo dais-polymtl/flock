@@ -1,7 +1,7 @@
-#include "flockmtl/model_manager/repository.hpp"
+#include "flock/model_manager/repository.hpp"
 #include <gtest/gtest.h>
 
-namespace flockmtl {
+namespace flock {
 
 TEST(ModelRepositoryTest, GetProviderType) {
     EXPECT_EQ(GetProviderType("openai"), FLOCKMTL_OPENAI);
@@ -19,4 +19,4 @@ TEST(ModelRepositoryTest, GetProviderName) {
     EXPECT_EQ(GetProviderName(FLOCKMTL_UNSUPPORTED_PROVIDER), "");
 }
 
-}// namespace flockmtl
+}// namespace flock

@@ -5,7 +5,9 @@ sidebar_position: 2
 
 # Prompts Management
 
-The **Prompt Management** section provides guidance on how to manage and configure prompts for **analytics and semantic analysis tasks** within FlockMTL. Prompts guide models in generating specific outputs for tasks like content generation, summarization, and ranking. Each database is configured with its own prompt management table during the initial load.
+The **Prompt Management** section provides guidance on how to manage and configure prompts for **analytics and semantic
+analysis tasks** within Flock. Prompts guide models in generating specific outputs for tasks like content generation,
+summarization, and ranking. Each database is configured with its own prompt management table during the initial load.
 
 import TOCInline from '@theme/TOCInline';
 
@@ -14,7 +16,7 @@ import TOCInline from '@theme/TOCInline';
 ### 1. Prompt Table Structure
 
 | **Column Name** | **Description**                   |
-| --------------- | --------------------------------- |
+|-----------------|-----------------------------------|
 | **prompt_name** | Unique identifier for the prompt  |
 | **prompt**      | Instruction content for the model |
 | **updated_at**  | Timestamp of the last update      |
@@ -82,7 +84,9 @@ FROM reviews;
 
 ## 4. Global and Local Prompts
 
-Prompt creation is database specific if you want it to be available irrespective of the database then make it a GLOBAL mode. Note that previously, the creation was specific to the running database, which is LOCAL by default and the keyword LOCAL is optional.
+Prompt creation is database specific if you want it to be available irrespective of the database then make it a GLOBAL
+mode. Note that previously, the creation was specific to the running database, which is LOCAL by default and the keyword
+LOCAL is optional.
 
 ### Create Prompts
 

@@ -1,9 +1,9 @@
-#include "flockmtl/prompt_manager/prompt_manager.hpp"
+#include "flock/prompt_manager/prompt_manager.hpp"
 #include "nlohmann/json.hpp"
 #include <gtest/gtest.h>
 #include <string>
 
-namespace flockmtl {
+namespace flock {
 using json = nlohmann::json;
 
 // Test cases for PromptManager::ToString<PromptSection>
@@ -247,4 +247,4 @@ TEST(PromptManager, CreatePromptDetailsOnlyPromptName) {
     EXPECT_EQ(version, 6);
 }
 
-}// namespace flockmtl
+}// namespace flock

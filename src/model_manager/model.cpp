@@ -1,7 +1,7 @@
-#include "flockmtl/model_manager/model.hpp"
-#include "flockmtl/secret_manager/secret_manager.hpp"
+#include "flock/model_manager/model.hpp"
+#include "flock/secret_manager/secret_manager.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 // Regular expression to match a valid Base64 string
 const std::regex base64_regex(R"(^[A-Za-z0-9+/=]+$)");
@@ -45,11 +45,11 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
 std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedModel(const std::string& model_name) {
     const std::string query =
             duckdb_fmt::format(" SELECT model, provider_name, model_args "
-                               " FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                               " FROM flock_storage.flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
                                " WHERE model_name = '{}'"
                                " UNION ALL "
                                " SELECT model, provider_name, model_args "
-                               " FROM flockmtl_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                               " FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
                                " WHERE model_name = '{}';",
                                model_name, model_name);
 
@@ -59,7 +59,7 @@ std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedMo
     if (query_result->RowCount() == 0) {
         query_result = con.Query(
                 duckdb_fmt::format(" SELECT model, provider_name, model_args "
-                                   "   FROM flockmtl_storage.flockmtl_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE "
+                                   "   FROM flock_storage.flock_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE "
                                    "  WHERE model_name = '{}' ",
                                    model_name));
 
@@ -114,4 +114,4 @@ std::vector<nlohmann::json> Model::CollectEmbeddings(const std::string& contentT
     return provider_->CollectEmbeddings(contentType);
 }
 
-}// namespace flockmtl
+}// namespace flock

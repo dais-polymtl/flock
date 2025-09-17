@@ -1,15 +1,19 @@
 import styles from '@site/src/css/style';
-import { FlockMTLHorizontal, FlockMTLHorizontalDark } from '@site/static';
+import { FlockHorizontal, FlockHorizontalDark } from '@site/static';
 
 const ThemeLogo = () => {
     return (
-        <a href='/flockmtl/' className={styles.animate}>
-            <FlockMTLHorizontalDark
+        <a href='/flock/' className={styles.animate}>
+            <img
+                src={FlockHorizontalDark}
+                alt="Flock Logo Dark"
                 width={150}
                 height={50}
                 className='hidden dark:block'
             />
-            <FlockMTLHorizontal
+            <img
+                src={FlockHorizontal}
+                alt="Flock Logo"
                 width={150}
                 height={50}
                 className='block dark:hidden'
