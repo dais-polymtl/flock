@@ -45,7 +45,7 @@
 
 ## 📜 About The Project
 
-FlockMTL is an advanced **DuckDB** extension that seamlessly integrates analytics with semantic analysis through declarative SQL queries. Designed for modern data analysis needs, FlockMTL empowers users to work with structured and unstructured data, combining OLAP workflows with the capabilities of **LLMs** (Large Language Models) and **RAG** (Retrieval-Augmented Generation) pipelines.
+Flock is an advanced **DuckDB** extension that seamlessly integrates analytics with semantic analysis through declarative SQL queries. Designed for modern data analysis needs, Flock empowers users to work with structured and unstructured data, combining OLAP workflows with the capabilities of **LLMs** (Large Language Models) and **RAG** (Retrieval-Augmented Generation) pipelines.
 
 To cite the project:
 ```
@@ -90,7 +90,7 @@ To cite the project:
 
 ### ⚙️ Installation
 
-FlockMTL is a **Community Extension** available directly from DuckDB's community catalog.
+Flock is a **Community Extension** available directly from DuckDB's community catalog.
 
 1. Install the extension:
    ```sql
@@ -107,18 +107,17 @@ FlockMTL is a **Community Extension** available directly from DuckDB's community
 
 ### 🔧 Example Query
 
-Using FlockMTL, you can run semantic analysis tasks directly in DuckDB. For example:
+Using Flock, you can run semantic analysis tasks directly in DuckDB. For example:
 
 ```sql
 SELECT llm_complete(
-    {'model_name': 'description-model'},
-    {'prompt': 'Summarize this data point: '},
-    {'data_point': data_column}
-) AS summary
-FROM your_table;
+            { 'model_name': 'summarizer'},
+            { 'prompt_name': 'description-generation', 'context_columns': [{ 'data': product_name }]}
+       ) AS product_description
+  FROM UNNEST(['Wireless Headphones', 'Gaming Laptop', 'Smart Watch']) AS t(product_name);
 ```
 
-Explore more usage examples in the [documentation](https://dais-polymtl.github.io/flock/docs/supported-providers/openai).
+Explore more usage examples in the [documentation](https://dais-polymtl.github.io/flock/docs/what-is-flock).
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
