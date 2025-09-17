@@ -8,7 +8,6 @@ on:
       - main
       - dev
     paths:
-      - .github/workflows/_extension_deploy.yml
       - .github/workflows/MainDistributionPipeline.yml
       - duckdb/**
       - extension-ci-tools/**
@@ -16,9 +15,10 @@ on:
       - test/**
       - CMakelists.txt
       - extension_config.cmake
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' || github.sha }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/main' && github.sha || '' }}
   cancel-in-progress: true
 
 jobs:
@@ -26,9 +26,9 @@ jobs:
     name: Build extension binaries
     uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@main
     with:
-      duckdb_version: main
-      ci_tools_version: main
+      duckdb_version: v1.4.0
       extension_name: flock
+      ci_tools_version: main
       exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
 
   duckdb-stable-build:
@@ -40,13 +40,11 @@ jobs:
       extension_name: flock
       exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
 
-  duckdb-stable-deploy:
-    name: Deploy extension binaries
-    needs: duckdb-stable-build
-    uses: ./.github/workflows/_extension_deploy.yml
-    secrets: inherit
+  code-quality-check:
+    name: Code Quality Check
+    uses: duckdb/extension-ci-tools/.github/workflows/_extension_code_quality.yml@main
     with:
-      duckdb_version: v1.4.0
+      duckdb_version: main
+      ci_tools_version: main
       extension_name: flock
-      deploy_latest: ${{ startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' }}
-      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
+      format_checks: 'format;tidy'
