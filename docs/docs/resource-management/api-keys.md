@@ -5,7 +5,9 @@ sidebar_position: 3
 
 # API Keys Management
 
-FlockMTL uses [DuckDB's Secrets Manager](https://duckdb.org/docs/configuration/secrets_manager.html) to securely store and manage sensitive information like API keys and credentials. Secrets are typed by service provider and can be temporary (in-memory) or persistent (on-disk).
+Flock uses [DuckDB's Secrets Manager](https://duckdb.org/docs/configuration/secrets_manager.html) to securely store and
+manage sensitive information like API keys and credentials. Secrets are typed by service provider and can be temporary (
+in-memory) or persistent (on-disk).
 
 import TOCInline from '@theme/TOCInline';
 
@@ -13,7 +15,7 @@ import TOCInline from '@theme/TOCInline';
 
 ## 1. Types of Secrets
 
-Supported secret types for FlockMTL:
+Supported secret types for Flock:
 
 - **OpenAI**
 - **Ollama**
@@ -21,7 +23,8 @@ Supported secret types for FlockMTL:
 
 ## 2. Creating a Secret
 
-Secrets can be created with the `CREATE SECRET` SQL command. Temporary secrets are stored in memory, while persistent secrets are stored on disk. If no secret name is provided, DuckDB automatically assigns a default provider name.
+Secrets can be created with the `CREATE SECRET` SQL command. Temporary secrets are stored in memory, while persistent
+secrets are stored on disk. If no secret name is provided, DuckDB automatically assigns a default provider name.
 
 ### 2.1 OpenAI API Key
 
@@ -93,7 +96,8 @@ CREATE PERSISTENT SECRET (
 
 ## 4. Deleting Secrets
 
-To delete a secret, use the `DROP SECRET` command. For default provider secrets, the name will follow the pattern `__default_<provider_name>`.
+To delete a secret, use the `DROP SECRET` command. For default provider secrets, the name will follow the pattern
+`__default_<provider_name>`.
 
 ### 4.1 Deleting Temporary Secrets
 
@@ -103,7 +107,8 @@ To delete a temporary secret, use:
 DROP TEMPORARY SECRET your_secret_name;
 ```
 
-For default provider secrets, the name will be in the format `__default_<provider_name>`, e.g., `__default_openai`, `__default_ollama`, or `__default_azure`.
+For default provider secrets, the name will be in the format `__default_<provider_name>`, e.g., `__default_openai`,
+`__default_ollama`, or `__default_azure`.
 
 Example for deleting a default temporary OpenAI secret:
 
@@ -119,7 +124,8 @@ To delete a persistent secret, use:
 DROP PERSISTENT SECRET your_secret_name;
 ```
 
-For default provider secrets, the name will be in the format `__default_<provider_name>`, e.g., `__default_openai`, `__default_ollama`, or `__default_azure`.
+For default provider secrets, the name will be in the format `__default_<provider_name>`, e.g., `__default_openai`,
+`__default_ollama`, or `__default_azure`.
 
 Example for deleting a default persistent OpenAI secret:
 

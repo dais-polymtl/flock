@@ -5,7 +5,7 @@ sidebar_position: 1
 
 # llm_reduce Aggregate Function
 
-The `llm_reduce` function in FlockMTL consolidates multiple rows of text-based results into a single output. It is used
+The `llm_reduce` function in Flock consolidates multiple rows of text-based results into a single output. It is used
 in SQL queries with the `GROUP BY` clause to combine multiple values into a summary or reduced form.
 
 import TOCInline from '@theme/TOCInline';
@@ -131,34 +131,34 @@ Two types of prompts can be used:
 
 1. **Inline Prompt**
 
-   - Directly provides the prompt in the query.
-   - **Example**:
-     ```sql
-     {'prompt': 'Summarize the following product descriptions'}
-     ```
+    - Directly provides the prompt in the query.
+    - **Example**:
+      ```sql
+      {'prompt': 'Summarize the following product descriptions'}
+      ```
 
 2. **Named Prompt**
 
-   - Refers to a pre-configured prompt by name.
-   - **Example**:
-     ```sql
-     {'prompt_name': 'summarizer'}
-     ```
+    - Refers to a pre-configured prompt by name.
+    - **Example**:
+      ```sql
+      {'prompt_name': 'summarizer'}
+      ```
 
 3. **Named Prompt with Version**
-   - Refers to a specific version of a pre-configured prompt.
-   - **Example**:
-     ```sql
-     {'prompt_name': 'summarizer', 'version': 1}
-     ```
+    - Refers to a specific version of a pre-configured prompt.
+    - **Example**:
+      ```sql
+      {'prompt_name': 'summarizer', 'version': 1}
+      ```
 
 ### 2.3. **Context Columns Configuration**
 
 - **Key**: `context_columns` array.
 - **Purpose**: Maps table columns to provide input data for the model. Each column can have three properties:
-  - `data`: The SQL column data (required)
-  - `name`: Custom name for the column to be referenced in the prompt (optional)
-  - `type`: Data type - "tabular" (default) or "image" (optional)
+    - `data`: The SQL column data (required)
+    - `name`: Custom name for the column to be referenced in the prompt (optional)
+    - `type`: Data type - "tabular" (default) or "image" (optional)
 - **Example**:
   ```sql
   'context_columns': [
@@ -179,9 +179,9 @@ For a query that aggregates product descriptions, the result could look like:
 
 - **Input Rows**:
 
-  - `product_name`: _"Running Shoes"_
-  - `product_name`: _"Wireless Headphones"_
-  - `product_name`: _"Smart Watch"_
+    - `product_name`: _"Running Shoes"_
+    - `product_name`: _"Wireless Headphones"_
+    - `product_name`: _"Smart Watch"_
 
 - **Output**:  
   `"A variety of products including running shoes, wireless headphones, and smart watches, each designed for comfort, convenience, and performance in their respective categories."`

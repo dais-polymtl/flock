@@ -18,12 +18,12 @@ import TOCInline from '@theme/TOCInline';
 ```sql
 SELECT llm_complete(
            {'model_name': 'gpt-4o'},
-    {'prompt': 'Explain the purpose of FlockMTL.'}
-) AS flockmtl_purpose;
+    {'prompt': 'Explain the purpose of Flock.'}
+) AS flock_purpose;
 ```
 
 **Description**: This example uses an inline prompt to generate a text completion with the `gpt-4` model. The prompt
-asks the model to explain the purpose of FlockMTL. The function returns a completion for each row based on the provided
+asks the model to explain the purpose of Flock. The function returns a completion for each row based on the provided
 prompt.
 
 ### 1.2 Named Prompt
@@ -92,7 +92,8 @@ FROM VALUES
 AS t(product_id, product_name, image_url);
 ```
 
-**Description**: This example demonstrates using `llm_complete` with image data. It analyzes product images and generates detailed descriptions, combining the product name with visual analysis of the image content.
+**Description**: This example demonstrates using `llm_complete` with image data. It analyzes product images and
+generates detailed descriptions, combining the product name with visual analysis of the image content.
 
 ## 3. Input Parameters
 
@@ -128,36 +129,37 @@ columns.
 
   Directly provides the prompt with context columns.
 
-  - **Example**:
-    ```sql
-    { 'prompt': 'Summarize the content: {article}', 'context_columns': [{'data': article_content, 'name': 'article'}] }
-    ```
+    - **Example**:
+      ```sql
+      { 'prompt': 'Summarize the content: {article}', 'context_columns': [{'data': article_content, 'name': 'article'}] }
+      ```
 
   #### 3.2.2 Named Prompt
 
   References a pre-configured prompt with context columns.
 
-  - **Example**:
-    ```json
-    { 'prompt_name': 'summarize-content', 'context_columns': [{'data': article_content}] }
-    ```
+    - **Example**:
+      ```json
+      { 'prompt_name': 'summarize-content', 'context_columns': [{'data': article_content}] }
+      ```
 
   #### 3.2.3 Named Prompt with Version
 
   References a specific version of a prompt with context columns.
 
-  - **Example**:
-    ```json
-    { 'prompt_name': 'summarize-content', 'version': 2, 'context_columns': [{'data': article_content}] }
-    ```
+    - **Example**:
+      ```json
+      { 'prompt_name': 'summarize-content', 'version': 2, 'context_columns': [{'data': article_content}] }
+      ```
 
 ### 3.3 Context Columns Configuration
 
 - **Parameter**: `context_columns` array
-- **Description**: Specifies the columns from the table to be passed to the model as input. Each column can have three properties:
-  - `data`: The SQL column data (required)
-  - `name`: Custom name for the column to be referenced in the prompt (optional)
-  - `type`: Data type - "tabular" (default) or "image" (optional)
+- **Description**: Specifies the columns from the table to be passed to the model as input. Each column can have three
+  properties:
+    - `data`: The SQL column data (required)
+    - `name`: Custom name for the column to be referenced in the prompt (optional)
+    - `type`: Data type - "tabular" (default) or "image" (optional)
 - **Example**:
   ```sql
   'context_columns': [

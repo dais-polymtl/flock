@@ -1,4 +1,4 @@
-#include <flockmtl/functions/scalar/fusion_rrf.hpp>
+#include <flock/functions/scalar/fusion_rrf.hpp>
 #include <gtest/gtest.h>
 
 using namespace duckdb;
@@ -21,7 +21,7 @@ TEST(FusionRRF, With2Doubles) {
     chunk.SetValue(1, 0, 1.0);
 
     // Call FusionRRF with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
+    const std::vector<double> result = flock::FusionRRF::Operation(chunk);
 
     // Verify the result
     ASSERT_EQ(result.size(), 1);
@@ -52,7 +52,7 @@ TEST(FusionRRF, With2Columns) {
     }
 
     // Call FusionRRF with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
+    const std::vector<double> result = flock::FusionRRF::Operation(chunk);
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {(1.0 / 61 + 1.0 / 64), (2.0 / 62), (1.0 / 63 + 1.0 / 61),
@@ -90,7 +90,7 @@ TEST(FusionRRF, With3Columns) {
     }
 
     // Call FusionRRF with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
+    const std::vector<double> result = flock::FusionRRF::Operation(chunk);
 
     // Verify the result
     std::vector<double> expected_results(5);
@@ -129,7 +129,7 @@ TEST(FusionRRF, WithEntireColumnOfFirstPlaceRanking) {
     }
 
     // Call FusionRRF with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionRRF::Operation(chunk);
+    const std::vector<double> result = flock::FusionRRF::Operation(chunk);
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {1.0 / 63, 1.0 / 61, 1.0 / 65, 1.0 / 62, 1.0 / 64};

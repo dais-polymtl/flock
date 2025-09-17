@@ -1,8 +1,8 @@
-#include "flockmtl/functions/aggregate/llm_rerank.hpp"
+#include "flock/functions/aggregate/llm_rerank.hpp"
 #include "llm_aggregate_function_test_base.hpp"
 #include <numeric>
 
-namespace flockmtl {
+namespace flock {
 
 class LLMRerankTest : public LLMAggregateTestBase<LlmRerank> {
 protected:
@@ -179,4 +179,4 @@ TEST_F(LLMRerankTest, Operation_LargeInputSet_ProcessesCorrectly) {
     ::testing::Mock::AllowLeak(mock_provider.get());
 }
 
-}// namespace flockmtl
+}// namespace flock

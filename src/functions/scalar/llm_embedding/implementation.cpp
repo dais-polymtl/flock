@@ -1,6 +1,6 @@
-#include "flockmtl/functions/scalar/llm_embedding.hpp"
+#include "flock/functions/scalar/llm_embedding.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void LlmEmbedding::ValidateArguments(duckdb::DataChunk& args) {
     if (args.ColumnCount() < 2 || args.ColumnCount() > 2) {
@@ -79,4 +79,4 @@ void LlmEmbedding::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& sta
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

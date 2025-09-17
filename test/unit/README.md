@@ -1,6 +1,6 @@
 # Testing FlockMTL
 ## Overview
-To run the tests for this extension, simply run the CMake target titled "flockmtl_tests". These tests ensure that flockmtl components are functioning properly.
+To run the tests for this extension, simply run the CMake target titled "flock_tests". These tests ensure that flock components are functioning properly.
 
 ## Fusion Algorithm Tests
 ### Common

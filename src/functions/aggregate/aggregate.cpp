@@ -1,6 +1,6 @@
-#include "flockmtl/functions/aggregate/aggregate.hpp"
+#include "flock/functions/aggregate/aggregate.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 nlohmann::json AggregateFunctionBase::model_details;
 std::string AggregateFunctionBase::user_query;
@@ -38,4 +38,4 @@ AggregateFunctionBase::CastInputsToJson(duckdb::Vector inputs[], idx_t count) {
     return std::make_tuple(model_details_json, prompt_context_json, context_columns);
 }
 
-}// namespace flockmtl
+}// namespace flock

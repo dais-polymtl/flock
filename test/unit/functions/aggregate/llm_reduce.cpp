@@ -1,7 +1,7 @@
-#include "flockmtl/functions/aggregate/llm_reduce.hpp"
+#include "flock/functions/aggregate/llm_reduce.hpp"
 #include "llm_aggregate_function_test_base.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 class LLMReduceTest : public LLMAggregateTestBase<LlmReduce> {
 protected:
@@ -151,4 +151,4 @@ TEST_F(LLMReduceTest, Operation_LargeInputSet_ProcessesCorrectly) {
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

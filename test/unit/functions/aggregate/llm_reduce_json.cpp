@@ -1,7 +1,7 @@
-#include "flockmtl/functions/aggregate/llm_reduce.hpp"
+#include "flock/functions/aggregate/llm_reduce.hpp"
 #include "llm_aggregate_function_test_base.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 class LLMReduceJsonTest : public LLMAggregateTestBase<LlmReduce> {
 protected:
@@ -233,4 +233,4 @@ TEST_F(LLMReduceJsonTest, Operation_ComplexJsonStructure_HandlesCorrectly) {
     });
 }
 
-}// namespace flockmtl
+}// namespace flock

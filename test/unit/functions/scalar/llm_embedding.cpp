@@ -1,8 +1,8 @@
-#include "flockmtl/functions/scalar/llm_embedding.hpp"
+#include "flock/functions/scalar/llm_embedding.hpp"
 #include "fmt/format.h"
 #include "llm_function_test_base.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 class LLMEmbeddingTest : public LLMFunctionTestBase<LlmEmbedding> {
 protected:
@@ -154,4 +154,4 @@ TEST_F(LLMEmbeddingTest, Operation_LargeInputSet_ProcessesCorrectly) {
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

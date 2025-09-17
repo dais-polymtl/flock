@@ -1,6 +1,6 @@
-import { FaFilter } from "react-icons/fa6";
-import { BsDatabaseFillGear, BsFillFileEarmarkTextFill } from "react-icons/bs";
-import { AmineMhedhbi, AnasDorbani, SunnyYasser } from "@site/static";
+import {FaFilter} from "react-icons/fa6";
+import {BsDatabaseFillGear, BsFillFileEarmarkTextFill} from "react-icons/bs";
+import {AmineMhedhbi, AnasDorbani, SunnyYasser} from "@site/static";
 
 export const navLinks = [
     {
@@ -8,8 +8,8 @@ export const navLinks = [
         title: "Features",
     },
     {
-        id: "why-flockmtl",
-        title: "Why FlockMTL?",
+        id: "why-flock",
+        title: "Why Flock?",
     },
     {
         id: "getting-started",
@@ -46,50 +46,50 @@ export const features = [
 ];
 
 
-export const whyFlockMTL = [
+export const whyFlock = [
     {
-        id: "why-flockmtl-1",
+        id: "why-flock-1",
         content: "Declarative LLM integration within SQL",
     },
     {
-        id: "why-flockmtl-2",
+        id: "why-flock-2",
         content: "Transparently adds lower-level optimizations, e.g., batching and caching",
     },
     {
-        id: "why-flockmtl-3",
+        id: "why-flock-3",
         content: "Add tabular understanding capabilities to your relational databases",
     }
 ];
 
 export const team = [
-  {
-    id: "team-member-1",
-    name: "Anas Dorbani",
-    role: "PhD Student",
-    company: "Data & AI Systems Lab, Polytechnique Montréal",
-    img: AnasDorbani,
-    github: "https://github.com/anasdorbani",
-    linkedin: "https://linkedin.com/in/anasdorbani",
-    X: "https://x.com/anasdorbani",
-  },
-  {
-    id: "team-member-2",
-    name: "Sunny Yasser",
-    role: "PhD Student",
-    company: "Data & AI Systems Lab, Polytechnique Montréal",
-    img: SunnyYasser,
-    github: "https://github.com/SunnyYasser",
-    linkedin: "https://linkedin.com/in/sunny-yasser/",
-    X: "",
-  },
-  {
-    id: "team-member-3",
-    name: "Amine Mhedhbi",
-    role: "Faculty",
-    company: "Polytechnique Montréal",
-    img: AmineMhedhbi,
-    github: "https://github.com/queryproc/",
-    linkedin: "https://linkedin.com/in/queryproc/",
-    X: "https://x.com/dsg_polymtl",
-  },
+    {
+        id: "team-member-1",
+        name: "Anas Dorbani",
+        role: "PhD Student",
+        company: "Data & AI Systems Lab, Polytechnique Montréal",
+        img: AnasDorbani,
+        github: "https://github.com/anasdorbani",
+        linkedin: "https://linkedin.com/in/anasdorbani",
+        X: "https://x.com/anasdorbani",
+    },
+    {
+        id: "team-member-2",
+        name: "Sunny Yasser",
+        role: "PhD Student",
+        company: "Data & AI Systems Lab, Polytechnique Montréal",
+        img: SunnyYasser,
+        github: "https://github.com/SunnyYasser",
+        linkedin: "https://linkedin.com/in/sunny-yasser/",
+        X: "",
+    },
+    {
+        id: "team-member-3",
+        name: "Amine Mhedhbi",
+        role: "Faculty",
+        company: "Polytechnique Montréal",
+        img: AmineMhedhbi,
+        github: "https://github.com/queryproc/",
+        linkedin: "https://linkedin.com/in/queryproc/",
+        X: "https://x.com/dsg_polymtl",
+    },
 ];

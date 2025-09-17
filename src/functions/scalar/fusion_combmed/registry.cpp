@@ -1,7 +1,7 @@
-#include "flockmtl/registry/registry.hpp"
-#include "flockmtl/functions/scalar/fusion_combmed.hpp"
+#include "flock/registry/registry.hpp"
+#include "flock/functions/scalar/fusion_combmed.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void ScalarRegistry::RegisterFusionCombMED(duckdb::ExtensionLoader& loader) {
     loader.RegisterFunction(duckdb::ScalarFunction("fusion_combmed", {}, duckdb::LogicalType::DOUBLE, FusionCombMED::Execute, nullptr,
@@ -9,4 +9,4 @@ void ScalarRegistry::RegisterFusionCombMED(duckdb::ExtensionLoader& loader) {
                                                    duckdb::FunctionStability::VOLATILE, duckdb::FunctionNullHandling::SPECIAL_HANDLING));
 }
 
-}// namespace flockmtl
+}// namespace flock

@@ -1,6 +1,6 @@
-#include "flockmtl/prompt_manager/prompt_manager.hpp"
+#include "flock/prompt_manager/prompt_manager.hpp"
 
-namespace flockmtl {
+namespace flock {
 template<>
 std::string PromptManager::ToString<PromptSection>(const PromptSection section) {
     switch (section) {
@@ -178,12 +178,12 @@ PromptDetails PromptManager::CreatePromptDetails(const nlohmann::json& prompt_de
             }
             const auto prompt_details_query =
                     duckdb_fmt::format(" SELECT prompt, version "
-                                       "   FROM flockmtl_storage.flockmtl_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+                                       "   FROM flock_storage.flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
                                        "  WHERE prompt_name = '{}'"
                                        " {} "
                                        " UNION ALL "
                                        " SELECT prompt, version "
-                                       "   FROM flockmtl_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+                                       "   FROM flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
                                        "  WHERE prompt_name = '{}'"
                                        " {} {}",
                                        prompt_details.prompt_name, version_where_clause, prompt_details.prompt_name,
@@ -216,4 +216,4 @@ PromptDetails PromptManager::CreatePromptDetails(const nlohmann::json& prompt_de
     }
     return prompt_details;
 }
-}// namespace flockmtl
+}// namespace flock

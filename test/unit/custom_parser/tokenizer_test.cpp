@@ -1,7 +1,7 @@
-#include "flockmtl/custom_parser/tokenizer.hpp"
+#include "flock/custom_parser/tokenizer.hpp"
 #include "gtest/gtest.h"
 
-using namespace flockmtl;
+using namespace flock;
 
 TEST(TokenizerTest, SkipWhitespace) {
     Tokenizer tokenizer("   test");

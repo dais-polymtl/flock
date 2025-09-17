@@ -1,6 +1,6 @@
-#include "flockmtl/functions/scalar/fusion_combmnz.hpp"
+#include "flock/functions/scalar/fusion_combmnz.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 // performs CombMNZ to merge lists based on a calculated score.
 std::vector<double> FusionCombMNZ::Operation(duckdb::DataChunk& args) {
@@ -46,9 +46,9 @@ void FusionCombMNZ::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& st
     auto results = FusionCombMNZ::Operation(args);
 
     auto index = 0;
-    for (const auto& res : results) {
+    for (const auto& res: results) {
         result.SetValue(index++, duckdb::Value(res));
     }
 }
 
-} // namespace flockmtl
+}// namespace flock

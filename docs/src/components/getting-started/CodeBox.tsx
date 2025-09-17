@@ -1,13 +1,13 @@
-import { Reveal } from "@site/src/components/Reveal";
-import { useState } from "react";
-import { FaClipboard } from "react-icons/fa";
+import {Reveal} from "@site/src/components/Reveal";
+import {useState} from "react";
+import {FaClipboard} from "react-icons/fa";
 
 const CodeBox = () => {
 
     const [copied, setCopied] = useState(false);
 
     const copyToClipboard = () => {
-        const code = "INSTALL flockmtl FROM community; LOAD flockmtl;";
+        const code = "INSTALL flock FROM community; LOAD flock;";
         navigator.clipboard.writeText(code);
         setCopied(true);
         setTimeout(() => {
@@ -29,9 +29,12 @@ const CodeBox = () => {
                     {/* copy to clipboard */}
                     <div>
                         <Reveal>
-                            <div className="flex items-center space-x-2 cursor-pointer hover:text-[#FF9128] text-gray-500" onClick={copyToClipboard}>
-                                {copied && <span className="hover:text-gray-500 text-gray-500 text-[10px]">copied !</span>}
-                                <FaClipboard />
+                            <div
+                                className="flex items-center space-x-2 cursor-pointer hover:text-[#FF9128] text-gray-500"
+                                onClick={copyToClipboard}>
+                                {copied &&
+                                    <span className="hover:text-gray-500 text-gray-500 text-[10px]">copied !</span>}
+                                <FaClipboard/>
                             </div>
                         </Reveal>
                     </div>
@@ -44,18 +47,19 @@ const CodeBox = () => {
                         </Reveal>
                     </div>
                     <Reveal>
-                        <pre className="py-6 px-4 bg-transparent text-white text-xs md:text-sm font-mono overflow-x-auto">
+                        <pre
+                            className="py-6 px-4 bg-transparent text-white text-xs md:text-sm font-mono overflow-x-auto">
                             <code className="language-sql">
                                 <span className="text-green-400">&gt;</span>{" "}
                                 <span className="text-blue-400 font-bold">INSTALL</span>{" "}
-                                <span className="text-yellow-300">flockmtl</span>{" "}
+                                <span className="text-yellow-300">flock</span>{" "}
                                 <span className="text-blue-400 font-bold">FROM</span>{" "}
                                 <span className="text-green-300">community</span>
                                 <span className="text-gray-500">;</span>
-                                <br />
+                                <br/>
                                 <span className="text-green-400">&gt;</span>{" "}
                                 <span className="text-blue-400 font-bold">LOAD</span>{" "}
-                                <span className="text-yellow-300">flockmtl</span>
+                                <span className="text-yellow-300">flock</span>
                                 <span className="text-gray-500">;</span>
                             </code>
                         </pre>

@@ -1,7 +1,7 @@
-#include "flockmtl/registry/registry.hpp"
-#include "flockmtl/functions/scalar/llm_embedding.hpp"
+#include "flock/registry/registry.hpp"
+#include "flock/functions/scalar/llm_embedding.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void ScalarRegistry::RegisterLlmEmbedding(duckdb::ExtensionLoader& loader) {
     loader.RegisterFunction(
@@ -9,4 +9,4 @@ void ScalarRegistry::RegisterLlmEmbedding(duckdb::ExtensionLoader& loader) {
                                    LlmEmbedding::Execute));
 }
 
-}// namespace flockmtl
+}// namespace flock

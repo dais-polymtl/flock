@@ -1,8 +1,8 @@
-#include "flockmtl/functions/input_parser.hpp"
+#include "flock/functions/input_parser.hpp"
 
 #include "duckdb/common/operator/cast_operators.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, const int size) {
     nlohmann::json struct_json;
@@ -59,4 +59,4 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
     return struct_json;
 }
 
-}// namespace flockmtl
+}// namespace flock

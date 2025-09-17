@@ -1,7 +1,7 @@
-#include "flockmtl/registry/registry.hpp"
-#include "flockmtl/functions/scalar/fusion_combsum.hpp"
+#include "flock/registry/registry.hpp"
+#include "flock/functions/scalar/fusion_combsum.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void ScalarRegistry::RegisterFusionCombSUM(duckdb::ExtensionLoader& loader) {
     loader.RegisterFunction(duckdb::ScalarFunction("fusion_combsum", {}, duckdb::LogicalType::DOUBLE, FusionCombSUM::Execute, nullptr,
@@ -9,4 +9,4 @@ void ScalarRegistry::RegisterFusionCombSUM(duckdb::ExtensionLoader& loader) {
                                                    duckdb::FunctionStability::VOLATILE, duckdb::FunctionNullHandling::SPECIAL_HANDLING));
 }
 
-}// namespace flockmtl
+}// namespace flock

@@ -1,7 +1,7 @@
 #include "filesystem.hpp"
-#include "flockmtl/core/config.hpp"
+#include "flock/core/config.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 std::string Config::get_default_models_table_name() { return "FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE"; }
 
@@ -66,4 +66,4 @@ void Config::ConfigModelTable(duckdb::Connection& con, std::string& schema_name,
     SetupUserDefinedModelsConfig(con, schema_name);
 }
 
-}// namespace flockmtl
+}// namespace flock

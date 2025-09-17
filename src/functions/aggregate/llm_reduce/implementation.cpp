@@ -1,6 +1,6 @@
-#include "flockmtl/functions/aggregate/llm_reduce.hpp"
+#include "flock/functions/aggregate/llm_reduce.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 nlohmann::json LlmReduce::ReduceBatch(nlohmann::json& tuples, const AggregateFunctionType& function_type, const nlohmann::json& summary) {
     nlohmann::json data;
@@ -85,4 +85,4 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

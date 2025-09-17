@@ -1,6 +1,6 @@
-#include "flockmtl/registry/registry.hpp"
+#include "flock/registry/registry.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void Registry::Register(duckdb::ExtensionLoader& loader) {
     RegisterAggregateFunctions(loader);
@@ -11,4 +11,4 @@ void Registry::RegisterAggregateFunctions(duckdb::ExtensionLoader& loader) { Agg
 
 void Registry::RegisterScalarFunctions(duckdb::ExtensionLoader& loader) { ScalarRegistry::Register(loader); }
 
-}// namespace flockmtl
+}// namespace flock

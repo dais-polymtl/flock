@@ -5,9 +5,11 @@ sidebar_position: 8
 sidebar_position: 6
 ---
 
-# Structured Output in FlockMTL
+# Structured Output in Flock
 
-FlockMTL enables users to obtain structured JSON responses from Large Language Models (LLMs) by defining JSON schemas within SQL queries. This ensures LLM outputs conform to specific data structures, making them more reliable and easier to process.
+Flock enables users to obtain structured JSON responses from Large Language Models (LLMs) by defining JSON schemas
+within SQL queries. This ensures LLM outputs conform to specific data structures, making them more reliable and easier
+to process.
 
 import TOCInline from '@theme/TOCInline';
 
@@ -15,22 +17,29 @@ import TOCInline from '@theme/TOCInline';
 
 ## Overview
 
-Structured output allows you to define the exact format and structure of the JSON response you expect from an LLM. Instead of receiving free-form text, you can specify a JSON schema that the model must follow.
+Structured output allows you to define the exact format and structure of the JSON response you expect from an LLM.
+Instead of receiving free-form text, you can specify a JSON schema that the model must follow.
 
-**Compatibility**: Works with all FlockMTL LLM functions - `llm_complete`, `llm_filter`, `llm_reduce`, `llm_rerank`, `llm_first`, `llm_last`
+**Compatibility**: Works with all Flock LLM functions - `llm_complete`, `llm_filter`, `llm_reduce`, `llm_rerank`,
+`llm_first`, `llm_last`
 
 :::note Prerequisites
-To extract values from structured JSON responses using dot notation (e.g., `response.category`), you need to load the JSON extension:
+To extract values from structured JSON responses using dot notation (e.g., `response.category`), you need to load the
+JSON extension:
+
 ```sql
 LOAD JSON;
 ```
+
 :::
 
 ## OpenAI Structured Output
 
-OpenAI uses the `response_format` field with `type: "json_schema"` and `strict: true` to enforce schema compliance. For more details check [OpenAI Structured Output](https://platform.openai.com/docs/guides/structured-outputs?api-mode=chat).
+OpenAI uses the `response_format` field with `type: "json_schema"` and `strict: true` to enforce schema compliance. For
+more details check [OpenAI Structured Output](https://platform.openai.com/docs/guides/structured-outputs?api-mode=chat).
 
 ### Syntax
+
 ```sql
 {
   'model_name': 'your-model-name',
@@ -55,6 +64,7 @@ OpenAI uses the `response_format` field with `type: "json_schema"` and `strict: 
 ```
 
 ### Basic Example
+
 ```sql
 SELECT llm_complete(
   {
@@ -84,6 +94,7 @@ SELECT llm_complete(
 ```
 
 ### Advanced Example
+
 ```sql
 WITH product_analysis AS (
   SELECT
@@ -138,6 +149,7 @@ FROM product_analysis;
 Ollama uses the `format` field with an object schema definition to structure responses.
 
 ### Syntax
+
 ```sql
 {
   'model_name': 'your-model-name',
@@ -155,6 +167,7 @@ Ollama uses the `format` field with an object schema definition to structure res
 ```
 
 ### Basic Example
+
 ```sql
 SELECT llm_complete(
   {
@@ -178,6 +191,7 @@ FROM customer_reviews;
 ```
 
 ### Advanced Example
+
 ```sql
 WITH content_generation AS (
   SELECT
@@ -288,6 +302,7 @@ FROM table_name;
 ## Common Schema Patterns
 
 ### Classification
+
 ```json
 {
   "type": "object",
@@ -302,6 +317,7 @@ FROM table_name;
 ```
 
 ### Analysis
+
 ```json
 {
   "type": "object",
@@ -323,6 +339,7 @@ FROM table_name;
 ```
 
 ### Entity Extraction
+
 ```json
 {
   "type": "object",
