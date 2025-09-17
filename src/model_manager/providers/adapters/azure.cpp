@@ -1,6 +1,6 @@
-#include "flockmtl/model_manager/providers/adapters/azure.hpp"
+#include "flock/model_manager/providers/adapters/azure.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void AzureProvider::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
 
@@ -56,14 +56,14 @@ void AzureProvider::AddCompletionRequest(const std::string& prompt, const int nu
         request_payload["response_format"] = {
                 {"type", "json_schema"},
                 {"json_schema",
-                 {{"name", "flockmtl_response"},
+                 {{"name", "flock_response"},
                   {"strict", strict},
                   {"schema", {{"type", "object"}, {"properties", {{"items", {{"type", "array"}, {"minItems", num_output_tuples}, {"maxItems", num_output_tuples}, {"items", schema}}}}}, {"required", {"items"}}, {"additionalProperties", false}}}}}};
     } else {
         request_payload["response_format"] = {
                 {"type", "json_schema"},
                 {"json_schema",
-                 {{"name", "flockmtl_response"},
+                 {{"name", "flock_response"},
                   {"strict", false},
                   {"schema", {{"type", "object"}, {"properties", {{"items", {{"type", "array"}, {"minItems", num_output_tuples}, {"maxItems", num_output_tuples}, {"items", {{"type", GetOutputTypeString(output_type)}}}}}}}}}}}};
         ;
@@ -83,4 +83,4 @@ void AzureProvider::AddEmbeddingRequest(const std::vector<std::string>& inputs) 
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

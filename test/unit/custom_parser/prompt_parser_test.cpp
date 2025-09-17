@@ -1,9 +1,9 @@
-#include "flockmtl/custom_parser/query/prompt_parser.hpp"
-#include "flockmtl/custom_parser/tokenizer.hpp"
+#include "flock/custom_parser/query/prompt_parser.hpp"
+#include "flock/custom_parser/tokenizer.hpp"
 #include "gtest/gtest.h"
 #include <memory>
 
-using namespace flockmtl;
+using namespace flock;
 
 /**************************************************
  *                 Create Prompt                  *
@@ -73,7 +73,7 @@ TEST(PromptParserTest, ParseCreateGlobalPrompt) {
     ASSERT_NE(create_stmt, nullptr);
     EXPECT_EQ(create_stmt->prompt_name, "test_prompt");
     EXPECT_EQ(create_stmt->prompt, "This is a test prompt.");
-    EXPECT_EQ(create_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(create_stmt->catalog, "flock_storage.");
 }
 
 TEST(PromptParserTest, ParseCreateGlobalPromptWithSemicolon) {
@@ -85,7 +85,7 @@ TEST(PromptParserTest, ParseCreateGlobalPromptWithSemicolon) {
     ASSERT_NE(create_stmt, nullptr);
     EXPECT_EQ(create_stmt->prompt_name, "test_prompt");
     EXPECT_EQ(create_stmt->prompt, "This is a test prompt.");
-    EXPECT_EQ(create_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(create_stmt->catalog, "flock_storage.");
 }
 
 TEST(PromptParserTest, ParseCreateGlobalPromptWithComment) {
@@ -97,7 +97,7 @@ TEST(PromptParserTest, ParseCreateGlobalPromptWithComment) {
     ASSERT_NE(create_stmt, nullptr);
     EXPECT_EQ(create_stmt->prompt_name, "test_prompt");
     EXPECT_EQ(create_stmt->prompt, "This is a test prompt.");
-    EXPECT_EQ(create_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(create_stmt->catalog, "flock_storage.");
 }
 
 TEST(PromptParserTest, ParseCreateLocalPrompt) {
@@ -281,7 +281,7 @@ TEST(PromptParserTest, ParseUpdateScopeToGlobal) {
     auto update_stmt = dynamic_cast<UpdatePromptScopeStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
     EXPECT_EQ(update_stmt->prompt_name, "test_prompt");
-    EXPECT_EQ(update_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(update_stmt->catalog, "flock_storage.");
 }
 
 TEST(PromptParserTest, ParseUpdateScopeToGlobalWithoutSemicolon) {
@@ -292,7 +292,7 @@ TEST(PromptParserTest, ParseUpdateScopeToGlobalWithoutSemicolon) {
     auto update_stmt = dynamic_cast<UpdatePromptScopeStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
     EXPECT_EQ(update_stmt->prompt_name, "test_prompt");
-    EXPECT_EQ(update_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(update_stmt->catalog, "flock_storage.");
 }
 
 TEST(PromptParserTest, ParseUpdateScopeToGlobalWithComment) {
@@ -303,7 +303,7 @@ TEST(PromptParserTest, ParseUpdateScopeToGlobalWithComment) {
     auto update_stmt = dynamic_cast<UpdatePromptScopeStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
     EXPECT_EQ(update_stmt->prompt_name, "test_prompt");
-    EXPECT_EQ(update_stmt->catalog, "flockmtl_storage.");
+    EXPECT_EQ(update_stmt->catalog, "flock_storage.");
 }
 
 TEST(PromptParserTest, ParseUpdateScopeToLocal) {

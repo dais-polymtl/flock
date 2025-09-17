@@ -1,4 +1,4 @@
-#include <flockmtl/functions/scalar/fusion_combsum.hpp>
+#include <flock/functions/scalar/fusion_combsum.hpp>
 #include <gtest/gtest.h>
 
 using namespace duckdb;
@@ -22,7 +22,7 @@ TEST(FusionCombSUM, With2Doubles) {
     chunk.SetValue(1, 0, 0.2);
 
     // Call FusionCombSUM with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombSUM::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombSUM::Operation(chunk);
 
     // Verify the result
     ASSERT_EQ(result.size(), 1);
@@ -53,7 +53,7 @@ TEST(FusionCombSUM, With2Columns) {
     }
 
     // Call FusionCombSUM with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombSUM::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombSUM::Operation(chunk);
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {0.14, (0.41 + 0.4), 0.6, (0.8 + 1.0), (1.0 + 0.66)};
@@ -89,7 +89,7 @@ TEST(FusionCombSUM, With3Columns) {
     }
 
     // Call FusionCombSUM with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombSUM::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombSUM::Operation(chunk);
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {(0.14 + 0.28), (0.4 + 0.41 + 0.5), (0.6 + 0.1), (0.8 + 1.0 + 0.8), (1.0 + 0.66 + 1.0)};
@@ -133,7 +133,7 @@ TEST(FusionCombSUM, WithSomeNullNaNValues) {
     }
 
     // Call FusionCombSUM with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombSUM::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombSUM::Operation(chunk);
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {0.14, (0.41 + 0.4), 0.0, (0.8 + 1.0), 1.0};
@@ -166,7 +166,7 @@ TEST(FusionCombSUM, WithEntireNullNaNColumn) {
     }
 
     // Call FusionCombSUM with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombSUM::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombSUM::Operation(chunk);
 
     // Verify the result
     constexpr std::array<double, 5> expected_results = {0.046906565486452, 0.43271756518423, 0.75739696774139, 0.520761702528056, 0.58813126808257};
@@ -196,7 +196,7 @@ TEST(FusionCombSUM, WithOnlyNullNaNValues) {
     }
 
     // Call FusionCombSUM with the prepared DataChunk
-    const std::vector<double> result = flockmtl::FusionCombSUM::Operation(chunk);
+    const std::vector<double> result = flock::FusionCombSUM::Operation(chunk);
 
     for (size_t i = 0; i < 5; ++i) {
         ASSERT_EQ(result[i], 0.0);

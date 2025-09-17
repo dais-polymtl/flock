@@ -3,9 +3,10 @@ title: Model Parameters
 sidebar_position: 6
 ---
 
-# Model Parameters in FlockMTL
+# Model Parameters in Flock
 
-FlockMTL allows you to configure model behavior through the `model_parameters` field in LLM function calls. This provides fine-grained control over how models generate responses, enabling you to optimize performance for specific use cases.
+Flock allows you to configure model behavior through the `model_parameters` field in LLM function calls. This provides
+fine-grained control over how models generate responses, enabling you to optimize performance for specific use cases.
 
 import TOCInline from '@theme/TOCInline';
 
@@ -13,13 +14,16 @@ import TOCInline from '@theme/TOCInline';
 
 ## Overview
 
-Model parameters are passed as JSON strings within the `model_parameters` field of LLM function calls. Different providers support different parameters, allowing you to customize temperature, token limits, sampling methods, and more.
+Model parameters are passed as JSON strings within the `model_parameters` field of LLM function calls. Different
+providers support different parameters, allowing you to customize temperature, token limits, sampling methods, and more.
 
-**Compatibility**: Works with all FlockMTL LLM functions - `llm_complete`, `llm_filter`, `llm_embedding`, `llm_reduce`, `llm_rerank`, `llm_first`, `llm_last`
+**Compatibility**: Works with all Flock LLM functions - `llm_complete`, `llm_filter`, `llm_embedding`, `llm_reduce`,
+`llm_rerank`, `llm_first`, `llm_last`
 
 ## OpenAI Parameters
 
-OpenAI models support a comprehensive set of parameters for controlling generation behavior. For complete parameter reference, see [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat/create).
+OpenAI models support a comprehensive set of parameters for controlling generation behavior. For complete parameter
+reference, see [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat/create).
 
 ### Syntax
 
@@ -61,7 +65,8 @@ SELECT llm_complete(
 
 ## Ollama Parameters
 
-Ollama models support different parameters optimized for local deployment. For complete parameter reference, see [Ollama Chat Completions API](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-chat-completion).
+Ollama models support different parameters optimized for local deployment. For complete parameter reference,
+see [Ollama Chat Completions API](https://github.com/ollama/ollama/blob/main/docs/api.md#generate-a-chat-completion).
 
 ### Syntax
 
@@ -97,7 +102,8 @@ SELECT llm_complete(
 
 ## Azure OpenAI Parameters
 
-Azure OpenAI supports the same parameters as OpenAI. For complete parameter reference, see [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat/create).
+Azure OpenAI supports the same parameters as OpenAI. For complete parameter reference,
+see [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference/chat/create).
 
 ### Syntax
 

@@ -1,10 +1,10 @@
-#include "flockmtl/model_manager/model.hpp"
+#include "flock/model_manager/model.hpp"
 #include "nlohmann/json.hpp"
 #include <gtest/gtest.h>
 #include <memory>
 #include <string>
 
-namespace flockmtl {
+namespace flock {
 using json = nlohmann::json;
 
 class ModelManagerTest : public ::testing::Test {
@@ -127,4 +127,4 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.batch_size, 10);
 }
 
-}// namespace flockmtl
+}// namespace flock

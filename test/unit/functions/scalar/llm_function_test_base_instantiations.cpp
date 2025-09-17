@@ -1,9 +1,9 @@
-#include "flockmtl/functions/scalar/llm_complete.hpp"
-#include "flockmtl/functions/scalar/llm_embedding.hpp"
-#include "flockmtl/functions/scalar/llm_filter.hpp"
+#include "flock/functions/scalar/llm_complete.hpp"
+#include "flock/functions/scalar/llm_embedding.hpp"
+#include "flock/functions/scalar/llm_filter.hpp"
 #include "llm_function_test_base.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 // Template method implementations
 template<typename FunctionClass>
@@ -59,4 +59,4 @@ template class LLMFunctionTestBase<LlmComplete>;
 template class LLMFunctionTestBase<LlmEmbedding>;
 template class LLMFunctionTestBase<LlmFilter>;
 
-}// namespace flockmtl
+}// namespace flock

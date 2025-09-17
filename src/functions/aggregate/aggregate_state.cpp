@@ -1,6 +1,6 @@
-#include "flockmtl/functions/aggregate/aggregate.hpp"
+#include "flock/functions/aggregate/aggregate.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void AggregateFunctionState::Initialize() {
     if (!value) {
@@ -62,4 +62,4 @@ void AggregateFunctionState::Destroy() {
     initialized = false;
 }
 
-}// namespace flockmtl
+}// namespace flock

@@ -1,10 +1,10 @@
-#include "flockmtl/custom_parser/tokenizer.hpp"
+#include "flock/custom_parser/tokenizer.hpp"
 
 #include <cctype>
 #include <iostream>
 #include <stdexcept>
 
-namespace flockmtl {
+namespace flock {
 
 // Constructor
 Tokenizer::Tokenizer(const std::string& query) : _query(query), _position(0) {}
@@ -163,4 +163,4 @@ std::string TokenTypeToString(TokenType type) {
     }
 }
 
-}// namespace flockmtl
+}// namespace flock

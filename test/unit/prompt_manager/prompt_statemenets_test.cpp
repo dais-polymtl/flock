@@ -1,8 +1,8 @@
-#include "flockmtl/custom_parser/query/prompt_parser.hpp"
+#include "flock/custom_parser/query/prompt_parser.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
-namespace flockmtl {
+namespace flock {
 
 // Test CreatePromptStatement
 TEST(PromptStatementTest, CreatePromptStatement_DefaultInitialization) {
@@ -49,4 +49,4 @@ TEST(PromptStatementTest, GetAllPromptStatement_DefaultInitialization) {
     EXPECT_EQ(stmt.type, StatementType::GET_ALL_PROMPT);
 }
 
-}// namespace flockmtl
+}// namespace flock

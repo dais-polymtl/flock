@@ -1,7 +1,7 @@
-#include "flockmtl/functions/scalar/llm_complete.hpp"
+#include "flock/functions/scalar/llm_complete.hpp"
 #include "llm_function_test_base.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 class LLMCompleteJsonTest : public LLMFunctionTestBase<LlmComplete> {
 protected:
@@ -52,7 +52,7 @@ TEST_F(LLMCompleteJsonTest, LLMCompleteJsonBasicUsage) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Explain the purpose of FlockMTL.'}) AS flockmtl_purpose;");
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Explain the purpose of FlockMTL.'}) AS flock_purpose;");
     ASSERT_EQ(results->RowCount(), 1);
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_response["items"][0].dump());
 }
@@ -65,7 +65,7 @@ TEST_F(LLMCompleteJsonTest, LLMCompleteJsonWithInputColumns) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'What is the capital of', 'context_columns': [{'data': country}]}) AS flockmtl_capital FROM unnest(['Canada']) as tbl(country);");
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'What is the capital of', 'context_columns': [{'data': country}]}) AS flock_capital FROM unnest(['Canada']) as tbl(country);");
     ASSERT_EQ(results->RowCount(), 1);
     auto expected_json = expected_response["items"][0];
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_json.dump());
@@ -91,4 +91,4 @@ TEST_F(LLMCompleteJsonTest, Operation_BatchProcessing) {
     EXPECT_EQ(result_value, expected_response["items"][0].dump());
 }
 
-}// namespace flockmtl
+}// namespace flock

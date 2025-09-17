@@ -1,6 +1,6 @@
-#include "flockmtl/registry/scalar.hpp"
+#include "flock/registry/scalar.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void ScalarRegistry::Register(duckdb::ExtensionLoader& loader) {
     RegisterLlmComplete(loader);
@@ -13,4 +13,4 @@ void ScalarRegistry::Register(duckdb::ExtensionLoader& loader) {
     RegisterFusionCombSUM(loader);
 }
 
-}// namespace flockmtl
+}// namespace flock

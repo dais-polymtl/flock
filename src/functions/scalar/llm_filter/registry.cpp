@@ -1,7 +1,7 @@
-#include "flockmtl/registry/registry.hpp"
-#include "flockmtl/functions/scalar/llm_filter.hpp"
+#include "flock/registry/registry.hpp"
+#include "flock/functions/scalar/llm_filter.hpp"
 
-namespace flockmtl {
+namespace flock {
 
 void ScalarRegistry::RegisterLlmFilter(duckdb::ExtensionLoader& loader) {
     loader.RegisterFunction(duckdb::ScalarFunction("llm_filter",
@@ -9,4 +9,4 @@ void ScalarRegistry::RegisterLlmFilter(duckdb::ExtensionLoader& loader) {
                                                    duckdb::LogicalType::VARCHAR, LlmFilter::Execute));
 }
 
-}// namespace flockmtl
+}// namespace flock

@@ -29,7 +29,7 @@ print(f"DuckDB version: {duckdb.__version__}")
 # %% [markdown]
 # ## Step 2: Download Kaggle Dataset
 # We will download the dataset from Kaggle and load it into our DuckDB database.
-# Ensure you have set up your Kaggle API token [check here](https://github.com/dais-polymtl/flockmtl/blob/main/notebooks/README.md) for more details.
+# Ensure you have set up your Kaggle API token [check here](https://github.com/dais-polymtl/flock/blob/main/notebooks/README.md) for more details.
 
 # %%
 %pip install kaggle
@@ -59,8 +59,8 @@ con = duckdb.connect(':memory:')
 # The FlockMTL extension enables advanced natural language processing with LLMs.
 
 # %%
-con.sql("INSTALL flockmtl FROM community")
-con.sql("LOAD flockmtl")
+con.sql("INSTALL flock FROM community")
+con.sql("LOAD flock")
 
 # %% [markdown]
 # ## Step 5: Configure OpenAI Secret
