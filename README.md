@@ -8,7 +8,7 @@
   </a>
   <br /><br />
   <p align="center">
-    A multimodal querying DBMS extension that deeply integrates LLM and RAG capabilities directly into OLAP systems.
+    DBMS extension for multimodal query processing and optimization.
     <br />
     <a href="https://dais-polymtl.github.io/flock/docs/what-is-flock"><strong>Explore the docs »</strong></a>
     <br />
