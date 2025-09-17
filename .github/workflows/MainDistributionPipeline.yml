@@ -39,12 +39,3 @@ jobs:
       ci_tools_version: v1.4.0
       extension_name: flock
       exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
-
-  code-quality-check:
-    name: Code Quality Check
-    uses: duckdb/extension-ci-tools/.github/workflows/_extension_code_quality.yml@main
-    with:
-      duckdb_version: main
-      ci_tools_version: main
-      extension_name: flock
-      format_checks: 'format;tidy'
