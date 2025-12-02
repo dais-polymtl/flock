@@ -92,14 +92,6 @@ public:
         current_function_type_ = FunctionType::UNKNOWN;
     }
 
-    // Merge metrics from multiple states into a single state
-    // This is used by aggregate functions to consolidate metrics from all processed states
-    static void MergeAggregateMetrics(duckdb::DatabaseInstance* db,
-                                      const std::vector<const void*>& processed_state_ids,
-                                      FunctionType function_type,
-                                      const std::string& model_name = "",
-                                      const std::string& provider = "");
-
     // SQL function implementations
     static void ExecuteGetMetrics(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
     static void ExecuteGetDebugMetrics(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
