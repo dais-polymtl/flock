@@ -1,11 +1,14 @@
 #pragma once
 
-#include "flock/core/common.hpp"
-#include "flock/metrics/manager.hpp"
+#include "flock/metrics/metrics.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "session.hpp"
 #include <chrono>
+#include <iostream>
 #include <nlohmann/json.hpp>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace flock {
 
@@ -105,10 +108,11 @@ public:
             curl_easy_cleanup(requests[i].easy);
         }
 
-        MetricsManager::UpdateTokens(batch_input_tokens, batch_output_tokens);
-        MetricsManager::AddApiDuration(api_duration_ms);
+        auto& metrics = FlockMetrics::GetInstance();
+        metrics.UpdateTokenUsage(batch_input_tokens, batch_output_tokens);
+        metrics.AddApiDuration(api_duration_ms);
         for (size_t i = 0; i < jsons.size(); ++i) {
-            MetricsManager::IncrementApiCalls();
+            metrics.IncrementApiCalls();
         }
 
         curl_slist_free_all(headers);
