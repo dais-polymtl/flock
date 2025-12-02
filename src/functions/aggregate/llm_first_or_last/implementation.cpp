@@ -1,4 +1,7 @@
 #include "flock/functions/aggregate/llm_first_or_last.hpp"
+#include "flock/metrics/metrics.hpp"
+
+#include <chrono>
 
 namespace flock {
 
@@ -75,6 +78,9 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
 void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
                                      duckdb::Vector& result, idx_t count, idx_t offset,
                                      AggregateFunctionType function_type) {
+    // Start execution timing
+    auto exec_start = std::chrono::high_resolution_clock::now();
+
     const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
     for (idx_t i = 0; i < count; i++) {
@@ -99,6 +105,11 @@ void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateIn
             result.SetValue(idx, nullptr);// Empty JSON object for null/empty states
         }
     }
+
+    // End execution timing and update metrics
+    auto exec_end = std::chrono::high_resolution_clock::now();
+    double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
+    FlockMetrics::GetInstance().AddExecutionTime(exec_duration_ms);
 }
 
 }// namespace flock

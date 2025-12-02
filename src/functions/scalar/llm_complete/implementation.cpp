@@ -1,4 +1,7 @@
 #include "flock/functions/scalar/llm_complete.hpp"
+#include "flock/metrics/metrics.hpp"
+
+#include <chrono>
 
 namespace flock {
 
@@ -63,6 +66,8 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
 }
 
 void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
+    // Start execution timing
+    auto exec_start = std::chrono::high_resolution_clock::now();
 
     if (const auto results = LlmComplete::Operation(args); static_cast<int>(results.size()) == 1) {
         auto empty_vec = duckdb::Vector(std::string());
@@ -75,6 +80,11 @@ void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& stat
             result.SetValue(index++, duckdb::Value(res));
         }
     }
+
+    // End execution timing and update metrics
+    auto exec_end = std::chrono::high_resolution_clock::now();
+    double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
+    FlockMetrics::GetInstance().AddExecutionTime(exec_duration_ms);
 }
 
 }// namespace flock

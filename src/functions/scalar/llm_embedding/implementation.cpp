@@ -1,4 +1,7 @@
 #include "flock/functions/scalar/llm_embedding.hpp"
+#include "flock/metrics/metrics.hpp"
+
+#include <chrono>
 
 namespace flock {
 
@@ -71,12 +74,20 @@ std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataC
 }
 
 void LlmEmbedding::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
+    // Start execution timing
+    auto exec_start = std::chrono::high_resolution_clock::now();
+
     auto results = LlmEmbedding::Operation(args);
 
     auto index = 0;
     for (const auto& res: results) {
         result.SetValue(index++, duckdb::Value::LIST(res));
     }
+
+    // End execution timing and update metrics
+    auto exec_end = std::chrono::high_resolution_clock::now();
+    double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
+    FlockMetrics::GetInstance().AddExecutionTime(exec_duration_ms);
 }
 
 }// namespace flock

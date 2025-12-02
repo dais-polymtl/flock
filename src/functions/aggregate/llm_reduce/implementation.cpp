@@ -1,4 +1,7 @@
 #include "flock/functions/aggregate/llm_reduce.hpp"
+#include "flock/metrics/metrics.hpp"
+
+#include <chrono>
 
 namespace flock {
 
@@ -64,6 +67,9 @@ nlohmann::json LlmReduce::ReduceLoop(const nlohmann::json& tuples,
 void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
                                 duckdb::Vector& result, idx_t count, idx_t offset,
                                 const AggregateFunctionType function_type) {
+    // Start execution timing
+    auto exec_start = std::chrono::high_resolution_clock::now();
+
     const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
     for (idx_t i = 0; i < count; i++) {
@@ -83,6 +89,11 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
             result.SetValue(idx, nullptr);// Empty result for null/empty states
         }
     }
+
+    // End execution timing and update metrics
+    auto exec_end = std::chrono::high_resolution_clock::now();
+    double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
+    FlockMetrics::GetInstance().AddExecutionTime(exec_duration_ms);
 }
 
 }// namespace flock

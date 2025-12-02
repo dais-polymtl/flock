@@ -17,6 +17,8 @@ private:
     static void RegisterFusionCombMED(duckdb::ExtensionLoader& loader);
     static void RegisterFusionCombMNZ(duckdb::ExtensionLoader& loader);
     static void RegisterFusionCombSUM(duckdb::ExtensionLoader& loader);
+    static void RegisterFlockGetMetrics(duckdb::ExtensionLoader& loader);
+    static void RegisterFlockResetMetrics(duckdb::ExtensionLoader& loader);
 };
 
 }// namespace flock
