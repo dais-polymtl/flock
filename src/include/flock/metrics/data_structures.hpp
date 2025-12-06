@@ -1,5 +1,6 @@
 #pragma once
 
+#include "flock/core/common.hpp"
 #include "flock/metrics/types.hpp"
 #include <array>
 #include <cstdint>
