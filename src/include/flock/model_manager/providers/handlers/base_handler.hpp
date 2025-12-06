@@ -1,6 +1,6 @@
 #pragma once
 
-#include "flock/metrics/metrics.hpp"
+#include "flock/metrics/manager.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "session.hpp"
 #include <chrono>
@@ -108,11 +108,10 @@ public:
             curl_easy_cleanup(requests[i].easy);
         }
 
-        auto& metrics = FlockMetrics::GetInstance();
-        metrics.UpdateTokenUsage(batch_input_tokens, batch_output_tokens);
-        metrics.AddApiDuration(api_duration_ms);
+        MetricsManager::UpdateTokens(batch_input_tokens, batch_output_tokens);
+        MetricsManager::AddApiDuration(api_duration_ms);
         for (size_t i = 0; i < jsons.size(); ++i) {
-            metrics.IncrementApiCalls();
+            MetricsManager::IncrementApiCalls();
         }
 
         curl_slist_free_all(headers);
