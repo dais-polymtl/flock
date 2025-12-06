@@ -4,11 +4,6 @@
 #include "session.hpp"
 #include <cstdlib>
 #include <curl/curl.h>
-#include <iostream>
-#include <nlohmann/json.hpp>
-#include <stdexcept>
-#include <string>
-#include <vector>
 
 namespace flock {
 

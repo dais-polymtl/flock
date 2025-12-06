@@ -1,12 +1,10 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
-#include <tuple>
-
 #include "flock/core/common.hpp"
 #include "flock/functions/input_parser.hpp"
 #include "flock/metrics/manager.hpp"
 #include "flock/model_manager/model.hpp"
+#include <nlohmann/json.hpp>
 
 namespace flock {
 

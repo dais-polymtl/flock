@@ -1,19 +1,17 @@
 #pragma once
 
 #include "fmt/format.h"
-#include <nlohmann/json.hpp>
-#include <string>
-#include <tuple>
 #include <utility>
-#include <vector>
 
 #include "duckdb/main/connection.hpp"
+#include "flock/core/common.hpp"
 #include "flock/core/config.hpp"
 #include "flock/model_manager/providers/adapters/azure.hpp"
 #include "flock/model_manager/providers/adapters/ollama.hpp"
 #include "flock/model_manager/providers/adapters/openai.hpp"
 #include "flock/model_manager/providers/handlers/ollama.hpp"
 #include "flock/model_manager/repository.hpp"
+#include <nlohmann/json.hpp>
 
 namespace flock {
 
