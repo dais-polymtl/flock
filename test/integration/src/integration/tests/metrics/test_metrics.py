@@ -73,7 +73,7 @@ def test_metrics_after_llm_complete(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'What is 2+2?'}
+                {'prompt': 'Answer with one number: What is 2+2?'}
             ) AS result,
             flock_get_metrics() AS metrics;
         """
@@ -131,7 +131,7 @@ def test_metrics_reset_clears_counters(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Say hello'}
+                {'prompt': 'Say one word: hello'}
             ) AS result,
             flock_get_metrics() AS metrics;
         """
@@ -186,19 +186,19 @@ def test_sequential_numbering_multiple_calls(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'First call'}
+                {'prompt': 'Say: one'}
             ) AS result1,
             llm_complete(
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Second call'}
+                {'prompt': 'Say: two'}
             ) AS result2,
             llm_complete(
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Third call'}
+                {'prompt': 'Say: three'}
             ) AS result3,
             flock_get_metrics() AS metrics;
         """
@@ -263,7 +263,7 @@ def test_flock_get_debug_metrics_returns_nested_structure(
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'What is 2+2?'}
+                {'prompt': 'Answer with one number: What is 2+2?'}
             ) AS result,
             flock_get_debug_metrics() AS debug_metrics;
         """
@@ -325,13 +325,13 @@ def test_debug_metrics_registration_order(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'First'}
+                {'prompt': 'Say: one'}
             ) AS result1,
             llm_complete(
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Second'}
+                {'prompt': 'Say: two'}
             ) AS result2,
             flock_get_debug_metrics() AS debug_metrics;
         """
@@ -389,7 +389,7 @@ def test_aggregate_function_metrics_tracking(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Summarize', 'context_columns': [{'data': description}]}
+                {'prompt': 'One word summary:', 'context_columns': [{'data': description}]}
             ) AS summary,
             flock_get_metrics() AS metrics
         FROM VALUES
@@ -460,13 +460,13 @@ def test_multiple_aggregate_functions_sequential_numbering(
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'First prompt', 'context_columns': [{'data': description}]}
+                {'prompt': 'One word 1:', 'context_columns': [{'data': description}]}
             ) AS summary1,
             llm_reduce(
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Second prompt', 'context_columns': [{'data': description}]}
+                {'prompt': 'One word 2:', 'context_columns': [{'data': description}]}
             ) AS summary2,
             flock_get_metrics() AS metrics
         FROM VALUES
@@ -524,7 +524,7 @@ def test_aggregate_function_debug_metrics(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Summarize', 'context_columns': [{'data': description}]}
+                {'prompt': 'One word summary:', 'context_columns': [{'data': description}]}
             ) AS summary,
             flock_get_debug_metrics() AS debug_metrics
         FROM VALUES
@@ -583,7 +583,7 @@ def test_llm_rerank_metrics(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Rank these', 'context_columns': [{'data': description}]}
+                {'prompt': 'One word rank:', 'context_columns': [{'data': description}]}
             ) AS ranked,
             flock_get_metrics() AS metrics
         FROM VALUES
@@ -638,7 +638,7 @@ def test_llm_first_metrics(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Select first', 'context_columns': [{'data': description}]}
+                {'prompt': 'One word:', 'context_columns': [{'data': description}]}
             ) AS first_item,
             flock_get_metrics() AS metrics
         FROM VALUES
@@ -695,13 +695,13 @@ def test_mixed_scalar_and_aggregate_metrics(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Hello'}
+                {'prompt': 'Say: hi'}
             ) AS scalar_result,
             (SELECT llm_reduce(
                 {'model_name': '"""
         + test_model_name
         + """'},
-                {'prompt': 'Summarize', 'context_columns': [{'data': description}]}
+                {'prompt': 'One word summary:', 'context_columns': [{'data': description}]}
             ) FROM VALUES ('Test description') AS t(description)) AS aggregate_result,
             flock_get_metrics() AS metrics;
         """
