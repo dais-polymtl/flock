@@ -1,5 +1,5 @@
 #include "flock/functions/scalar/llm_complete.hpp"
-#include "flock/metrics/metrics.hpp"
+#include "flock/metrics/manager.hpp"
 
 #include <chrono>
 
