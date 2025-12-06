@@ -84,7 +84,7 @@ void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& stat
     // End execution timing and update metrics
     auto exec_end = std::chrono::high_resolution_clock::now();
     double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
-    FlockMetrics::GetInstance().AddExecutionTime(exec_duration_ms);
+    MetricsManager::AddExecutionTime(exec_duration_ms);
 }
 
 }// namespace flock
