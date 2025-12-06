@@ -1,5 +1,6 @@
+#include "flock/core/config.hpp"
 #include "flock/functions/aggregate/llm_reduce.hpp"
-#include "flock/metrics/metrics.hpp"
+#include "flock/metrics/manager.hpp"
 
 #include <chrono>
 
@@ -67,9 +68,6 @@ nlohmann::json LlmReduce::ReduceLoop(const nlohmann::json& tuples,
 void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
                                 duckdb::Vector& result, idx_t count, idx_t offset,
                                 const AggregateFunctionType function_type) {
-    // Start execution timing
-    auto exec_start = std::chrono::high_resolution_clock::now();
-
     const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
     for (idx_t i = 0; i < count; i++) {
@@ -77,9 +75,29 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
         auto* state = states_vector[idx];
 
         if (state && !state->value->empty()) {
+            // Use model_details and user_query from the state (not static variables)
+            Model model(state->model_details);
+            auto model_details_obj = model.GetModelDetails();
+
+            // Get database instance and state ID for metrics
+            auto db = Config::db;
+            const void* state_id = static_cast<const void*>(state);
+
+            // Start metrics tracking
+            MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_REDUCE);
+            MetricsManager::SetModelInfo(model_details_obj.model_name, model_details_obj.provider_name);
+
+            auto exec_start = std::chrono::high_resolution_clock::now();
+
             LlmReduce reduce_instance;
-            reduce_instance.model = Model(model_details);
+            reduce_instance.model = Model(state->model_details);
+            reduce_instance.user_query = state->user_query;
             auto response = reduce_instance.ReduceLoop(*state->value, function_type);
+
+            auto exec_end = std::chrono::high_resolution_clock::now();
+            double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
+            MetricsManager::AddExecutionTime(exec_duration_ms);
+
             if (response.is_string()) {
                 result.SetValue(idx, response.get<std::string>());
             } else {
@@ -89,11 +107,6 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
             result.SetValue(idx, nullptr);// Empty result for null/empty states
         }
     }
-
-    // End execution timing and update metrics
-    auto exec_end = std::chrono::high_resolution_clock::now();
-    double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
-    FlockMetrics::GetInstance().AddExecutionTime(exec_duration_ms);
 }
 
 }// namespace flock

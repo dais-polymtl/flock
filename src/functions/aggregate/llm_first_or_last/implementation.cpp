@@ -1,5 +1,6 @@
+#include "flock/core/config.hpp"
 #include "flock/functions/aggregate/llm_first_or_last.hpp"
-#include "flock/metrics/metrics.hpp"
+#include "flock/metrics/manager.hpp"
 
 #include <chrono>
 
@@ -78,16 +79,30 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
 void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
                                      duckdb::Vector& result, idx_t count, idx_t offset,
                                      AggregateFunctionType function_type) {
-    // Start execution timing
-    auto exec_start = std::chrono::high_resolution_clock::now();
-
     const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
+
+    // Map AggregateFunctionType to FunctionType
+    FunctionType metrics_function_type = (function_type == AggregateFunctionType::FIRST) ? FunctionType::LLM_FIRST : FunctionType::LLM_LAST;
 
     for (idx_t i = 0; i < count; i++) {
         auto idx = i + offset;
         auto* state = states_vector[idx];
 
         if (state && !state->value->empty()) {
+            // Use model_details and user_query from the state (not static variables)
+            Model model(state->model_details);
+            auto model_details_obj = model.GetModelDetails();
+
+            // Get database instance and state ID for metrics
+            auto db = Config::db;
+            const void* state_id = static_cast<const void*>(state);
+
+            // Start metrics tracking
+            MetricsManager::StartInvocation(db, state_id, metrics_function_type);
+            MetricsManager::SetModelInfo(model_details_obj.model_name, model_details_obj.provider_name);
+
+            auto exec_start = std::chrono::high_resolution_clock::now();
+
             auto tuples_with_ids = *state->value;
             tuples_with_ids.push_back(nlohmann::json::object());
             for (auto j = 0; j < static_cast<int>((*state->value)[0]["data"].size()); j++) {
@@ -99,17 +114,19 @@ void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateIn
             }
             LlmFirstOrLast function_instance;
             function_instance.function_type = function_type;
+            function_instance.user_query = state->user_query;
+            function_instance.model_details = state->model_details;
             auto response = function_instance.Evaluate(tuples_with_ids);
+
+            auto exec_end = std::chrono::high_resolution_clock::now();
+            double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
+            MetricsManager::AddExecutionTime(exec_duration_ms);
+
             result.SetValue(idx, response.dump());
         } else {
-            result.SetValue(idx, nullptr);// Empty JSON object for null/empty states
+            result.SetValue(idx, nullptr);
         }
     }
-
-    // End execution timing and update metrics
-    auto exec_end = std::chrono::high_resolution_clock::now();
-    double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
-    FlockMetrics::GetInstance().AddExecutionTime(exec_duration_ms);
 }
 
 }// namespace flock
