@@ -1,5 +1,6 @@
+#include "flock/core/config.hpp"
 #include "flock/functions/aggregate/llm_rerank.hpp"
-#include "flock/metrics/metrics.hpp"
+#include "flock/metrics/manager.hpp"
 
 #include <chrono>
 
@@ -117,9 +118,6 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
 
 void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, duckdb::Vector& result,
                          idx_t count, idx_t offset) {
-    // Start execution timing
-    auto exec_start = std::chrono::high_resolution_clock::now();
-
     const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
     for (idx_t i = 0; i < count; i++) {
@@ -127,22 +125,38 @@ void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& agg
         auto* state = states_vector[idx];
 
         if (state && !state->value->empty()) {
+            // Use model_details and user_query from the state (not static variables)
+            Model model(state->model_details);
+            auto model_details_obj = model.GetModelDetails();
+
+            // Get database instance and state ID for metrics
+            auto db = Config::db;
+            const void* state_id = static_cast<const void*>(state);
+
+            // Start metrics tracking
+            MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_RERANK);
+            MetricsManager::SetModelInfo(model_details_obj.model_name, model_details_obj.provider_name);
+
+            auto exec_start = std::chrono::high_resolution_clock::now();
+
             auto tuples_with_ids = nlohmann::json::array();
             for (auto j = 0; j < static_cast<int>(state->value->size()); j++) {
                 tuples_with_ids.push_back((*state->value)[j]);
             }
             LlmRerank function_instance;
+            function_instance.user_query = state->user_query;
+            function_instance.model_details = state->model_details;
             auto reranked_tuples = function_instance.SlidingWindow(tuples_with_ids);
+
+            auto exec_end = std::chrono::high_resolution_clock::now();
+            double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
+            MetricsManager::AddExecutionTime(exec_duration_ms);
+
             result.SetValue(idx, reranked_tuples.dump());
         } else {
-            result.SetValue(idx, nullptr);// Empty result for null/empty states
+            result.SetValue(idx, nullptr);
         }
     }
-
-    // End execution timing and update metrics
-    auto exec_end = std::chrono::high_resolution_clock::now();
-    double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
-    FlockMetrics::GetInstance().AddExecutionTime(exec_duration_ms);
 }
 
 }// namespace flock
