@@ -3,6 +3,7 @@
 #include "flock/metrics/manager.hpp"
 
 #include <chrono>
+#include <vector>
 
 namespace flock {
 
@@ -120,6 +121,12 @@ void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& agg
                          idx_t count, idx_t offset) {
     const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
+    auto db = Config::db;
+    std::vector<const void*> processed_state_ids;
+    std::string merged_model_name;
+    std::string merged_provider;
+
+    // Process each state individually
     for (idx_t i = 0; i < count; i++) {
         auto idx = i + offset;
         auto* state = states_vector[idx];
@@ -129,13 +136,19 @@ void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& agg
             Model model(state->model_details);
             auto model_details_obj = model.GetModelDetails();
 
-            // Get database instance and state ID for metrics
-            auto db = Config::db;
+            // Get state ID for metrics
             const void* state_id = static_cast<const void*>(state);
+            processed_state_ids.push_back(state_id);
 
             // Start metrics tracking
             MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_RERANK);
             MetricsManager::SetModelInfo(model_details_obj.model_name, model_details_obj.provider_name);
+
+            // Store model info for merged metrics (use first non-empty)
+            if (merged_model_name.empty() && !model_details_obj.model_name.empty()) {
+                merged_model_name = model_details_obj.model_name;
+                merged_provider = model_details_obj.provider_name;
+            }
 
             auto exec_start = std::chrono::high_resolution_clock::now();
 
@@ -157,6 +170,10 @@ void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& agg
             result.SetValue(idx, nullptr);
         }
     }
+
+    // Merge all metrics from processed states into a single metrics entry
+    MetricsManager::MergeAggregateMetrics(db, processed_state_ids, FunctionType::LLM_RERANK,
+                                          merged_model_name, merged_provider);
 }
 
 }// namespace flock
