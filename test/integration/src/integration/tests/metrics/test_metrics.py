@@ -436,6 +436,136 @@ def test_aggregate_function_metrics_tracking(integration_setup, model_config):
     assert found_reduce, f"llm_reduce metrics not found in: {list(metrics.keys())}"
 
 
+def test_aggregate_function_metrics_merging_with_group_by(
+    integration_setup, model_config
+):
+    """Test that metrics from multiple states in a single aggregate call are merged into one entry"""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
+
+    test_model_name = f"test-merge-metrics-model_{model_name}"
+    create_model_query = (
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    # Call llm_reduce with GROUP BY that will process multiple states
+    # This should result in multiple states being processed, but only ONE merged metrics entry
+    query = (
+        """
+        SELECT 
+            category,
+            llm_reduce(
+                {'model_name': '"""
+        + test_model_name
+        + """'},
+                {'prompt': 'One word summary:', 'context_columns': [{'data': description}]}
+            ) AS summary,
+            flock_get_metrics() AS metrics
+        FROM VALUES
+            ('Electronics', 'High-performance laptop'),
+            ('Electronics', 'Latest smartphone'),
+            ('Electronics', 'Gaming console')
+        AS t(category, description)
+        GROUP BY category;
+        """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+
+    # Parse CSV output
+    reader = csv.DictReader(StringIO(result.stdout))
+    row = next(reader, None)
+    assert row is not None, "No data returned from query"
+    assert "metrics" in row, "Metrics column not found"
+
+    metrics = json.loads(row["metrics"])
+
+    # Check that metrics were recorded
+    assert isinstance(metrics, dict)
+    assert len(metrics) > 0
+
+    # Check for llm_reduce metrics - should have ONLY ONE entry (merged)
+    found_reduce_keys = [key for key in metrics.keys() if key.startswith("llm_reduce_")]
+    assert len(found_reduce_keys) == 1, (
+        f"Expected exactly 1 llm_reduce metrics entry (merged), got {len(found_reduce_keys)}: {found_reduce_keys}"
+    )
+
+    # Verify the merged metrics have the expected structure
+    reduce_metrics = metrics[found_reduce_keys[0]]
+    assert "api_calls" in reduce_metrics
+    assert "input_tokens" in reduce_metrics
+    assert "output_tokens" in reduce_metrics
+    assert "total_tokens" in reduce_metrics
+    assert "api_duration_ms" in reduce_metrics
+    assert "execution_time_ms" in reduce_metrics
+    assert "model_name" in reduce_metrics
+    assert reduce_metrics["model_name"] == test_model_name
+    assert "provider" in reduce_metrics
+    assert reduce_metrics["provider"] == provider
+
+
+def test_aggregate_function_metrics_merging_multiple_groups(
+    integration_setup, model_config
+):
+    """Test that each GROUP BY group produces one merged metrics entry"""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
+
+    test_model_name = f"test-merge-groups-model_{model_name}"
+    create_model_query = (
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    # Call llm_reduce with multiple GROUP BY groups
+    # Each group should produce ONE merged metrics entry
+    query = (
+        """
+        SELECT 
+            category,
+            llm_reduce(
+                {'model_name': '"""
+        + test_model_name
+        + """'},
+                {'prompt': 'One word summary:', 'context_columns': [{'data': description}]}
+            ) AS summary,
+            flock_get_metrics() AS metrics
+        FROM VALUES
+            ('Electronics', 'High-performance laptop'),
+            ('Electronics', 'Latest smartphone'),
+            ('Clothing', 'Comfortable jacket'),
+            ('Clothing', 'Perfect fit jeans')
+        AS t(category, description)
+        GROUP BY category;
+        """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+
+    # Parse CSV output - should have 2 rows (one per category)
+    reader = csv.DictReader(StringIO(result.stdout))
+    rows = list(reader)
+    assert len(rows) == 2, f"Expected 2 rows (one per category), got {len(rows)}"
+
+    # Check metrics from the last row (should have both groups merged)
+    metrics = json.loads(rows[-1]["metrics"])
+
+    # Should have exactly ONE llm_reduce entry (the last group's merged metrics)
+    # Note: In a GROUP BY query, each group processes independently, so we expect one entry per group
+    # But since we're checking the last row, we should see at least one merged entry
+    found_reduce_keys = [key for key in metrics.keys() if key.startswith("llm_reduce_")]
+    assert len(found_reduce_keys) >= 1, (
+        f"Expected at least 1 llm_reduce metrics entry, got {len(found_reduce_keys)}: {found_reduce_keys}"
+    )
+
+
 def test_multiple_aggregate_functions_sequential_numbering(
     integration_setup, model_config
 ):

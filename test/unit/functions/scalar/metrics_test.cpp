@@ -389,6 +389,72 @@ TEST_F(MetricsTest, MultipleAggregateFunctionsSequentialNumbering) {
     EXPECT_TRUE(found_2) << "llm_reduce_2 not found";
 }
 
+TEST_F(MetricsTest, AggregateFunctionMetricsMerging) {
+    auto* db = GetDatabase();
+    const void* state_id1 = reinterpret_cast<const void*>(0xAAAA);
+    const void* state_id2 = reinterpret_cast<const void*>(0xBBBB);
+    const void* state_id3 = reinterpret_cast<const void*>(0xCCCC);
+
+    // Simulate multiple states being processed in a single aggregate call
+    // Each state tracks its own metrics
+    MetricsManager::StartInvocation(db, state_id1, FunctionType::LLM_REDUCE);
+    MetricsManager::SetModelInfo("gpt-4o", "openai");
+    MetricsManager::UpdateTokens(100, 50);
+    MetricsManager::IncrementApiCalls();
+    MetricsManager::AddApiDuration(100.0);
+    MetricsManager::AddExecutionTime(150.0);
+
+    MetricsManager::StartInvocation(db, state_id2, FunctionType::LLM_REDUCE);
+    MetricsManager::SetModelInfo("gpt-4o", "openai");
+    MetricsManager::UpdateTokens(200, 100);
+    MetricsManager::IncrementApiCalls();
+    MetricsManager::AddApiDuration(200.0);
+    MetricsManager::AddExecutionTime(250.0);
+
+    MetricsManager::StartInvocation(db, state_id3, FunctionType::LLM_REDUCE);
+    MetricsManager::SetModelInfo("gpt-4o", "openai");
+    MetricsManager::UpdateTokens(150, 75);
+    MetricsManager::IncrementApiCalls();
+    MetricsManager::AddApiDuration(150.0);
+    MetricsManager::AddExecutionTime(200.0);
+
+    // Now merge all metrics into the first state
+    std::vector<const void*> processed_state_ids = {state_id1, state_id2, state_id3};
+    MetricsManager::MergeAggregateMetrics(db, processed_state_ids, FunctionType::LLM_REDUCE, "gpt-4o", "openai");
+
+    auto& manager = GetMetricsManager();
+    auto metrics = manager.GetMetrics();
+
+    // Should have exactly ONE llm_reduce entry (merged)
+    int reduce_count = 0;
+    int64_t total_input_tokens = 0;
+    int64_t total_output_tokens = 0;
+    int64_t total_api_calls = 0;
+    double total_api_duration = 0.0;
+    double total_execution_time = 0.0;
+
+    for (const auto& [key, value]: metrics.items()) {
+        if (key.find("llm_reduce_") == 0) {
+            reduce_count++;
+            total_input_tokens += value["input_tokens"].get<int64_t>();
+            total_output_tokens += value["output_tokens"].get<int64_t>();
+            total_api_calls += value["api_calls"].get<int64_t>();
+            total_api_duration += value["api_duration_ms"].get<double>();
+            total_execution_time += value["execution_time_ms"].get<double>();
+        }
+    }
+
+    // Should have exactly one merged entry
+    EXPECT_EQ(reduce_count, 1) << "Expected exactly 1 merged llm_reduce metrics entry";
+
+    // Verify merged values are the sum of all states
+    EXPECT_EQ(total_input_tokens, 450) << "Merged input tokens should be sum of all states (100+200+150)";
+    EXPECT_EQ(total_output_tokens, 225) << "Merged output tokens should be sum of all states (50+100+75)";
+    EXPECT_EQ(total_api_calls, 3) << "Merged API calls should be sum of all states (1+1+1)";
+    EXPECT_NEAR(total_api_duration, 450.0, 0.01) << "Merged API duration should be sum of all states (100+200+150)";
+    EXPECT_NEAR(total_execution_time, 600.0, 0.01) << "Merged execution time should be sum of all states (150+250+200)";
+}
+
 TEST_F(MetricsTest, AggregateFunctionDebugMetrics) {
     auto* db = GetDatabase();
     const void* state_id = reinterpret_cast<const void*>(0xDDDD);
