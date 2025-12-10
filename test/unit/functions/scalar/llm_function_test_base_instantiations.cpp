@@ -12,6 +12,9 @@ void LLMFunctionTestBase<FunctionClass>::SetUp() {
     con.Query(" CREATE SECRET ("
               "       TYPE OPENAI,"
               "    API_KEY 'your-api-key');");
+    con.Query("  CREATE SECRET ("
+              "       TYPE OLLAMA,"
+              "    API_URL '127.0.0.1:11434');");
 
     mock_provider = std::make_shared<MockProvider>(ModelDetails{});
     Model::SetMockProvider(mock_provider);
