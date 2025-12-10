@@ -161,4 +161,105 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
     }
 }
 
+// Test llm_complete with audio transcription
+TEST_F(LLMCompleteTest, LLMCompleteWithAudioTranscription) {
+    const nlohmann::json expected_transcription = "{\"text\": \"This is a transcribed audio\"}";
+    const nlohmann::json expected_complete_response = {{"items", {"Based on the transcription: This is a transcribed audio"}}};
+
+    // Mock transcription model
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription}));
+
+    // Mock completion model
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT llm_complete("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Summarize this audio', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'gpt-4o-transcribe'}"
+            "]}) AS result FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+}
+
+// Test llm_complete with audio and text columns
+TEST_F(LLMCompleteTest, LLMCompleteWithAudioAndText) {
+    const nlohmann::json expected_transcription = "{\"text\": \"Product audio description\"}";
+    const nlohmann::json expected_complete_response = {{"items", {"Combined response"}}};
+
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription}));
+
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT llm_complete("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Describe this product', "
+            "'context_columns': ["
+            "{'data': product, 'name': 'product'}, "
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'gpt-4o-transcribe'}"
+            "]}) AS result FROM VALUES ('Wireless Headphones', 'https://example.com/audio.mp3') AS tbl(product, audio_url);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+}
+
+// Test audio transcription error handling
+TEST_F(LLMCompleteTest, LLMCompleteAudioTranscriptionError) {
+    auto con = Config::GetConnection();
+    // Mock transcription model to throw error (simulating Ollama behavior)
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
+
+    // Test with Ollama which doesn't support transcription
+    const auto results = con.Query(
+            "SELECT llm_complete("
+            "{'model_name': 'llama3'}, "
+            "{'prompt': 'Summarize this audio', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'llama3'}"
+            "]}) AS result FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);");
+
+    // Should fail because Ollama doesn't support transcription
+    ASSERT_TRUE(results->HasError());
+}
+
+// Test audio transcription with missing transcription_model
+TEST_F(LLMCompleteTest, LLMCompleteAudioMissingTranscriptionModel) {
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT llm_complete("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Summarize this audio', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio'}"
+            "]}) AS result FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);");
+
+    // Should fail because transcription_model is required for audio type
+    ASSERT_TRUE(results->HasError());
+}
+
 }// namespace flock
