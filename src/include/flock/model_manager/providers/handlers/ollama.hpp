@@ -20,6 +20,7 @@ public:
 protected:
     std::string getCompletionUrl() const override { return _url + "/api/generate"; }
     std::string getEmbedUrl() const override { return _url + "/api/embed"; }
+    std::string getTranscriptionUrl() const override { return ""; }
     void prepareSessionForRequest(const std::string& url) override { _session.setUrl(url); }
     void setParameters(const std::string& data, const std::string& contentType = "") override {
         if (contentType != "multipart/form-data") {
@@ -29,7 +30,11 @@ protected:
     auto postRequest(const std::string& contentType) -> decltype(((Session*) nullptr)->postPrepareOllama(contentType)) override {
         return _session.postPrepareOllama(contentType);
     }
-    void checkProviderSpecificResponse(const nlohmann::json& response, bool is_completion) override {
+    void checkProviderSpecificResponse(const nlohmann::json& response, RequestType request_type) override {
+        if (request_type == RequestType::Transcription) {
+            return;// No specific checks needed for transcriptions
+        }
+        bool is_completion = (request_type == RequestType::Completion);
         if (is_completion) {
             if ((response.contains("done_reason") && response["done_reason"] != "stop") ||
                 (response.contains("done") && !response["done"].is_null() && response["done"].get<bool>() != true)) {
@@ -67,6 +72,12 @@ protected:
         }
         return {input_tokens, output_tokens};
     }
+
+
+    nlohmann::json ExtractTranscriptionOutput(const nlohmann::json& response) const override {
+        throw std::runtime_error("Audio transcription is not supported for Ollama provider, use Azure or OpenAI instead.");
+    }
+
 
     Session _session;
     std::string _url;
