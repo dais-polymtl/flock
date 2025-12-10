@@ -216,4 +216,35 @@ PromptDetails PromptManager::CreatePromptDetails(const nlohmann::json& prompt_de
     }
     return prompt_details;
 }
+
+nlohmann::json PromptManager::TranscribeAudioColumn(const nlohmann::json& audio_column) {
+    auto transcription_model_name = audio_column["transcription_model"].get<std::string>();
+
+    // Look up the transcription model
+    nlohmann::json transcription_model_json;
+    transcription_model_json["model_name"] = transcription_model_name;
+    Model transcription_model(transcription_model_json);
+
+    // Add transcription requests to batch
+    transcription_model.AddTranscriptionRequest(audio_column["data"]);
+
+    // Collect transcriptions
+    auto transcription_results = transcription_model.CollectTranscriptions();
+
+    // Convert vector<nlohmann::json> to nlohmann::json array
+    nlohmann::json transcriptions = nlohmann::json::array();
+    for (const auto& result: transcription_results) {
+        transcriptions.push_back(result);
+    }
+
+    // Create transcription column with proper naming
+    auto transcription_column = nlohmann::json::object();
+    auto original_name = audio_column.contains("name") ? audio_column["name"].get<std::string>() : "";
+    auto transcription_name = original_name.empty() ? "transcription" : "transcription_of_" + original_name;
+    transcription_column["name"] = transcription_name;
+    transcription_column["data"] = transcriptions;
+
+    return transcription_column;
+}
+
 }// namespace flock
