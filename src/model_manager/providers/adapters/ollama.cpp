@@ -1,4 +1,5 @@
 #include "flock/model_manager/providers/adapters/ollama.hpp"
+#include "flock/model_manager/providers/handlers/url_handler.hpp"
 
 namespace flock {
 
@@ -8,11 +9,14 @@ void OllamaProvider::AddCompletionRequest(const std::string& prompt, const int n
                                       {"stream", false}};
 
     auto images = nlohmann::json::array();
-    if (!media_data.empty()) {
-        for (const auto& column: media_data) {
-            for (const auto& image: column["data"]) {
-                auto image_str = image.get<std::string>();
-                images.push_back(image_str);
+    // Process image columns
+    if (media_data.contains("image") && !media_data["image"].empty() && media_data["image"].is_array()) {
+        for (const auto& column: media_data["image"]) {
+            if (column.contains("data") && column["data"].is_array()) {
+                for (const auto& image: column["data"]) {
+                    auto image_str = image.get<std::string>();
+                    images.push_back(image_str);
+                }
             }
         }
     }
@@ -49,6 +53,10 @@ void OllamaProvider::AddEmbeddingRequest(const std::vector<std::string>& inputs)
 
         model_handler_->AddRequest(request_payload, IModelProviderHandler::RequestType::Embedding);
     }
+}
+
+void OllamaProvider::AddTranscriptionRequest(const nlohmann::json& audio_files) {
+    throw std::runtime_error("Audio transcription is not currently supported by Ollama.");
 }
 
 }// namespace flock
