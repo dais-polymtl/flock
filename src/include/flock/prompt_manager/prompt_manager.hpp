@@ -46,7 +46,6 @@ public:
 
     static std::string ConstructInputTuples(const nlohmann::json& columns, const std::string& tuple_format = "XML");
 
-private:
     // Helper function to transcribe audio column and create transcription text column
     static nlohmann::json TranscribeAudioColumn(const nlohmann::json& audio_column);
 
