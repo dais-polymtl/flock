@@ -618,3 +618,100 @@ def test_llm_filter_image_with_text_context(integration_setup, model_config):
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     assert "is_appropriate" in result.stdout.lower()
     assert len(result.stdout.strip().split("\n")) >= 2
+
+
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gpt-4o-transcribe", "openai")])
+def transcription_model_config(request):
+    """Fixture to test with transcription-capable models (OpenAI/Azure only)."""
+    return request.param
+
+
+def test_llm_filter_with_audio_transcription(integration_setup, transcription_model_config):
+    """Test llm_filter with audio transcription using OpenAI."""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = transcription_model_config
+
+    if provider != "openai":
+        pytest.skip("Audio transcription is only supported for OpenAI provider")
+
+    test_model_name = f"test-audio-filter_{model_name}"
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'gpt-4o-mini', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    transcription_model_name = f"test-transcription-filter_{model_name}"
+    create_transcription_model_query = (
+        f"CREATE MODEL('{transcription_model_name}', '{model_name}', 'openai');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query)
+
+    query = (
+        """
+        SELECT llm_filter(
+            {'model_name': '"""
+        + test_model_name
+        + """'},
+            {
+                'prompt': 'Does this audio contain positive sentiment? Answer true or false.',
+                'context_columns': [
+                    {
+                        'data': 'https://download.samplelib.com/mp3/sample-9s.mp3',
+                        'type': 'audio',
+                        'transcription_model': '"""
+        + transcription_model_name
+        + """'
+                    }
+                ]
+            }
+        ) AS is_positive;
+        """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    if result.returncode != 0:
+        assert (
+            "transcription" in result.stderr.lower()
+            or "audio" in result.stderr.lower()
+            or "error" in result.stderr.lower()
+        )
+    else:
+        assert "is_positive" in result.stdout.lower()
+        assert "true" in result.stdout.lower() or "false" in result.stdout.lower()
+
+
+def test_llm_filter_audio_ollama_error(integration_setup):
+    """Test that Ollama provider throws error for audio transcription in llm_filter."""
+    duckdb_cli_path, db_path = integration_setup
+
+    test_model_name = "test-ollama-filter-audio"
+    create_model_query = "CREATE MODEL('test-ollama-filter-audio', 'llama3.2', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    transcription_model_name = "test-ollama-filter-transcription"
+    create_transcription_model_query = (
+        "CREATE MODEL('test-ollama-filter-transcription', 'llama3.2', 'ollama');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query)
+
+    query = """
+        SELECT llm_filter(
+            {'model_name': 'test-ollama-filter-audio'},
+            {
+                'prompt': 'Is the sentiment positive?',
+                'context_columns': [
+                    {
+                        'data': 'https://example.com/audio.mp3',
+                        'type': 'audio',
+                        'transcription_model': 'test-ollama-filter-transcription'
+                    }
+                ]
+            }
+        ) AS result;
+        """
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode != 0
+    assert (
+        "ollama" in result.stderr.lower()
+        or "transcription" in result.stderr.lower()
+        or "not supported" in result.stderr.lower()
+    )
