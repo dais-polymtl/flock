@@ -160,4 +160,58 @@ TEST_F(LLMFirstTest, Operation_LargeInputSet_ProcessesCorrectly) {
     }
 }
 
+// Test llm_first with audio transcription
+TEST_F(LLMFirstTest, LLMFirstWithAudioTranscription) {
+    const nlohmann::json expected_transcription = "{\"text\": \"First audio candidate\"}";
+    const nlohmann::json expected_complete_response = GetExpectedJsonResponse();
+
+    // Mock transcription model
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription}));
+
+    // Mock completion model
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT llm_first("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Select the best audio candidate. Return ID 0.', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'gpt-4o-transcribe'}"
+            "]}) AS result FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+}
+
+// Test audio transcription error handling for Ollama
+TEST_F(LLMFirstTest, LLMFirstAudioTranscriptionOllamaError) {
+    auto con = Config::GetConnection();
+    // Mock transcription model to throw error (simulating Ollama behavior)
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
+
+    // Test with Ollama which doesn't support transcription
+    const auto results = con.Query(
+            "SELECT llm_first("
+            "{'model_name': 'llama3'}, "
+            "{'prompt': 'Select the best audio. Return ID 0.', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'llama3'}"
+            "]}) AS result FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);");
+
+    // Should fail because Ollama doesn't support transcription
+    ASSERT_TRUE(results->HasError());
+}
+
 }// namespace flock

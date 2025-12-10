@@ -179,4 +179,63 @@ TEST_F(LLMRerankTest, Operation_LargeInputSet_ProcessesCorrectly) {
     ::testing::Mock::AllowLeak(mock_provider.get());
 }
 
+// Test llm_rerank with audio transcription
+TEST_F(LLMRerankTest, LLMRerankWithAudioTranscription) {
+    const nlohmann::json expected_transcription1 = "{\"text\": \"First audio candidate\"}";
+    const nlohmann::json expected_transcription2 = "{\"text\": \"Second audio candidate\"}";
+    const nlohmann::json expected_complete_response = GetExpectedJsonResponse();
+
+    // Mock transcription model (called for each audio file)
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(2);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription1}))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription2}));
+
+    // Mock completion model
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT llm_rerank("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Rank these audio candidates from best to worst', "
+            "'context_columns': ["
+            "{'data': 'https://example.com/audio1.mp3', "
+            "'type': 'audio', "
+            "'transcription_model': 'gpt-4o-transcribe'}, "
+            "{'data': 'https://example.com/audio2.mp3', "
+            "'type': 'audio', "
+            "'transcription_model': 'gpt-4o-transcribe'}"
+            "]}) AS result FROM VALUES (1) AS tbl(id);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+}
+
+// Test audio transcription error handling for Ollama
+TEST_F(LLMRerankTest, LLMRerankAudioTranscriptionOllamaError) {
+    auto con = Config::GetConnection();
+    // Mock transcription model to throw error (simulating Ollama behavior)
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
+
+    // Test with Ollama which doesn't support transcription
+    const auto results = con.Query(
+            "SELECT llm_rerank("
+            "{'model_name': 'llama3'}, "
+            "{'prompt': 'Rank these audio files', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'llama3'}"
+            "]}) AS result FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);");
+
+    // Should fail because Ollama doesn't support transcription
+    ASSERT_TRUE(results->HasError());
+}
+
 }// namespace flock
