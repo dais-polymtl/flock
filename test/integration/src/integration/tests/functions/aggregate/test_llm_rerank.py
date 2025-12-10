@@ -744,3 +744,134 @@ def test_llm_rerank_image_batch_processing(integration_setup, model_config):
         f"Expected at least 4 lines (header + 3 countries), got {len(lines)}"
     )
     assert "ranked_destinations" in result.stdout.lower()
+
+
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gpt-4o-transcribe", "openai")])
+def transcription_model_config(request):
+    """Fixture to test with transcription-capable models (OpenAI/Azure only)."""
+    return request.param
+
+
+def test_llm_rerank_with_audio_transcription(integration_setup, transcription_model_config):
+    """Test llm_rerank with audio transcription using OpenAI."""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = transcription_model_config
+
+    if provider != "openai":
+        pytest.skip("Audio transcription is only supported for OpenAI provider")
+
+    test_model_name = f"test-audio-rerank_{model_name}"
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'gpt-4o-mini', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    transcription_model_name = f"test-transcription-rerank_{model_name}"
+    create_transcription_model_query = (
+        f"CREATE MODEL('{transcription_model_name}', '{model_name}', 'openai');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE audio_candidates (
+        id INTEGER,
+        audio_url VARCHAR,
+        name VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    insert_data_query = """
+    INSERT INTO audio_candidates
+    VALUES 
+        (1, 'https://download.samplelib.com/mp3/sample-9s.mp3', 'Alice'),
+        (2, 'https://download.samplelib.com/mp3/sample-9s.mp3', 'Bob'),
+        (3, 'https://download.samplelib.com/mp3/sample-9s.mp3', 'Carol');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = (
+        """
+        SELECT llm_rerank(
+            {'model_name': '"""
+        + test_model_name
+        + """'},
+            {
+                'prompt': 'Rank these audio interviews from best to worst',
+                'context_columns': [
+                    {
+                        'data': audio_url,
+                        'type': 'audio',
+                        'transcription_model': '"""
+        + transcription_model_name
+        + """'
+                    }
+                ]
+            }
+        ) AS ranked_candidates
+        FROM audio_candidates;
+        """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    if result.returncode != 0:
+        assert (
+            "transcription" in result.stderr.lower()
+            or "audio" in result.stderr.lower()
+            or "error" in result.stderr.lower()
+        )
+    else:
+        assert "ranked_candidates" in result.stdout.lower()
+
+
+def test_llm_rerank_audio_ollama_error(integration_setup):
+    """Test that Ollama provider throws error for audio transcription in llm_rerank."""
+    duckdb_cli_path, db_path = integration_setup
+
+    test_model_name = "test-ollama-rerank-audio"
+    create_model_query = "CREATE MODEL('test-ollama-rerank-audio', 'llama3.2', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    transcription_model_name = "test-ollama-rerank-transcription"
+    create_transcription_model_query = (
+        "CREATE MODEL('test-ollama-rerank-transcription', 'llama3.2', 'ollama');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE test_audio (
+        id INTEGER,
+        audio_url VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    insert_data_query = """
+    INSERT INTO test_audio VALUES 
+        (1, 'https://example.com/audio1.mp3'),
+        (2, 'https://example.com/audio2.mp3');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = """
+        SELECT llm_rerank(
+            {'model_name': 'test-ollama-rerank-audio'},
+            {
+                'prompt': 'Rank these audio files',
+                'context_columns': [
+                    {
+                        'data': audio_url,
+                        'type': 'audio',
+                        'transcription_model': 'test-ollama-rerank-transcription'
+                    }
+                ]
+            }
+        ) AS result
+        FROM test_audio;
+        """
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode != 0
+    assert (
+        "ollama" in result.stderr.lower()
+        or "transcription" in result.stderr.lower()
+        or "not supported" in result.stderr.lower()
+    )

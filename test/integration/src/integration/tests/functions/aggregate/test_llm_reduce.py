@@ -785,3 +785,131 @@ def test_llm_reduce_image_batch_processing(integration_setup, model_config):
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     assert "landscape_summary" in result.stdout.lower()
     assert len(result.stdout.strip().split("\n")) >= 2
+
+
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gpt-4o-transcribe", "openai")])
+def transcription_model_config(request):
+    """Fixture to test with transcription-capable models (OpenAI/Azure only)."""
+    return request.param
+
+
+def test_llm_reduce_with_audio_transcription(integration_setup, transcription_model_config):
+    """Test llm_reduce with audio transcription using OpenAI."""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = transcription_model_config
+
+    if provider != "openai":
+        pytest.skip("Audio transcription is only supported for OpenAI provider")
+
+    test_model_name = f"test-audio-reduce_{model_name}"
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'gpt-4o-mini', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    transcription_model_name = f"test-transcription-reduce_{model_name}"
+    create_transcription_model_query = (
+        f"CREATE MODEL('{transcription_model_name}', '{model_name}', 'openai');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE audio_reviews (
+        id INTEGER,
+        audio_url VARCHAR,
+        product_name VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    insert_data_query = """
+    INSERT INTO audio_reviews
+    VALUES 
+        (1, 'https://download.samplelib.com/mp3/sample-9s.mp3', 'Headphones'),
+        (2, 'https://download.samplelib.com/mp3/sample-9s.mp3', 'Speaker');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = (
+        """
+        SELECT llm_reduce(
+            {'model_name': '"""
+        + test_model_name
+        + """'},
+            {
+                'prompt': 'Summarize the key points from these audio reviews',
+                'context_columns': [
+                    {
+                        'data': audio_url,
+                        'type': 'audio',
+                        'transcription_model': '"""
+        + transcription_model_name
+        + """'
+                    }
+                ]
+            }
+        ) AS audio_summary
+        FROM audio_reviews;
+        """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    if result.returncode != 0:
+        assert (
+            "transcription" in result.stderr.lower()
+            or "audio" in result.stderr.lower()
+            or "error" in result.stderr.lower()
+        )
+    else:
+        assert "audio_summary" in result.stdout.lower()
+
+
+def test_llm_reduce_audio_ollama_error(integration_setup):
+    """Test that Ollama provider throws error for audio transcription in llm_reduce."""
+    duckdb_cli_path, db_path = integration_setup
+
+    test_model_name = "test-ollama-reduce-audio"
+    create_model_query = "CREATE MODEL('test-ollama-reduce-audio', 'llama3.2', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_model_query)
+
+    transcription_model_name = "test-ollama-reduce-transcription"
+    create_transcription_model_query = (
+        "CREATE MODEL('test-ollama-reduce-transcription', 'llama3.2', 'ollama');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE test_audio (
+        id INTEGER,
+        audio_url VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    insert_data_query = """
+    INSERT INTO test_audio VALUES (1, 'https://example.com/audio.mp3');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = """
+        SELECT llm_reduce(
+            {'model_name': 'test-ollama-reduce-audio'},
+            {
+                'prompt': 'Summarize this audio',
+                'context_columns': [
+                    {
+                        'data': audio_url,
+                        'type': 'audio',
+                        'transcription_model': 'test-ollama-reduce-transcription'
+                    }
+                ]
+            }
+        ) AS result
+        FROM test_audio;
+        """
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode != 0
+    assert (
+        "ollama" in result.stderr.lower()
+        or "transcription" in result.stderr.lower()
+        or "not supported" in result.stderr.lower()
+    )
