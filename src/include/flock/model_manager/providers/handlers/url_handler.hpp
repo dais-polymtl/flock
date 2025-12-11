@@ -1,8 +1,10 @@
 #pragma once
 
 #include "flock/core/common.hpp"
+#include "flock/core/config.hpp"
 #include <cstdio>
 #include <curl/curl.h>
+#include <filesystem>
 #include <random>
 #include <regex>
 #include <sstream>
@@ -29,16 +31,27 @@ public:
 
     // Generate a unique temporary filename with extension
     static std::string GenerateTempFilename(const std::string& extension) {
+        // Get the flock storage directory (parent of the database file)
+        std::filesystem::path storage_dir = Config::get_global_storage_path().parent_path();
+
+        // Ensure the directory exists
+        if (!std::filesystem::exists(storage_dir)) {
+            std::filesystem::create_directories(storage_dir);
+        }
+
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis(0, 15);
-        std::ostringstream oss;
-        oss << "/tmp/flock_";
+        std::ostringstream filename;
+        filename << "flock_";
         for (int i = 0; i < 16; ++i) {
-            oss << std::hex << dis(gen);
+            filename << std::hex << dis(gen);
         }
-        oss << extension;
-        return oss.str();
+        filename << extension;
+
+        // Use filesystem path for proper cross-platform path handling
+        std::filesystem::path temp_path = storage_dir / filename.str();
+        return temp_path.string();
     }
 
     // Check if the given path is a URL using regex
