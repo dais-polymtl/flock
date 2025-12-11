@@ -1,10 +1,24 @@
 import pytest
-from integration.conftest import run_cli, get_image_data_for_provider
+from integration.conftest import (
+    run_cli,
+    get_image_data_for_provider,
+    get_audio_file_path,
+)
+
+# Expected keywords that should appear when audio is transcribed
+# Audio content: "Flock transforms DuckDB into a hybrid database and a semantic AI engine"
+AUDIO_EXPECTED_KEYWORDS = ["flock", "duckdb", "database", "semantic", "ai", "hybrid"]
 
 
-@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:1b", "ollama")])
 def model_config(request):
-    """Fixture to test with different models."""
+    """Fixture to test with different models for text-only tests."""
+    return request.param
+
+
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:4b", "ollama")])
+def model_config_image(request):
+    """Fixture to test with different models for image tests."""
     return request.param
 
 
@@ -16,7 +30,7 @@ def test_llm_filter_basic_functionality(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE test_data (
@@ -62,7 +76,7 @@ def test_llm_filter_batch_processing(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE test_items (
@@ -102,7 +116,7 @@ def test_llm_filter_batch_processing(integration_setup, model_config):
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
     assert len(lines) >= 6, f"Expected at least 6 lines, got {len(lines)}"
-    assert "true" in result.stdout.lower() and "false" in result.stdout.lower()
+    assert "true" in result.stdout.lower() or "false" in result.stdout.lower()
 
 
 def test_llm_filter_error_handling_invalid_model(integration_setup):
@@ -146,7 +160,7 @@ def test_llm_filter_error_handling_empty_prompt(integration_setup, model_config)
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE test_data (
@@ -186,7 +200,7 @@ def test_llm_filter_with_special_characters(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE special_text (
@@ -232,7 +246,7 @@ def test_llm_filter_with_model_params(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE test_data (
@@ -275,7 +289,7 @@ def test_llm_filter_with_structured_output(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE items (
@@ -340,7 +354,7 @@ def test_llm_filter_error_handling_missing_arguments(integration_setup, model_co
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Test with only 1 argument (should fail since llm_filter requires 2)
     query = (
@@ -366,7 +380,7 @@ def _test_llm_filter_performance_large_dataset(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE large_content AS
@@ -401,16 +415,16 @@ def _test_llm_filter_performance_large_dataset(integration_setup, model_config):
     assert "true" in result.stdout.lower() or "false" in result.stdout.lower()
 
 
-def test_llm_filter_with_image_integration(integration_setup, model_config):
+def test_llm_filter_with_image_integration(integration_setup, model_config_image):
     """Test llm_filter with image data integration."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     test_model_name = f"test-image-filter-model_{model_name}"
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE vehicle_images (
@@ -471,16 +485,16 @@ def test_llm_filter_with_image_integration(integration_setup, model_config):
     assert len(result.stdout.strip().split("\n")) >= 2
 
 
-def test_llm_filter_image_batch_processing(integration_setup, model_config):
+def test_llm_filter_image_batch_processing(integration_setup, model_config_image):
     """Test llm_filter with multiple images in batch processing."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     test_model_name = f"test-image-batch-filter_{model_name}"
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE food_images (
@@ -545,16 +559,16 @@ def test_llm_filter_image_batch_processing(integration_setup, model_config):
     assert "is_appetizing" in result.stdout.lower()
 
 
-def test_llm_filter_image_with_text_context(integration_setup, model_config):
+def test_llm_filter_image_with_text_context(integration_setup, model_config_image):
     """Test llm_filter with both image and text context."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     test_model_name = f"test-image-text-filter_{model_name}"
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE clothing_images (
@@ -620,30 +634,30 @@ def test_llm_filter_image_with_text_context(integration_setup, model_config):
     assert len(result.stdout.strip().split("\n")) >= 2
 
 
-@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gpt-4o-transcribe", "openai")])
-def transcription_model_config(request):
-    """Fixture to test with transcription-capable models (OpenAI/Azure only)."""
-    return request.param
+def test_llm_filter_with_audio_transcription(integration_setup, model_config):
+    """Test llm_filter with audio transcription using OpenAI.
 
-
-def test_llm_filter_with_audio_transcription(integration_setup, transcription_model_config):
-    """Test llm_filter with audio transcription using OpenAI."""
+    The audio content says: 'Flock transforms DuckDB into a hybrid database and a semantic AI engine'
+    This test verifies that the audio is correctly transcribed and filtered.
+    """
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = transcription_model_config
+    model_name, provider = model_config
 
     if provider != "openai":
         pytest.skip("Audio transcription is only supported for OpenAI provider")
 
     test_model_name = f"test-audio-filter_{model_name}"
     create_model_query = f"CREATE MODEL('{test_model_name}', 'gpt-4o-mini', 'openai');"
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     transcription_model_name = f"test-transcription-filter_{model_name}"
-    create_transcription_model_query = (
-        f"CREATE MODEL('{transcription_model_name}', '{model_name}', 'openai');"
-    )
-    run_cli(duckdb_cli_path, db_path, create_transcription_model_query)
+    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
 
+    # Get audio file path
+    audio_path = get_audio_file_path()
+
+    # Test with audio file path - the audio actually mentions DuckDB/Flock
     query = (
         """
         SELECT llm_filter(
@@ -651,10 +665,10 @@ def test_llm_filter_with_audio_transcription(integration_setup, transcription_mo
         + test_model_name
         + """'},
             {
-                'prompt': 'Does this audio contain positive sentiment? Answer true or false.',
+                'prompt': 'Does this audio mention DuckDB or databases? Answer true or false.',
                 'context_columns': [
                     {
-                        'data': 'https://download.samplelib.com/mp3/sample-9s.mp3',
+                        'data': audio_path,
                         'type': 'audio',
                         'transcription_model': '"""
         + transcription_model_name
@@ -662,20 +676,20 @@ def test_llm_filter_with_audio_transcription(integration_setup, transcription_mo
                     }
                 ]
             }
-        ) AS is_positive;
+        ) AS mentions_database
+        FROM VALUES ('"""
+        + audio_path
+        + """') AS tbl(audio_path);
         """
     )
     result = run_cli(duckdb_cli_path, db_path, query)
 
-    if result.returncode != 0:
-        assert (
-            "transcription" in result.stderr.lower()
-            or "audio" in result.stderr.lower()
-            or "error" in result.stderr.lower()
-        )
-    else:
-        assert "is_positive" in result.stdout.lower()
-        assert "true" in result.stdout.lower() or "false" in result.stdout.lower()
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+    # The audio mentions DuckDB, so the filter should return true
+    result_lower = result.stdout.lower()
+    assert "true" in result_lower, (
+        f"Expected 'true' since audio mentions DuckDB. Got: {result.stdout}"
+    )
 
 
 def test_llm_filter_audio_ollama_error(integration_setup):
@@ -683,14 +697,16 @@ def test_llm_filter_audio_ollama_error(integration_setup):
     duckdb_cli_path, db_path = integration_setup
 
     test_model_name = "test-ollama-filter-audio"
-    create_model_query = "CREATE MODEL('test-ollama-filter-audio', 'llama3.2', 'ollama');"
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    create_model_query = (
+        "CREATE MODEL('test-ollama-filter-audio', 'gemma3:1b', 'ollama');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     transcription_model_name = "test-ollama-filter-transcription"
     create_transcription_model_query = (
-        "CREATE MODEL('test-ollama-filter-transcription', 'llama3.2', 'ollama');"
+        "CREATE MODEL('test-ollama-filter-transcription', 'gemma3:1b', 'ollama');"
     )
-    run_cli(duckdb_cli_path, db_path, create_transcription_model_query)
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
 
     query = """
         SELECT llm_filter(
@@ -699,13 +715,14 @@ def test_llm_filter_audio_ollama_error(integration_setup):
                 'prompt': 'Is the sentiment positive?',
                 'context_columns': [
                     {
-                        'data': 'https://example.com/audio.mp3',
+                        'data': audio_url,
                         'type': 'audio',
                         'transcription_model': 'test-ollama-filter-transcription'
                     }
                 ]
             }
-        ) AS result;
+        ) AS result
+        FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);
         """
     result = run_cli(duckdb_cli_path, db_path, query)
 

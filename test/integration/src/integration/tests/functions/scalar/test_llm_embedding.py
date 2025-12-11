@@ -18,7 +18,7 @@ def test_llm_embedding_basic_functionality(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
             """
@@ -47,7 +47,7 @@ def test_llm_embedding_with_multiple_text_fields(integration_setup, model_config
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
             """
@@ -75,7 +75,7 @@ def test_llm_embedding_with_input_columns(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE documents (
@@ -130,7 +130,7 @@ def test_llm_embedding_batch_processing(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE product_descriptions (
@@ -200,7 +200,7 @@ def test_llm_embedding_error_handling_empty_text(integration_setup, model_config
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
             """
@@ -227,7 +227,7 @@ def test_llm_embedding_with_special_characters(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE special_text (
@@ -272,7 +272,7 @@ def test_llm_embedding_with_model_params(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
             """
@@ -299,7 +299,7 @@ def test_llm_embedding_document_similarity_use_case(integration_setup, model_con
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE knowledge_base (
@@ -356,7 +356,7 @@ def test_llm_embedding_concatenated_fields(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE products (
@@ -410,7 +410,7 @@ def _llm_embedding_performance_large_dataset(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE large_text_dataset AS
@@ -456,7 +456,7 @@ def test_llm_embedding_error_handling_malformed_input(integration_setup, model_c
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Test with missing required arguments
     query = """
