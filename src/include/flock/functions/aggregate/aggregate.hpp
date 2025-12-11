@@ -51,12 +51,11 @@ public:
         auto state = reinterpret_cast<AggregateFunctionState*>(state_p);
 
         // Use placement new to properly construct the AggregateFunctionState object
+        // This handles memory allocation done by DuckDB
         new (state) AggregateFunctionState();
 
-        if (!state->initialized) {
-            state->Initialize();
-            state->initialized = true;
-        }
+        // Initialize the state (allocates JSON array, resets all fields)
+        state->Initialize();
     }
 
     template<class Derived>
@@ -140,7 +139,6 @@ public:
             auto* state = state_vector[i];
             if (state) {
                 state->Destroy();
-                state->~AggregateFunctionState();// Explicitly call destructor
             }
         }
     }
@@ -151,13 +149,9 @@ public:
     template<class Derived>
     static void FinalizeSafe(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, duckdb::Vector& result,
                              idx_t count, idx_t offset) {
-        const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
-
         for (idx_t i = 0; i < count; i++) {
-            auto idx = i + offset;
-            auto* state = states_vector[idx];
-
-            result.SetValue(idx, "[]");// Empty JSON array as default
+            auto result_idx = i + offset;
+            result.SetValue(result_idx, "[]");
         }
     }
 };
