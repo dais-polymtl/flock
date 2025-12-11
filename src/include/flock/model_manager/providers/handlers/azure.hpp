@@ -91,7 +91,7 @@ protected:
 
     nlohmann::json ExtractTranscriptionOutput(const nlohmann::json& response) const override {
         // Transcription API returns JSON with "text" field when response_format=json
-        if (response.contains("text")) {
+        if (response.contains("text") && !response["text"].is_null()) {
             return response["text"].get<std::string>();
         }
         return "";
