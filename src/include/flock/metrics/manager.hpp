@@ -4,6 +4,7 @@
 #include "duckdb/main/database.hpp"
 #include "flock/metrics/base_manager.hpp"
 #include "flock/metrics/types.hpp"
+#include <atomic>
 #include <memory>
 #include <unordered_map>
 
@@ -28,6 +29,12 @@ public:
             return *manager_ptr;
         }
         return *it->second;
+    }
+
+    // Generate a unique invocation ID for scalar functions
+    static const void* GenerateUniqueId() {
+        static std::atomic<uint64_t> counter{0};
+        return reinterpret_cast<const void*>(++counter);
     }
 
     // Initialize metrics tracking (stores context for subsequent calls)

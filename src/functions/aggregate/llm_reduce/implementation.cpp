@@ -8,7 +8,6 @@
 namespace flock {
 
 nlohmann::json LlmReduce::ReduceBatch(nlohmann::json& tuples, const AggregateFunctionType& function_type, const nlohmann::json& summary) {
-    nlohmann::json data;
     auto [prompt, media_data] = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
 
     prompt += "\n\n" + summary.dump(4);
@@ -78,8 +77,8 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
 
     // Process each state individually
     for (idx_t i = 0; i < count; i++) {
-        auto idx = i + offset;
-        auto* state = states_vector[idx];
+        auto result_idx = i + offset;
+        auto* state = states_vector[i];
 
         if (state && state->value && !state->value->empty()) {
             // Use model_details and user_query from the state
@@ -112,12 +111,12 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
             MetricsManager::AddExecutionTime(exec_duration_ms);
 
             if (response.is_string()) {
-                result.SetValue(idx, response.get<std::string>());
+                result.SetValue(result_idx, response.get<std::string>());
             } else {
-                result.SetValue(idx, response.dump());
+                result.SetValue(result_idx, response.dump());
             }
         } else {
-            result.SetValue(idx, nullptr);
+            result.SetValue(result_idx, nullptr);
         }
     }
 
