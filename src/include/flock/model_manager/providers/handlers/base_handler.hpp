@@ -99,9 +99,15 @@ protected:
             if (is_transcription) {
                 // Handle transcription requests (multipart/form-data)
                 const auto& req = jsons[i];
+                if (!req.contains("file_path") || req["file_path"].is_null()) {
+                    trigger_error("Missing or null file_path in transcription request");
+                }
+                if (!req.contains("model") || req["model"].is_null()) {
+                    trigger_error("Missing or null model in transcription request");
+                }
                 auto file_path = req["file_path"].get<std::string>();
                 auto model = req["model"].get<std::string>();
-                auto prompt = req.contains("prompt") ? req["prompt"].get<std::string>() : "";
+                auto prompt = req.contains("prompt") && !req["prompt"].is_null() ? req["prompt"].get<std::string>() : "";
                 requests[i].is_temp_file = req.contains("is_temp_file") ? req["is_temp_file"].get<bool>() : false;
                 if (requests[i].is_temp_file) {
                     requests[i].temp_file_path = file_path;
@@ -184,6 +190,7 @@ protected:
             }
 
             curl_easy_getinfo(requests[i].easy, CURLINFO_RESPONSE_CODE, NULL);
+
             if (isJson(requests[i].response)) {
                 try {
                     nlohmann::json parsed = nlohmann::json::parse(requests[i].response);
@@ -197,7 +204,11 @@ protected:
                     }
 
                     // Let provider extract output based on request type
-                    results[i] = ExtractOutput(parsed, request_type);
+                    try {
+                        results[i] = ExtractOutput(parsed, request_type);
+                    } catch (const std::exception& e) {
+                        trigger_error(std::string("Output extraction error: ") + e.what());
+                    }
                 } catch (const std::exception& e) {
                     trigger_error(std::string("Response processing error: ") + e.what());
                 }
