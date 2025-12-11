@@ -31,14 +31,28 @@ void OpenAIProvider::AddCompletionRequest(const std::string& prompt, const int n
                      {"text", "ATTACHMENT COLUMN"}});
             auto row_index = 1u;
             for (const auto& image: column["data"]) {
+                // Skip null values
+                if (image.is_null()) {
+                    continue;
+                }
                 message_content.push_back(
                         {{"type", "text"}, {"text", "ROW " + std::to_string(row_index) + " :"}});
                 auto image_url = std::string();
-                auto image_str = image.get<std::string>();
-                if (is_base64(image_str)) {
-                    image_url = duckdb_fmt::format("data:{};base64,{}", mime_type, image_str);
+                std::string image_str;
+                if (image.is_string()) {
+                    image_str = image.get<std::string>();
                 } else {
+                    image_str = image.dump();
+                }
+
+                // Handle file path or URL
+                if (URLHandler::IsUrl(image_str)) {
+                    // URL - send directly to API
                     image_url = image_str;
+                } else {
+                    // File path - read and convert to base64
+                    auto base64_result = URLHandler::ResolveFileToBase64(image_str);
+                    image_url = duckdb_fmt::format("data:{};base64,{}", mime_type, base64_result.base64_content);
                 }
 
                 message_content.push_back(
@@ -90,7 +104,16 @@ void OpenAIProvider::AddEmbeddingRequest(const std::vector<std::string>& inputs)
 
 void OpenAIProvider::AddTranscriptionRequest(const nlohmann::json& audio_files) {
     for (const auto& audio_file: audio_files) {
-        auto audio_file_str = audio_file.get<std::string>();
+        // Skip null values
+        if (audio_file.is_null()) {
+            continue;
+        }
+        std::string audio_file_str;
+        if (audio_file.is_string()) {
+            audio_file_str = audio_file.get<std::string>();
+        } else {
+            audio_file_str = audio_file.dump();
+        }
 
         // Handle file download and validation
         auto file_result = URLHandler::ResolveFilePath(audio_file_str);
