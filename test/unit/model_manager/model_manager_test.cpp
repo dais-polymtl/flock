@@ -99,7 +99,7 @@ TEST_F(ModelManagerTest, ProviderSelection) {
     });
     // Test Ollama provider
     json ollama_config = {
-            {"model_name", "llama3"}};
+            {"model_name", "gemma3:4b"}};
     EXPECT_NO_THROW({
         Model ollama_model(ollama_config);
         EXPECT_EQ(ollama_model.GetModelDetails().provider_name, "ollama");
