@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <curl/curl.h>
 #include <random>
+#include <regex>
 #include <sstream>
 #include <string>
 
@@ -40,9 +41,11 @@ public:
         return oss.str();
     }
 
-    // Check if the given path is a URL
+    // Check if the given path is a URL using regex
     static bool IsUrl(const std::string& path) {
-        return path.find("http://") == 0 || path.find("https://") == 0;
+        // Regex pattern to match URLs: http:// or https://
+        static const std::regex url_pattern(R"(^https?://)");
+        return std::regex_search(path, url_pattern);
     }
 
     // Validate file exists and is not empty
@@ -58,6 +61,7 @@ public:
     }
 
     // Download file from URL to temporary location
+    // Supports http:// and https:// URLs
     static std::string DownloadFileToTemp(const std::string& url) {
         std::string extension = ExtractFileExtension(url);
         // If no extension found, try to infer from content-type or use empty extension
@@ -122,6 +126,107 @@ public:
                 std::remove(result.file_path.c_str());
             }
             throw std::runtime_error("Invalid file: " + file_path_or_url);
+        }
+
+        return result;
+    }
+
+    // Read file contents and convert to base64
+    // Returns empty string if file cannot be read
+    static std::string ReadFileToBase64(const std::string& file_path) {
+        FILE* file = fopen(file_path.c_str(), "rb");
+        if (!file) {
+            return "";
+        }
+
+        // Get file size
+        fseek(file, 0, SEEK_END);
+        long file_size = ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        if (file_size <= 0) {
+            fclose(file);
+            return "";
+        }
+
+        // Read file content
+        std::vector<unsigned char> buffer(file_size);
+        size_t bytes_read = fread(buffer.data(), 1, file_size, file);
+        fclose(file);
+
+        if (bytes_read != static_cast<size_t>(file_size)) {
+            return "";
+        }
+
+        // Base64 encoding table
+        static const char base64_chars[] =
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+        std::string result;
+        result.reserve(((file_size + 2) / 3) * 4);
+
+        for (size_t i = 0; i < bytes_read; i += 3) {
+            unsigned int octet_a = buffer[i];
+            unsigned int octet_b = (i + 1 < bytes_read) ? buffer[i + 1] : 0;
+            unsigned int octet_c = (i + 2 < bytes_read) ? buffer[i + 2] : 0;
+
+            unsigned int triple = (octet_a << 16) + (octet_b << 8) + octet_c;
+
+            result.push_back(base64_chars[(triple >> 18) & 0x3F]);
+            result.push_back(base64_chars[(triple >> 12) & 0x3F]);
+            result.push_back((i + 1 < bytes_read) ? base64_chars[(triple >> 6) & 0x3F] : '=');
+            result.push_back((i + 2 < bytes_read) ? base64_chars[triple & 0x3F] : '=');
+        }
+
+        return result;
+    }
+
+    // Helper struct to return base64 content and temp file flag
+    struct Base64Result {
+        std::string base64_content;
+        bool is_temp_file;
+        std::string temp_file_path;
+    };
+
+    // Resolve file path or URL, read contents and convert to base64
+    // If input is URL, downloads to temp file first
+    // Returns base64 content and temp file info for cleanup
+    // Throws std::runtime_error if file cannot be processed
+    static Base64Result ResolveFileToBase64(const std::string& file_path_or_url) {
+        Base64Result result;
+        result.is_temp_file = false;
+
+        std::string file_path;
+        if (IsUrl(file_path_or_url)) {
+            file_path = DownloadFileToTemp(file_path_or_url);
+            if (file_path.empty()) {
+                throw std::runtime_error("Failed to download file: " + file_path_or_url);
+            }
+            result.is_temp_file = true;
+            result.temp_file_path = file_path;
+        } else {
+            file_path = file_path_or_url;
+        }
+
+        if (!ValidateFile(file_path)) {
+            if (result.is_temp_file) {
+                std::remove(file_path.c_str());
+            }
+            throw std::runtime_error("Invalid file: " + file_path_or_url);
+        }
+
+        result.base64_content = ReadFileToBase64(file_path);
+        if (result.base64_content.empty()) {
+            if (result.is_temp_file) {
+                std::remove(file_path.c_str());
+            }
+            throw std::runtime_error("Failed to read file: " + file_path_or_url);
+        }
+
+        // Cleanup temp file after reading
+        if (result.is_temp_file) {
+            std::remove(file_path.c_str());
+            result.temp_file_path.clear();
         }
 
         return result;
