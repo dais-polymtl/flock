@@ -191,12 +191,12 @@ TEST_F(LLMFilterTest, LLMFilterAudioTranscriptionOllamaError) {
     // Test with Ollama which doesn't support transcription
     const auto results = con.Query(
             "SELECT llm_filter("
-            "{'model_name': 'llama3'}, "
+            "{'model_name': 'gemma3:4b'}, "
             "{'prompt': 'Is the sentiment positive?', "
             "'context_columns': ["
             "{'data': audio_url, "
             "'type': 'audio', "
-            "'transcription_model': 'llama3'}"
+            "'transcription_model': 'gemma3:4b'}"
             "]}) AS result FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);");
 
     // Should fail because Ollama doesn't support transcription
