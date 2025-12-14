@@ -1,6 +1,7 @@
 #include "flock/core/config.hpp"
 #include "filesystem.hpp"
 #include "flock/secret_manager/secret_manager.hpp"
+#include <chrono>
 #include <fmt/format.h>
 
 namespace flock {
@@ -65,8 +66,6 @@ void Config::ConfigureGlobal() {
 void Config::ConfigureLocal(duckdb::DatabaseInstance& db) {
     auto con = Config::GetConnection(&db);
     ConfigureTables(con, ConfigType::LOCAL);
-    con.Query(
-            duckdb_fmt::format("ATTACH DATABASE '{}' AS flock_storage;", Config::get_global_storage_path().string()));
 }
 
 void Config::ConfigureTables(duckdb::Connection& con, const ConfigType type) {
@@ -86,6 +85,63 @@ void Config::Configure(duckdb::ExtensionLoader& loader) {
         SetupGlobalStorageLocation();
         ConfigureGlobal();
         ConfigureLocal(db);
+    }
+}
+
+void Config::AttachToGlobalStorage(duckdb::Connection& con, bool read_only) {
+    con.Query(duckdb_fmt::format("ATTACH DATABASE '{}' AS flock_storage {};",
+                                 Config::get_global_storage_path().string(), read_only ? "(READ_ONLY)" : ""));
+}
+
+void Config::DetachFromGlobalStorage(duckdb::Connection& con) {
+    con.Query("DETACH DATABASE flock_storage;");
+}
+
+bool Config::StorageAttachmentGuard::TryAttach(bool read_only) {
+    try {
+        Config::AttachToGlobalStorage(connection, read_only);
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+bool Config::StorageAttachmentGuard::TryDetach() {
+    try {
+        Config::DetachFromGlobalStorage(connection);
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+void Config::StorageAttachmentGuard::Wait(int milliseconds) {
+    auto start = std::chrono::steady_clock::now();
+    auto duration = std::chrono::milliseconds(milliseconds);
+    while (std::chrono::steady_clock::now() - start < duration) {
+        // Busy-wait until the specified duration has elapsed
+    }
+}
+
+Config::StorageAttachmentGuard::StorageAttachmentGuard(duckdb::Connection& con, bool read_only)
+    : connection(con), attached(false) {
+    for (int attempt = 0; attempt < MAX_RETRIES; ++attempt) {
+        if (TryAttach(read_only)) {
+            attached = true;
+            return;
+        }
+        Wait(RETRY_DELAY_MS);
+    }
+    Config::AttachToGlobalStorage(connection, read_only);
+    attached = true;
+}
+
+Config::StorageAttachmentGuard::~StorageAttachmentGuard() {
+    if (attached) {
+        try {
+            Config::DetachFromGlobalStorage(connection);
+        } catch (...) {
+        }
     }
 }
 

@@ -2,6 +2,7 @@
 
 #include "flock/core/common.hpp"
 #include "flock/core/config.hpp"
+#include "flock/custom_parser/query_parser.hpp"
 
 #include <sstream>
 #include <stdexcept>
@@ -216,89 +217,110 @@ std::string PromptParser::ToSQL(const QueryStatement& statement) const {
     switch (statement.type) {
         case StatementType::CREATE_PROMPT: {
             const auto& create_stmt = static_cast<const CreatePromptStatement&>(statement);
-            auto con = Config::GetConnection();
-            auto result = con.Query(duckdb_fmt::format(" SELECT prompt_name "
-                                                       "   FROM {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
-                                                       "  WHERE prompt_name = '{}';",
-                                                       create_stmt.catalog.empty() ? "flock_storage." : "",
-                                                       create_stmt.prompt_name));
-            if (result->RowCount() != 0) {
-                throw std::runtime_error(duckdb_fmt::format("Prompt '{}' already exist.", create_stmt.prompt_name));
-            }
-            query = duckdb_fmt::format(" INSERT INTO {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
-                                       " (prompt_name, prompt) "
-                                       " VALUES ('{}', '{}'); ",
-                                       create_stmt.catalog, create_stmt.prompt_name, create_stmt.prompt);
+            query = ExecuteQueryWithStorage([&create_stmt](duckdb::Connection& con) {
+                auto result = con.Query(duckdb_fmt::format(" SELECT prompt_name "
+                                                           "   FROM {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
+                                                           "  WHERE prompt_name = '{}';",
+                                                           create_stmt.catalog.empty() ? "flock_storage." : "",
+                                                           create_stmt.prompt_name));
+
+                auto& materialized_result = result->Cast<duckdb::MaterializedQueryResult>();
+                if (materialized_result.RowCount() != 0) {
+                    throw std::runtime_error(duckdb_fmt::format("Prompt '{}' already exist.", create_stmt.prompt_name));
+                }
+
+                auto insert_query = duckdb_fmt::format(" INSERT INTO {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+                                                       " (prompt_name, prompt) "
+                                                       " VALUES ('{}', '{}'); ",
+                                                       create_stmt.catalog, create_stmt.prompt_name, create_stmt.prompt);
+                con.Query(insert_query);
+
+                return std::string("SELECT 'Prompt created successfully' AS status");
+            },
+                                            false);
             break;
         }
         case StatementType::DELETE_PROMPT: {
             const auto& delete_stmt = static_cast<const DeletePromptStatement&>(statement);
-            auto con = Config::GetConnection();
-            auto result = con.Query(duckdb_fmt::format("  DELETE FROM flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
-                                                       "  WHERE prompt_name = '{}'; ",
-                                                       delete_stmt.prompt_name));
-
-            query = duckdb_fmt::format(" DELETE FROM flock_storage.flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+            query = ExecuteSetQuery(
+                    duckdb_fmt::format(" DELETE FROM flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+                                       "  WHERE prompt_name = '{}'; "
+                                       " DELETE FROM flock_storage.flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
                                        "  WHERE prompt_name = '{}'; ",
-                                       delete_stmt.prompt_name);
+                                       delete_stmt.prompt_name, delete_stmt.prompt_name),
+                    "Prompt deleted successfully",
+                    false);
             break;
         }
         case StatementType::UPDATE_PROMPT: {
             const auto& update_stmt = static_cast<const UpdatePromptStatement&>(statement);
-            auto con = Config::GetConnection();
-            auto result =
-                    con.Query(duckdb_fmt::format(" SELECT version, 'local' AS scope "
-                                                 "  FROM flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
-                                                 " WHERE prompt_name = '{}'"
-                                                 " UNION ALL "
-                                                 " SELECT version, 'global' AS scope "
-                                                 "   FROM flock_storage.flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
-                                                 "  WHERE prompt_name = '{}' "
-                                                 " ORDER BY version DESC;",
-                                                 update_stmt.prompt_name, update_stmt.prompt_name));
-            if (result->RowCount() == 0) {
-                throw std::runtime_error(duckdb_fmt::format("Prompt '{}' doesn't exist.", update_stmt.prompt_name));
-            }
+            query = ExecuteQueryWithStorage([&update_stmt](duckdb::Connection& con) {
+                auto result = con.Query(duckdb_fmt::format(" SELECT version, 'local' AS scope "
+                                                           "  FROM flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
+                                                           " WHERE prompt_name = '{}'"
+                                                           " UNION ALL "
+                                                           " SELECT version, 'global' AS scope "
+                                                           "   FROM flock_storage.flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
+                                                           "  WHERE prompt_name = '{}' "
+                                                           " ORDER BY version DESC;",
+                                                           update_stmt.prompt_name, update_stmt.prompt_name));
 
-            int version = result->GetValue<int>(0, 0) + 1;
-            auto catalog = result->GetValue(1, 0).ToString() == "global" ? "flock_storage." : "";
-            query = duckdb_fmt::format(" INSERT INTO {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
-                                       " (prompt_name, prompt, version) "
-                                       " VALUES ('{}', '{}', {}); ",
-                                       catalog, update_stmt.prompt_name, update_stmt.new_prompt, version);
+                auto& materialized_result = result->Cast<duckdb::MaterializedQueryResult>();
+                if (materialized_result.RowCount() == 0) {
+                    throw std::runtime_error(duckdb_fmt::format("Prompt '{}' doesn't exist.", update_stmt.prompt_name));
+                }
+
+                int version = materialized_result.GetValue<int>(0, 0) + 1;
+                auto catalog = materialized_result.GetValue(1, 0).ToString() == "global" ? "flock_storage." : "";
+
+                con.Query(duckdb_fmt::format(" INSERT INTO {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+                                             " (prompt_name, prompt, version) "
+                                             " VALUES ('{}', '{}', {}); ",
+                                             catalog, update_stmt.prompt_name, update_stmt.new_prompt, version));
+
+                return std::string("SELECT 'Prompt updated successfully' AS status");
+            },
+                                            false);
             break;
         }
         case StatementType::UPDATE_PROMPT_SCOPE: {
             const auto& update_stmt = static_cast<const UpdatePromptScopeStatement&>(statement);
-            auto con = Config::GetConnection();
-            auto result = con.Query(duckdb_fmt::format(" SELECT prompt_name "
-                                                       "   FROM {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
-                                                       "  WHERE prompt_name = '{}';",
-                                                       update_stmt.catalog, update_stmt.prompt_name));
-            if (result->RowCount() != 0) {
-                throw std::runtime_error(
-                        duckdb_fmt::format("Model '{}' already exist in {} storage.", update_stmt.prompt_name,
-                                           update_stmt.catalog == "flock_storage." ? "global" : "local"));
-            }
+            query = ExecuteQueryWithStorage([&update_stmt](duckdb::Connection& con) {
+                auto result = con.Query(duckdb_fmt::format(" SELECT prompt_name "
+                                                           "   FROM {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
+                                                           "  WHERE prompt_name = '{}';",
+                                                           update_stmt.catalog, update_stmt.prompt_name));
 
-            con.Query(duckdb_fmt::format("INSERT INTO {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
-                                         "(prompt_name, prompt, updated_at, version) "
-                                         "SELECT prompt_name, prompt, updated_at, version "
-                                         "FROM {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
-                                         "WHERE prompt_name = '{}';",
-                                         update_stmt.catalog,
-                                         update_stmt.catalog == "flock_storage." ? "" : "flock_storage.",
-                                         update_stmt.prompt_name));
+                auto& materialized_result = result->Cast<duckdb::MaterializedQueryResult>();
+                if (materialized_result.RowCount() != 0) {
+                    throw std::runtime_error(
+                            duckdb_fmt::format("Prompt '{}' already exist in {} storage.", update_stmt.prompt_name,
+                                               update_stmt.catalog == "flock_storage." ? "global" : "local"));
+                }
 
-            query = duckdb_fmt::format("DELETE FROM {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
-                                       "WHERE prompt_name = '{}'; ",
-                                       update_stmt.catalog == "flock_storage." ? "" : "flock_storage.",
-                                       update_stmt.prompt_name);
+                con.Query(duckdb_fmt::format("INSERT INTO {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+                                             "(prompt_name, prompt, updated_at, version) "
+                                             "SELECT prompt_name, prompt, updated_at, version "
+                                             "FROM {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+                                             "WHERE prompt_name = '{}';",
+                                             update_stmt.catalog,
+                                             update_stmt.catalog == "flock_storage." ? "" : "flock_storage.",
+                                             update_stmt.prompt_name));
+
+                con.Query(duckdb_fmt::format("DELETE FROM {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+                                             "WHERE prompt_name = '{}'; ",
+                                             update_stmt.catalog == "flock_storage." ? "" : "flock_storage.",
+                                             update_stmt.prompt_name));
+
+                return std::string("SELECT 'Prompt scope updated successfully' AS status");
+            },
+                                            false);
             break;
         }
         case StatementType::GET_PROMPT: {
             const auto& get_stmt = static_cast<const GetPromptStatement&>(statement);
-            query = duckdb_fmt::format("SELECT 'global' AS scope, * "
+            query = ExecuteGetQuery(
+                    duckdb_fmt::format("SELECT 'global' AS scope, * "
                                        "FROM flock_storage.flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
                                        "WHERE prompt_name = '{}' "
                                        "UNION ALL "
@@ -306,12 +328,13 @@ std::string PromptParser::ToSQL(const QueryStatement& statement) const {
                                        "FROM flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
                                        "WHERE prompt_name = '{}' "
                                        "ORDER BY version DESC;",
-                                       get_stmt.prompt_name, get_stmt.prompt_name);
-
+                                       get_stmt.prompt_name, get_stmt.prompt_name),
+                    true);
             break;
         }
         case StatementType::GET_ALL_PROMPT: {
-            query = " SELECT 'global' as scope, t1.* "
+            query = ExecuteGetQuery(
+                    " SELECT 'global' as scope, t1.* "
                     "   FROM flock_storage.flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE AS t1 "
                     "   JOIN (SELECT prompt_name, MAX(version) AS max_version "
                     "   FROM flock_storage.flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
@@ -325,7 +348,8 @@ std::string PromptParser::ToSQL(const QueryStatement& statement) const {
                     "   FROM flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
                     "  GROUP BY prompt_name) AS t2 "
                     "     ON t1.prompt_name = t2.prompt_name "
-                    "    AND t1.version = t2.max_version; ";
+                    "    AND t1.version = t2.max_version; ",
+                    true);
             break;
         }
         default:

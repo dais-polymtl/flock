@@ -26,6 +26,29 @@ public:
     static std::string get_default_models_table_name();
     static std::string get_user_defined_models_table_name();
     static std::string get_prompts_table_name();
+    static void AttachToGlobalStorage(duckdb::Connection& con, bool read_only = true);
+    static void DetachFromGlobalStorage(duckdb::Connection& con);
+
+    class StorageAttachmentGuard {
+    public:
+        StorageAttachmentGuard(duckdb::Connection& con, bool read_only = true);
+        ~StorageAttachmentGuard();
+
+        StorageAttachmentGuard(const StorageAttachmentGuard&) = delete;
+        StorageAttachmentGuard& operator=(const StorageAttachmentGuard&) = delete;
+        StorageAttachmentGuard(StorageAttachmentGuard&&) = delete;
+        StorageAttachmentGuard& operator=(StorageAttachmentGuard&&) = delete;
+
+    private:
+        duckdb::Connection& connection;
+        bool attached;
+        static constexpr int MAX_RETRIES = 10;
+        static constexpr int RETRY_DELAY_MS = 1000;
+
+        bool TryAttach(bool read_only);
+        bool TryDetach();
+        void Wait(int milliseconds);
+    };
 
 private:
     static void SetupGlobalStorageLocation();

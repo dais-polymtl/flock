@@ -214,6 +214,7 @@ PromptDetails PromptManager::CreatePromptDetails(const nlohmann::json& prompt_de
                                        version_where_clause, order_by_clause);
             error_message = duckdb_fmt::format("The provided `{}` prompt " + error_message, prompt_details.prompt_name);
             auto con = Config::GetConnection();
+            Config::StorageAttachmentGuard guard(con, true);
             const auto query_result = con.Query(prompt_details_query);
             if (query_result->RowCount() == 0) {
                 throw std::runtime_error(error_message);

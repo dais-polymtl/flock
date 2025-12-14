@@ -2,6 +2,7 @@
 
 #include "flock/core/common.hpp"
 #include "flock/core/config.hpp"
+#include "flock/custom_parser/query_parser.hpp"
 #include <sstream>
 #include <stdexcept>
 
@@ -303,101 +304,120 @@ std::string ModelParser::ToSQL(const QueryStatement& statement) const {
     switch (statement.type) {
         case StatementType::CREATE_MODEL: {
             const auto& create_stmt = static_cast<const CreateModelStatement&>(statement);
-            auto con = Config::GetConnection();
-            auto result = con.Query(duckdb_fmt::format(
-                    " SELECT model_name"
-                    "  FROM flock_storage.flock_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE"
-                    " WHERE model_name = '{}'"
-                    " UNION ALL "
-                    " SELECT model_name "
-                    "   FROM {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
-                    "  WHERE model_name = '{}';",
-                    create_stmt.model_name, create_stmt.catalog.empty() ? "flock_storage." : "", create_stmt.model_name));
-            if (result->RowCount() != 0) {
-                throw std::runtime_error(duckdb_fmt::format("Model '{}' already exist.", create_stmt.model_name));
-            }
+            query = ExecuteQueryWithStorage([&create_stmt](duckdb::Connection& con) {
+                // Check if model already exists
+                auto result = con.Query(duckdb_fmt::format(
+                        " SELECT model_name"
+                        "  FROM flock_storage.flock_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE"
+                        " WHERE model_name = '{}'"
+                        " UNION ALL "
+                        " SELECT model_name "
+                        "   FROM {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                        "  WHERE model_name = '{}';",
+                        create_stmt.model_name, create_stmt.catalog.empty() ? "flock_storage." : "", create_stmt.model_name));
 
-            query = duckdb_fmt::format(" INSERT INTO "
-                                       " {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                       " (model_name, model, provider_name, model_args) "
-                                       " VALUES ('{}', '{}', '{}', '{}');",
-                                       create_stmt.catalog, create_stmt.model_name, create_stmt.model,
-                                       create_stmt.provider_name, create_stmt.model_args.dump());
+                auto& materialized_result = result->Cast<duckdb::MaterializedQueryResult>();
+                if (materialized_result.RowCount() != 0) {
+                    throw std::runtime_error(duckdb_fmt::format("Model '{}' already exist.", create_stmt.model_name));
+                }
+
+                // Insert the new model
+                auto insert_query = duckdb_fmt::format(" INSERT INTO "
+                                                       " {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                                       " (model_name, model, provider_name, model_args) "
+                                                       " VALUES ('{}', '{}', '{}', '{}');",
+                                                       create_stmt.catalog, create_stmt.model_name, create_stmt.model,
+                                                       create_stmt.provider_name, create_stmt.model_args.dump());
+                con.Query(insert_query);
+
+                return std::string("SELECT 'Model created successfully' AS status");
+            },
+                                            false);
             break;
         }
         case StatementType::DELETE_MODEL: {
             const auto& delete_stmt = static_cast<const DeleteModelStatement&>(statement);
-            auto con = Config::GetConnection();
-
-            con.Query(duckdb_fmt::format(" DELETE FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                         "  WHERE model_name = '{}';",
-                                         delete_stmt.model_name));
-
-            query = duckdb_fmt::format(" DELETE FROM "
+            query = ExecuteSetQuery(
+                    duckdb_fmt::format(" DELETE FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                       "  WHERE model_name = '{}'; "
+                                       " DELETE FROM "
                                        " flock_storage.flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
                                        "  WHERE model_name = '{}';",
-                                       delete_stmt.model_name, delete_stmt.model_name);
+                                       delete_stmt.model_name, delete_stmt.model_name),
+                    "Model deleted successfully",
+                    false);
             break;
         }
         case StatementType::UPDATE_MODEL: {
             const auto& update_stmt = static_cast<const UpdateModelStatement&>(statement);
-            auto con = Config::GetConnection();
-            // get the location of the model_name if local or global
-            auto result = con.Query(
-                    duckdb_fmt::format(" SELECT model_name, 'global' AS scope "
-                                       "   FROM flock_storage.flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
-                                       "  WHERE model_name = '{}'"
-                                       " UNION ALL "
-                                       " SELECT model_name, 'local' AS scope "
-                                       "   FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
-                                       "  WHERE model_name = '{}';",
-                                       update_stmt.model_name, update_stmt.model_name, update_stmt.model_name));
+            query = ExecuteQueryWithStorage([&update_stmt](duckdb::Connection& con) {
+                // Get the location of the model_name if local or global
+                auto result = con.Query(
+                        duckdb_fmt::format(" SELECT model_name, 'global' AS scope "
+                                           "   FROM flock_storage.flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                                           "  WHERE model_name = '{}'"
+                                           " UNION ALL "
+                                           " SELECT model_name, 'local' AS scope "
+                                           "   FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                                           "  WHERE model_name = '{}';",
+                                           update_stmt.model_name, update_stmt.model_name, update_stmt.model_name));
 
-            if (result->RowCount() == 0) {
-                throw std::runtime_error(duckdb_fmt::format("Model '{}' doesn't exist.", update_stmt.model_name));
-            }
+                auto& materialized_result = result->Cast<duckdb::MaterializedQueryResult>();
+                if (materialized_result.RowCount() == 0) {
+                    throw std::runtime_error(duckdb_fmt::format("Model '{}' doesn't exist.", update_stmt.model_name));
+                }
 
-            auto catalog = result->GetValue(1, 0).ToString() == "global" ? "flock_storage." : "";
+                auto catalog = materialized_result.GetValue(1, 0).ToString() == "global" ? "flock_storage." : "";
 
-            query = duckdb_fmt::format(" UPDATE {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                       "    SET model = '{}', provider_name = '{}', "
-                                       " model_args = '{}' WHERE model_name = '{}'; ",
-                                       catalog, update_stmt.new_model, update_stmt.provider_name,
-                                       update_stmt.new_model_args.dump(), update_stmt.model_name);
+                con.Query(duckdb_fmt::format(" UPDATE {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                             "    SET model = '{}', provider_name = '{}', "
+                                             " model_args = '{}' WHERE model_name = '{}'; ",
+                                             catalog, update_stmt.new_model, update_stmt.provider_name,
+                                             update_stmt.new_model_args.dump(), update_stmt.model_name));
+
+                return std::string("SELECT 'Model updated successfully' AS status");
+            },
+                                            false);
             break;
         }
         case StatementType::UPDATE_MODEL_SCOPE: {
             const auto& update_stmt = static_cast<const UpdateModelScopeStatement&>(statement);
-            auto con = Config::GetConnection();
-            auto result =
-                    con.Query(duckdb_fmt::format(" SELECT model_name "
-                                                 "   FROM {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
-                                                 "  WHERE model_name = '{}';",
-                                                 update_stmt.catalog, update_stmt.model_name));
-            if (result->RowCount() != 0) {
-                throw std::runtime_error(
-                        duckdb_fmt::format("Model '{}' already exist in {} storage.", update_stmt.model_name,
-                                           update_stmt.catalog == "flock_storage." ? "global" : "local"));
-            }
+            query = ExecuteQueryWithStorage([&update_stmt](duckdb::Connection& con) {
+                auto result = con.Query(duckdb_fmt::format(" SELECT model_name "
+                                                           "   FROM {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                                                           "  WHERE model_name = '{}';",
+                                                           update_stmt.catalog, update_stmt.model_name));
 
-            con.Query(duckdb_fmt::format("INSERT INTO {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                         "(model_name, model, provider_name, model_args) "
-                                         "SELECT model_name, model, provider_name, model_args "
-                                         "FROM {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                         "WHERE model_name = '{}'; ",
-                                         update_stmt.catalog,
-                                         update_stmt.catalog == "flock_storage." ? "" : "flock_storage.",
-                                         update_stmt.model_name));
+                auto& materialized_result = result->Cast<duckdb::MaterializedQueryResult>();
+                if (materialized_result.RowCount() != 0) {
+                    throw std::runtime_error(
+                            duckdb_fmt::format("Model '{}' already exist in {} storage.", update_stmt.model_name,
+                                               update_stmt.catalog == "flock_storage." ? "global" : "local"));
+                }
 
-            query = duckdb_fmt::format("DELETE FROM {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                                       "WHERE model_name = '{}'; ",
-                                       update_stmt.catalog == "flock_storage." ? "" : "flock_storage.",
-                                       update_stmt.model_name);
+                con.Query(duckdb_fmt::format("INSERT INTO {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                             "(model_name, model, provider_name, model_args) "
+                                             "SELECT model_name, model, provider_name, model_args "
+                                             "FROM {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                             "WHERE model_name = '{}'; ",
+                                             update_stmt.catalog,
+                                             update_stmt.catalog == "flock_storage." ? "" : "flock_storage.",
+                                             update_stmt.model_name));
+
+                con.Query(duckdb_fmt::format("DELETE FROM {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                                             "WHERE model_name = '{}'; ",
+                                             update_stmt.catalog == "flock_storage." ? "" : "flock_storage.",
+                                             update_stmt.model_name));
+
+                return std::string("SELECT 'Model scope updated successfully' AS status");
+            },
+                                            false);
             break;
         }
         case StatementType::GET_MODEL: {
             const auto& get_stmt = static_cast<const GetModelStatement&>(statement);
-            query = duckdb_fmt::format("SELECT 'global' AS scope, * "
+            query = ExecuteGetQuery(
+                    duckdb_fmt::format("SELECT 'global' AS scope, * "
                                        "FROM flock_storage.flock_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE "
                                        "WHERE model_name = '{}' "
                                        "UNION ALL "
@@ -408,20 +428,22 @@ std::string ModelParser::ToSQL(const QueryStatement& statement) const {
                                        "SELECT 'local' AS scope, * "
                                        "FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
                                        "WHERE model_name = '{}';",
-                                       get_stmt.model_name, get_stmt.model_name, get_stmt.model_name, get_stmt.model_name);
+                                       get_stmt.model_name, get_stmt.model_name, get_stmt.model_name, get_stmt.model_name),
+                    true);
             break;
         }
 
         case StatementType::GET_ALL_MODEL: {
-            query = duckdb_fmt::format(" SELECT 'global' AS scope, * "
-                                       " FROM flock_storage.flock_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE"
-                                       " UNION ALL "
-                                       " SELECT 'global' AS scope, * "
-                                       " FROM flock_storage.flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
-                                       " UNION ALL "
-                                       " SELECT 'local' AS scope, * "
-                                       " FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE;",
-                                       Config::get_global_storage_path().string());
+            query = ExecuteGetQuery(
+                    " SELECT 'global' AS scope, * "
+                    " FROM flock_storage.flock_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE"
+                    " UNION ALL "
+                    " SELECT 'global' AS scope, * "
+                    " FROM flock_storage.flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                    " UNION ALL "
+                    " SELECT 'local' AS scope, * "
+                    " FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE;",
+                    true);
             break;
         }
         default:
