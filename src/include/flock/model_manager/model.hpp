@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fmt/format.h"
+#include <functional>
 #include <utility>
 
 #include "duckdb/main/connection.hpp"
@@ -31,12 +32,27 @@ public:
     std::vector<nlohmann::json> CollectEmbeddings(const std::string& contentType = "application/json");
     std::vector<nlohmann::json> CollectTranscriptions(const std::string& contentType = "multipart/form-data");
     ModelDetails GetModelDetails();
+    nlohmann::json GetModelDetailsAsJson() const;
 
+    // Static helper method for binders to resolve model details to JSON
+    static nlohmann::json ResolveModelDetailsToJson(const nlohmann::json& user_model_json);
+
+    // Factory function type for creating mock providers
+    using MockProviderFactory = std::function<std::shared_ptr<IProvider>()>;
+
+    // Set a factory to create fresh mock providers (each Model gets its own instance)
+    static void SetMockProviderFactory(MockProviderFactory factory) {
+        mock_provider_factory_ = std::move(factory);
+    }
+
+    // Legacy: Set a shared mock provider (for backward compatibility - less safe for parallel tests)
     static void SetMockProvider(const std::shared_ptr<IProvider>& mock_provider) {
         mock_provider_ = mock_provider;
     }
+
     static void ResetMockProvider() {
         mock_provider_ = nullptr;
+        mock_provider_factory_ = nullptr;
     }
 
     std::shared_ptr<IProvider>
@@ -45,6 +61,7 @@ public:
 private:
     ModelDetails model_details_;
     inline static std::shared_ptr<IProvider> mock_provider_ = nullptr;
+    inline static MockProviderFactory mock_provider_factory_ = nullptr;
     void ConstructProvider();
     void LoadModelDetails(const nlohmann::json& model_json);
     static std::tuple<std::string, std::string, nlohmann::basic_json<>> GetQueriedModel(const std::string& model_name);

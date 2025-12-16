@@ -4,7 +4,6 @@
 #include "flock/metrics/manager.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "session.hpp"
-#include <chrono>
 #include <cstdio>
 #include <curl/curl.h>
 #include <map>
