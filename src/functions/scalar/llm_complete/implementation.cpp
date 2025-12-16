@@ -1,9 +1,19 @@
+#include "duckdb/planner/expression/bound_function_expression.hpp"
 #include "flock/functions/scalar/llm_complete.hpp"
+#include "flock/functions/scalar/scalar.hpp"
 #include "flock/metrics/manager.hpp"
+#include "flock/model_manager/model.hpp"
 
-#include <chrono>
 
 namespace flock {
+
+duckdb::unique_ptr<duckdb::FunctionData> LlmComplete::Bind(
+        duckdb::ClientContext& context,
+        duckdb::ScalarFunction& bound_function,
+        duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments) {
+    return ScalarFunctionBase::ValidateAndInitializeBindData(context, arguments, "llm_complete", false);
+}
+
 
 void LlmComplete::ValidateArguments(duckdb::DataChunk& args) {
     if (args.ColumnCount() < 2 || args.ColumnCount() > 3) {
@@ -24,12 +34,9 @@ void LlmComplete::ValidateArguments(duckdb::DataChunk& args) {
     }
 }
 
-std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
-    // LlmComplete::ValidateArguments(args);
-    auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1);
-    Model model(model_details_json);
+std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args, LlmFunctionBindData* bind_data) {
+    Model model = bind_data->CreateModel();
 
-    // Set model name and provider in metrics (context is already set in Execute)
     auto model_details = model.GetModelDetails();
     MetricsManager::SetModelInfo(model_details.model_name, model_details.provider_name);
 
@@ -37,13 +44,13 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
     auto context_columns = nlohmann::json::array();
     if (prompt_context_json.contains("context_columns")) {
         context_columns = prompt_context_json["context_columns"];
-        prompt_context_json.erase("context_columns");
     }
-    auto prompt_details = PromptManager::CreatePromptDetails(prompt_context_json);
+
+    auto prompt = bind_data->prompt;
 
     std::vector<std::string> results;
     if (context_columns.empty()) {
-        auto template_str = prompt_details.prompt;
+        auto template_str = prompt;
         model.AddCompletionRequest(template_str, 1, OutputType::STRING);
         auto response = model.CollectCompletions()[0]["items"][0];
         if (response.is_string()) {
@@ -56,7 +63,7 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
             return results;
         }
 
-        auto responses = BatchAndComplete(context_columns, prompt_details.prompt, ScalarFunctionType::COMPLETE, model);
+        auto responses = BatchAndComplete(context_columns, prompt, ScalarFunctionType::COMPLETE, model);
 
         results.reserve(responses.size());
         for (const auto& response: responses) {
@@ -71,18 +78,18 @@ std::vector<std::string> LlmComplete::Operation(duckdb::DataChunk& args) {
 }
 
 void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
-    // Get database instance and generate unique ID for metrics
     auto& context = state.GetContext();
     auto* db = context.db.get();
     const void* invocation_id = MetricsManager::GenerateUniqueId();
 
-    // Start metrics tracking
     MetricsManager::StartInvocation(db, invocation_id, FunctionType::LLM_COMPLETE);
 
-    // Start execution timing
     auto exec_start = std::chrono::high_resolution_clock::now();
 
-    if (const auto results = LlmComplete::Operation(args); static_cast<int>(results.size()) == 1) {
+    auto& func_expr = state.expr.Cast<duckdb::BoundFunctionExpression>();
+    auto* bind_data = &func_expr.bind_info->Cast<LlmFunctionBindData>();
+
+    if (const auto results = LlmComplete::Operation(args, bind_data); static_cast<int>(results.size()) == 1) {
         auto empty_vec = duckdb::Vector(std::string());
         duckdb::UnaryExecutor::Execute<duckdb::string_t, duckdb::string_t>(
                 empty_vec, result, args.size(),
@@ -94,7 +101,6 @@ void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& stat
         }
     }
 
-    // End execution timing and update metrics
     auto exec_end = std::chrono::high_resolution_clock::now();
     double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
     MetricsManager::AddExecutionTime(exec_duration_ms);
