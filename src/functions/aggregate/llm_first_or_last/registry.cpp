@@ -9,7 +9,7 @@ void AggregateRegistry::RegisterLlmFirst(duckdb::ExtensionLoader& loader) {
             duckdb::LogicalType::JSON(), duckdb::AggregateFunction::StateSize<AggregateFunctionState>,
             LlmFirstOrLast::Initialize, LlmFirstOrLast::Operation, LlmFirstOrLast::Combine,
             LlmFirstOrLast::Finalize<AggregateFunctionType::FIRST>, LlmFirstOrLast::SimpleUpdate,
-            nullptr, LlmFirstOrLast::Destroy));
+            LlmFirstOrLast::Bind, LlmFirstOrLast::Destroy));
 }
 
 void AggregateRegistry::RegisterLlmLast(duckdb::ExtensionLoader& loader) {
@@ -18,7 +18,7 @@ void AggregateRegistry::RegisterLlmLast(duckdb::ExtensionLoader& loader) {
             duckdb::LogicalType::JSON(), duckdb::AggregateFunction::StateSize<AggregateFunctionState>,
             LlmFirstOrLast::Initialize, LlmFirstOrLast::Operation, LlmFirstOrLast::Combine,
             LlmFirstOrLast::Finalize<AggregateFunctionType::LAST>, LlmFirstOrLast::SimpleUpdate,
-            nullptr, LlmFirstOrLast::Destroy));
+            LlmFirstOrLast::Bind, LlmFirstOrLast::Destroy));
 }
 
 }// namespace flock

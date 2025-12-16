@@ -9,7 +9,7 @@ void AggregateRegistry::RegisterLlmReduce(duckdb::ExtensionLoader& loader) {
             duckdb::LogicalType::JSON(), duckdb::AggregateFunction::StateSize<AggregateFunctionState>,
             LlmReduce::Initialize, LlmReduce::Operation, LlmReduce::Combine,
             LlmReduce::Finalize<AggregateFunctionType::REDUCE>, LlmReduce::SimpleUpdate,
-            nullptr, LlmReduce::Destroy));
+            LlmReduce::Bind, LlmReduce::Destroy));
 }
 
 }// namespace flock

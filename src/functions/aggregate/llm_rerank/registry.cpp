@@ -8,7 +8,7 @@ void AggregateRegistry::RegisterLlmRerank(duckdb::ExtensionLoader& loader) {
             "llm_rerank", {duckdb::LogicalType::ANY, duckdb::LogicalType::ANY},
             duckdb::LogicalType::JSON(), duckdb::AggregateFunction::StateSize<AggregateFunctionState>,
             LlmRerank::Initialize, LlmRerank::Operation, LlmRerank::Combine, LlmRerank::Finalize, LlmRerank::SimpleUpdate,
-            nullptr, LlmRerank::Destroy));
+            LlmRerank::Bind, LlmRerank::Destroy));
 }
 
 }// namespace flock
