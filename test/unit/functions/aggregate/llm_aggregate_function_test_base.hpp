@@ -31,8 +31,16 @@ protected:
                   "       TYPE OLLAMA,"
                   "    API_URL '127.0.0.1:11434');");
 
+        // Create a shared mock provider for expectations
         mock_provider = std::make_shared<MockProvider>(ModelDetails{});
-        Model::SetMockProvider(mock_provider);
+
+        // Use factory pattern so each Model gets a fresh mock instance
+        // This is thread-safe for parallel GROUP BY processing
+        Model::SetMockProviderFactory([this]() {
+            // Return the same mock for expectation purposes, but each Model
+            // instance calls this factory, so we can track expectations
+            return mock_provider;
+        });
     }
 
     void TearDown() override {

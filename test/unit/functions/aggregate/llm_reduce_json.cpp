@@ -5,7 +5,7 @@ namespace flock {
 
 class LLMReduceJsonTest : public LLMAggregateTestBase<LlmReduce> {
 protected:
-    static constexpr const char* EXPECTED_JSON_RESPONSE = R"({"items": [{"summary": "A comprehensive summary of running shoes, wireless headphones, and smart watches, featuring advanced technology and user-friendly designs for active lifestyles."}]})";
+    static constexpr const char* EXPECTED_JSON_RESPONSE = R"({"items": [{"summary": "A comprehensive summary of some products"}]})";
 
     std::string GetExpectedResponse() const override {
         return EXPECTED_JSON_RESPONSE;
@@ -145,7 +145,7 @@ TEST_F(LLMReduceJsonTest, Operation_LargeInputSet_ProcessesCorrectly) {
     const auto results = con.Query(
             "SELECT id, " + GetFunctionName() + "("
                                                 "{'model_name': 'gpt-4o'}, "
-                                                "{'prompt': 'Create a JSON summary of all product descriptions with summary, total_items, and status fields', 'context_columns': [{'data': id::TEXT}, {'data': 'Product description ' || id::TEXT}]}"
+                                                "{'prompt': 'Create a JSON summary of all product descriptions with summary, total_items, and status fields', 'context_columns': [{'data': id::VARCHAR}, {'data': 'Product description ' || id::VARCHAR}]}"
                                                 ") AS large_json_summary FROM range(" +
             std::to_string(input_count) + ") AS t(id) GROUP BY id;");
 

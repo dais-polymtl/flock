@@ -70,7 +70,7 @@ TEST_F(LLMFilterTest, LLMFilterWithoutContextColumns) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is paris the best capital in the world?'}) AS filter_result;");
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Are you a Robot?'}) AS filter_result;");
     ASSERT_EQ(results->RowCount(), 1);
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
 }
@@ -118,7 +118,7 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this content spam?', 'context_columns': [{'data': content}]}) AS result FROM range(" + std::to_string(input_count) + ") AS t(i), unnest(['Content item ' || i::TEXT]) as tbl(content);");
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this content spam?', 'context_columns': [{'data': content}]}) AS result FROM range(" + std::to_string(input_count) + ") AS t(i), unnest(['Content item ' || i::VARCHAR]) as tbl(content);");
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), input_count);
 
