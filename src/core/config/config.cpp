@@ -49,13 +49,7 @@ void Config::SetupGlobalStorageLocation() {
 }
 
 void Config::ConfigSchema(duckdb::Connection& con, std::string& schema_name) {
-    auto result = con.Query(duckdb_fmt::format(" SELECT * "
-                                               "   FROM information_schema.schemata "
-                                               "  WHERE schema_name = '{}'; ",
-                                               schema_name));
-    if (result->RowCount() == 0) {
-        con.Query(duckdb_fmt::format("CREATE SCHEMA {};", schema_name));
-    }
+    con.Query(duckdb_fmt::format("CREATE SCHEMA IF NOT EXISTS {};", schema_name));
 }
 
 void Config::ConfigureGlobal() {
