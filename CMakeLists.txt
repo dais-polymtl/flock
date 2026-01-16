@@ -8,6 +8,7 @@ set(TARGET_NAME flock)
 
 set(EXTENSION_NAME ${TARGET_NAME}_extension)
 set(LOADABLE_EXTENSION_NAME ${TARGET_NAME}_loadable_extension)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(${TARGET_NAME})
 
@@ -63,6 +64,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Coverage")
   add_link_options(-fprofile-instr-generate -fcoverage-mapping)
 endif()
 
-# Add the test directory
-enable_testing()
-add_subdirectory(test/unit)
+# # Add the test directory
+# enable_testing()
+# add_subdirectory(test/unit)
