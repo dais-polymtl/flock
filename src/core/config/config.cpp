@@ -1,5 +1,5 @@
 #include "flock/core/config.hpp"
-#include "filesystem.hpp"
+#include "duckdb/common/file_system.hpp"
 #include "flock/secret_manager/secret_manager.hpp"
 #include <chrono>
 #include <fmt/format.h>
@@ -10,16 +10,17 @@ duckdb::DatabaseInstance* Config::db;
 
 std::string Config::get_schema_name() { return "flock_config"; }
 
-std::filesystem::path Config::get_global_storage_path() {
-#ifdef _WIN32
-    const char* homeDir = getenv("USERPROFILE");
+std::string Config::get_global_storage_path() {
+#ifdef __EMSCRIPTEN__
+    return "opfs://flock_data/flock.db";
 #else
-    const char* homeDir = getenv("HOME");
-#endif
-    if (homeDir == nullptr) {
+    const auto& home = duckdb::FileSystem::GetHomeDirectory(nullptr);
+    if (home.empty()) {
         throw std::runtime_error("Could not find home directory");
     }
-    return std::filesystem::path(homeDir) / ".duckdb" / "flock_storage" / "flock.db";
+    // NOTE: DuckDB FileSystem should handle path separators
+    return home + "/.duckdb/flock_storage/flock.db";
+#endif
 }
 
 duckdb::Connection Config::GetConnection(duckdb::DatabaseInstance* db) {
@@ -31,19 +32,32 @@ duckdb::Connection Config::GetConnection(duckdb::DatabaseInstance* db) {
 }
 
 duckdb::Connection Config::GetGlobalConnection() {
-    const duckdb::DuckDB db(Config::get_global_storage_path().string());
-    duckdb::Connection con(*db.instance);
+    // Meyers' Singleton"
+    static duckdb::DuckDB global_db(Config::get_global_storage_path());
+    duckdb::Connection con(*global_db.instance);
     return con;
 }
 
-void Config::SetupGlobalStorageLocation() {
-    const auto flock_global_path = get_global_storage_path();
-    const auto flockDir = flock_global_path.parent_path();
-    if (!std::filesystem::exists(flockDir)) {
+void Config::SetupGlobalStorageLocation(duckdb::DatabaseInstance* db_instance) {
+    if (!db_instance) {
+        return;
+    }
+#ifdef __EMSCRIPTEN__
+    // WASM: Client is responsible for OPFS directory/file registration
+    return;
+#endif
+    auto& fs = duckdb::FileSystem::GetFileSystem(*db_instance);
+    const std::string& global_path = get_global_storage_path();
+    // Extract parent directory from path
+    const auto last_slash = global_path.find_last_of('/');
+    if (last_slash != std::string::npos && last_slash > 0) {
+        const std::string dir_path = global_path.substr(0, last_slash);
         try {
-            std::filesystem::create_directories(flockDir);
-        } catch (const std::filesystem::filesystem_error& e) {
-            std::cerr << "Error creating directories: " << e.what() << std::endl;
+            if (!fs.DirectoryExists(dir_path)) {
+                fs.CreateDirectory(dir_path);
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error creating directory " << dir_path << ": " << e.what() << std::endl;
         }
     }
 }
@@ -52,14 +66,39 @@ void Config::ConfigSchema(duckdb::Connection& con, std::string& schema_name) {
     con.Query(duckdb_fmt::format("CREATE SCHEMA IF NOT EXISTS {};", schema_name));
 }
 
-void Config::ConfigureGlobal() {
+void Config::ConfigureGlobal(duckdb::DatabaseInstance* db_instance) {
+#ifdef __EMSCRIPTEN__
+    // WASM: Client pre-attaches flock_storage before loading extension
+    if (db_instance) {
+        auto con = Config::GetConnection(db_instance);
+        auto use_result = con.Query("USE flock_storage;");
+        if (use_result->HasError()) {
+            std::cerr << "Failed to USE flock_storage: " << use_result->GetError() << std::endl;
+            return;
+        }
+        ConfigureTables(con, ConfigType::GLOBAL);
+        con.Query("USE memory;");
+    }
+#else
+    (void) db_instance;// unused on non-WASM
     auto con = Config::GetGlobalConnection();
     ConfigureTables(con, ConfigType::GLOBAL);
+#endif
 }
 
 void Config::ConfigureLocal(duckdb::DatabaseInstance& db) {
     auto con = Config::GetConnection(&db);
     ConfigureTables(con, ConfigType::LOCAL);
+#ifndef __EMSCRIPTEN__
+    // Native only: Attach global storage database
+    const std::string global_path = get_global_storage_path();
+    auto result = con.Query(
+            duckdb_fmt::format("ATTACH DATABASE '{}' AS flock_storage;", global_path));
+    if (result->HasError()) {
+        std::cerr << "Failed to attach flock_storage: " << result->GetError() << std::endl;
+    }
+#endif
+    // WASM: Client pre-attaches flock_storage before loading extension
 }
 
 void Config::ConfigureTables(duckdb::Connection& con, const ConfigType type) {
@@ -75,16 +114,25 @@ void Config::Configure(duckdb::ExtensionLoader& loader) {
     Registry::Register(loader);
     SecretManager::Register(loader);
     auto& db = loader.GetDatabaseInstance();
-    if (const auto db_path = db.config.options.database_path; db_path != get_global_storage_path().string()) {
-        SetupGlobalStorageLocation();
-        ConfigureGlobal();
-        ConfigureLocal(db);
-    }
-}
+    const auto db_path = db.config.options.database_path;
+    const std::string& global_path = get_global_storage_path();
 
-void Config::AttachToGlobalStorage(duckdb::Connection& con, bool read_only) {
-    con.Query(duckdb_fmt::format("ATTACH DATABASE '{}' AS flock_storage {};",
-                                 Config::get_global_storage_path().string(), read_only ? "(READ_ONLY)" : ""));
+    // If the main database is already at the global storage path, no need to attach
+    if (db_path == global_path) {
+        // Main database IS the global storage - just configure tables
+        auto con = GetConnection(&db);
+        ConfigureTables(con, ConfigType::LOCAL);
+        ConfigureTables(con, ConfigType::GLOBAL);
+        return;
+    }
+
+    SetupGlobalStorageLocation(&db);
+    ConfigureLocal(db);
+#ifndef __EMSCRIPTEN__
+    ConfigureGlobal(nullptr);
+#else
+    ConfigureGlobal(&db);
+#endif
 }
 
 void Config::DetachFromGlobalStorage(duckdb::Connection& con) {
@@ -129,6 +177,13 @@ Config::StorageAttachmentGuard::StorageAttachmentGuard(duckdb::Connection& con, 
     Config::AttachToGlobalStorage(connection, read_only);
     attached = true;
 }
+
+
+void Config::AttachToGlobalStorage(duckdb::Connection& con, bool read_only) {
+    con.Query(duckdb_fmt::format("ATTACH DATABASE '{}' AS flock_storage {};",
+                                 Config::get_global_storage_path(), read_only ? "(READ_ONLY)" : ""));
+}
+
 
 Config::StorageAttachmentGuard::~StorageAttachmentGuard() {
     if (attached) {

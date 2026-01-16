@@ -1,6 +1,5 @@
 #pragma once
 
-#include "filesystem.hpp"
 #include "flock/core/common.hpp"
 #include "flock/registry/registry.hpp"
 #include <fmt/format.h>
@@ -17,12 +16,12 @@ public:
     static duckdb::Connection GetConnection(duckdb::DatabaseInstance* db = nullptr);
     static duckdb::Connection GetGlobalConnection();
     static void Configure(duckdb::ExtensionLoader& loader);
-    static void ConfigureGlobal();
+    static void ConfigureGlobal(duckdb::DatabaseInstance* db_instance);
     static void ConfigureTables(duckdb::Connection& con, ConfigType type);
     static void ConfigureLocal(duckdb::DatabaseInstance& db);
 
     static std::string get_schema_name();
-    static std::filesystem::path get_global_storage_path();
+    static std::string get_global_storage_path();
     static std::string get_default_models_table_name();
     static std::string get_user_defined_models_table_name();
     static std::string get_prompts_table_name();
@@ -51,7 +50,7 @@ public:
     };
 
 private:
-    static void SetupGlobalStorageLocation();
+    static void SetupGlobalStorageLocation(duckdb::DatabaseInstance* db_instance);
     static void ConfigSchema(duckdb::Connection& con, std::string& schema_name);
     static void ConfigPromptTable(duckdb::Connection& con, std::string& schema_name, ConfigType type);
     static void ConfigModelTable(duckdb::Connection& con, std::string& schema_name, ConfigType type);

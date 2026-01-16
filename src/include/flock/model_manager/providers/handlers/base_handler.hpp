@@ -67,6 +67,35 @@ public:
 public:
 protected:
     std::vector<nlohmann::json> ExecuteBatch(const std::vector<nlohmann::json>& jsons, bool async = true, const std::string& contentType = "application/json", RequestType request_type = RequestType::Completion) {
+#ifdef __EMSCRIPTEN__
+        // WASM: Process requests sequentially using emscripten fetch
+        std::vector<nlohmann::json> results(jsons.size());
+        auto url = is_completion ? getCompletionUrl() : getEmbedUrl();
+
+        for (size_t i = 0; i < jsons.size(); ++i) {
+            prepareSessionForRequest(url);
+            setParameters(jsons[i].dump(), contentType);
+            auto response = postRequest(contentType);
+
+            if (!response.is_error && !response.text.empty() && isJson(response.text)) {
+                try {
+                    nlohmann::json parsed = nlohmann::json::parse(response.text);
+                    checkResponse(parsed, is_completion);
+                    if (is_completion) {
+                        results[i] = ExtractCompletionOutput(parsed);
+                    } else {
+                        results[i] = ExtractEmbeddingVector(parsed);
+                    }
+                } catch (const std::exception& e) {
+                    trigger_error(std::string("JSON parse error: ") + e.what());
+                }
+            } else {
+                trigger_error("Empty or invalid response: " + response.error_message);
+            }
+        }
+        return results;
+#else
+        // Native: Use curl multi-handle for parallel requests
         struct CurlRequestData {
             std::string response;
             CURL* easy = nullptr;
@@ -233,6 +262,7 @@ protected:
 
         curl_multi_cleanup(multi_handle);
         return results;
+#endif
     }
 
     virtual void setParameters(const std::string& data, const std::string& contentType = "") = 0;
