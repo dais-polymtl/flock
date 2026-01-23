@@ -75,7 +75,7 @@ prompt_yes_no() {
 # Function to wait for user
 wait_for_user() {
     echo ""
-    read -p "$(echo -e "${CYAN}Press Enter to continue...${RESET}")"
+    read -p "$(echo -e "${CYAN}Press Enter to continue...${RESET}")" dummy
 }
 
 print_section "Welcome to Flock Build and Run Guide"
@@ -119,8 +119,7 @@ fi
 
 # Check for C/C++ compilers
 if ! command_exists gcc && ! command_exists clang && ! command_exists cc; then
-    print_warning "C compiler not found (gcc/clang/cc). Builds that require native compilation will fail."
-    print_info "This will be checked again before building, and the script will exit if a compiler is still not available."
+    print_warning "C compiler not found (gcc/clang/cc)"
     print_info "On macOS, install Xcode Command Line Tools: xcode-select --install"
     print_info "On Linux, install build-essential or equivalent"
 elif command_exists clang; then
@@ -301,7 +300,6 @@ if [ ! -f "$DUCKDB_BINARY" ]; then
             DUCKDB_BINARY="$FOUND_BINARY"
             print_success "Found DuckDB binary at: $DUCKDB_BINARY"
         else
-            print_error "DuckDB binary could not be found after build. Build may have failed silently."
             exit 1
         fi
     fi
