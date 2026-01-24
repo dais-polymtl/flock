@@ -301,6 +301,7 @@ if [ ! -f "$DUCKDB_BINARY" ]; then
             DUCKDB_BINARY="$FOUND_BINARY"
             print_success "Found DuckDB binary at: $DUCKDB_BINARY"
         else
+            print_error "DuckDB binary could not be found after build. Build may have failed silently."
             exit 1
         fi
     fi
