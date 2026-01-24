@@ -75,7 +75,7 @@ prompt_yes_no() {
 # Function to wait for user
 wait_for_user() {
     echo ""
-    read -p "$(echo -e "${CYAN}Press Enter to continue...${RESET}")" dummy
+    read -p "$(echo -e "${CYAN}Press Enter to continue...${RESET}")"
 }
 
 print_section "Welcome to Flock Build and Run Guide"
