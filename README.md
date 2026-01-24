@@ -128,7 +128,7 @@ If you want to build Flock from source or contribute to the project, you can use
    This interactive script will guide you through:
    - Checking prerequisites (CMake, build tools, compilers)
    - Setting up vcpkg (dependency manager)
-   - Building the project (Debug or Release)
+   - Building the project (Debug or Release mode)
    - Running DuckDB with the Flock extension
 
    The script will automatically detect your system configuration and use the appropriate build tools (Ninja or Make).
