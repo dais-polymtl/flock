@@ -90,6 +90,10 @@ To cite the project:
 
 ### ⚙️ Installation
 
+Flock can be installed in two ways:
+
+#### Option 1: Install from Community Extension (Recommended)
+
 Flock is a **Community Extension** available directly from DuckDB's community catalog.
 
 1. Install the extension:
@@ -100,6 +104,43 @@ Flock is a **Community Extension** available directly from DuckDB's community ca
    ```sql
    LOAD flock;
    ```
+
+#### Option 2: Build from Source
+
+If you want to build Flock from source or contribute to the project, you can use our automated build script:
+
+1. Clone the repository with submodules:
+   ```bash
+   git clone --recursive https://github.com/dais-polymtl/flock.git
+   cd flock
+   ```
+   
+   Or if you've already cloned without submodules:
+   ```bash
+   git submodule update --init --recursive
+   ```
+
+2. Run the build and run script:
+   ```bash
+   ./scripts/build_and_run.sh
+   ```
+
+   This interactive script will guide you through:
+   - Checking prerequisites (CMake, build tools, compilers)
+   - Setting up vcpkg (dependency manager)
+   - Building the project (Debug or Release mode)
+   - Running DuckDB with the Flock extension
+
+   The script will automatically detect your system configuration and use the appropriate build tools (Ninja or Make).
+
+3. The script will launch DuckDB with Flock extension ready to use. Make sure to check the [documentation](https://dais-polymtl.github.io/flock/docs/what-is-flock) for usage examples.
+
+**Requirements for building from source:**
+- CMake (3.5 or later)
+- C++ compiler (GCC, Clang, or MSVC)
+- Build system (Ninja or Make)
+- Git
+- Python 3 (optional, for integration tests)
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
