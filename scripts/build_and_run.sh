@@ -119,7 +119,8 @@ fi
 
 # Check for C/C++ compilers
 if ! command_exists gcc && ! command_exists clang && ! command_exists cc; then
-    print_warning "C compiler not found (gcc/clang/cc)"
+    print_warning "C compiler not found (gcc/clang/cc). Builds that require native compilation will fail."
+    print_info "This will be checked again before building, and the script will exit if a compiler is still not available."
     print_info "On macOS, install Xcode Command Line Tools: xcode-select --install"
     print_info "On Linux, install build-essential or equivalent"
 elif command_exists clang; then
