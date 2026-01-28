@@ -81,13 +81,13 @@ CREATE MODEL(
 
 ### Supported Parameters
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `temperature` | Controls randomness (0.0 to 1.0) | 1.0 |
-| `max_tokens` | Maximum response length (required by Anthropic) | 1024 |
-| `system` | System prompt for context and instructions | None |
-| `top_p` | Nucleus sampling threshold | 1.0 |
-| `top_k` | Limits token selection to top K options | None |
+Flock supports all parameters provided by the [Anthropic Messages API](https://docs.anthropic.com/en/api/messages). Common examples include:
+
+- `temperature` - Controls randomness (0.0 to 1.0)
+- `max_tokens` - Maximum response length (required by Anthropic, default: 1024)
+- `system` - System prompt for context and instructions
+- `top_p` - Nucleus sampling threshold
+- `top_k` - Limits token selection to top K options
 
 ## System Prompts
 
