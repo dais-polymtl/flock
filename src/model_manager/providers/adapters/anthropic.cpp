@@ -3,11 +3,18 @@
 
 namespace flock {
 
-void AnthropicProvider::AddCompletionRequest(
-    const std::string& prompt,
-    const int num_output_tuples,
-    OutputType output_type,
-    const nlohmann::json& media_data) {
+// Claude 4.x models support output_format, Claude 3.x models require tool_use fallback
+// See: https://docs.anthropic.com/en/docs/build-with-claude/structured-outputs
+static bool SupportsOutputFormat(const std::string& model) {
+    // Claude 3.x models (claude-3-haiku, claude-3-sonnet, claude-3-opus, claude-3-5-sonnet, etc.)
+    if (model.find("claude-3") != std::string::npos) {
+        return false;
+    }
+    // Claude 4.x models (claude-sonnet-4-5, claude-haiku-4-5, claude-opus-4-5, etc.)
+    return true;
+}
+
+void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
 
     auto message_content = nlohmann::json::array();
     message_content.push_back({{"type", "text"}, {"text", prompt}});
@@ -37,49 +44,41 @@ void AnthropicProvider::AddCompletionRequest(
         }
     }
 
-    int max_tokens = 1024;
-    if (model_details_.model_parameters.contains("max_tokens")) {
-        max_tokens = model_details_.model_parameters["max_tokens"].get<int>();
-    }
-
-    nlohmann::json request_payload = {
-        {"model", model_details_.model},
-        {"max_tokens", max_tokens},
-        {"messages", {{{"role", "user"}, {"content", message_content}}}}
-    };
-
-    if (model_details_.model_parameters.contains("system")) {
-        request_payload["system"] = model_details_.model_parameters["system"];
-    }
+    nlohmann::json request_payload = {{"model", model_details_.model},
+                                      {"max_tokens", 1024},
+                                      {"messages", {{{"role", "user"}, {"content", message_content}}}}};
 
     if (!model_details_.model_parameters.empty()) {
-        for (auto& [key, value] : model_details_.model_parameters.items()) {
-            if (key != "response_format" && key != "system" && key != "max_tokens" &&
-                key != "tools" && key != "tool_choice") {
-                request_payload[key] = value;
-            }
-        }
+        request_payload.update(model_details_.model_parameters);
     }
 
+    // Build the schema for structured output
     nlohmann::json item_schema;
-    if (model_details_.model_parameters.contains("response_format") &&
-        model_details_.model_parameters["response_format"].contains("json_schema")) {
-        item_schema = model_details_.model_parameters["response_format"]["json_schema"]["schema"];
+    if (model_details_.model_parameters.contains("output_format")) {
+        item_schema = model_details_.model_parameters["output_format"]["schema"];
     } else {
         item_schema = {{"type", GetOutputTypeString(output_type)}};
     }
 
-    nlohmann::json flock_tool = {
-        {"name", "flock_response"},
-        {"description", "Return the structured response"},
-        {"input_schema", {
-            {"type", "object"},
-            {"properties", {{"items", {{"type", "array"}, {"minItems", num_output_tuples}, {"maxItems", num_output_tuples}, {"items", item_schema}}}}},
-            {"required", nlohmann::json::array({"items"})}
-        }}
-    };
-    request_payload["tools"] = nlohmann::json::array({flock_tool});
-    request_payload["tool_choice"] = {{"type", "tool"}, {"name", "flock_response"}};
+    if (SupportsOutputFormat(model_details_.model)) {
+        // Claude 4.x: Use native output_format (preferred API)
+        request_payload["output_format"] = {
+                {"type", "json_schema"},
+                {"schema", {{"type", "object"}, {"properties", {{"items", {{"type", "array"}, {"items", item_schema}}}}}, {"required", {"items"}}, {"additionalProperties", false}}}};
+    } else {
+        // Claude 3.x: Fall back to tool_use for structured output
+        nlohmann::json flock_tool = {
+            {"name", "flock_response"},
+            {"description", "Return the structured response"},
+            {"input_schema", {
+                {"type", "object"},
+                {"properties", {{"items", {{"type", "array"}, {"items", item_schema}}}}},
+                {"required", nlohmann::json::array({"items"})}
+            }}
+        };
+        request_payload["tools"] = nlohmann::json::array({flock_tool});
+        request_payload["tool_choice"] = {{"type", "tool"}, {"name", "flock_response"}};
+    }
 
     model_handler_->AddRequest(request_payload);
 }

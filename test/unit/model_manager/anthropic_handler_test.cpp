@@ -31,27 +31,28 @@ TEST_F(AnthropicHandlerTest, TextResponseStructure) {
     EXPECT_TRUE(response["content"][0].contains("text"));
 }
 
-// Test tool_use response structure (structured output)
-TEST_F(AnthropicHandlerTest, ToolUseResponseStructure) {
+// Test structured output response (using output_format/json_schema)
+TEST_F(AnthropicHandlerTest, StructuredOutputResponse) {
+    // With output_format, Claude returns JSON directly in text content
     json response = {
         {"id", "msg_01"},
         {"type", "message"},
         {"role", "assistant"},
         {"content", {{
-            {"type", "tool_use"},
-            {"id", "toolu_01"},
-            {"name", "flock_response"},
-            {"input", {{"items", {"result1", "result2"}}}}
+            {"type", "text"},
+            {"text", "{\"items\": [\"result1\", \"result2\"]}"}
         }}},
-        {"stop_reason", "tool_use"},
+        {"stop_reason", "end_turn"},
         {"model", "claude-3-haiku-20240307"}
     };
 
     EXPECT_TRUE(response["content"].is_array());
-    EXPECT_EQ(response["content"][0]["type"], "tool_use");
-    EXPECT_EQ(response["content"][0]["name"], "flock_response");
-    EXPECT_TRUE(response["content"][0]["input"].contains("items"));
-    EXPECT_EQ(response["content"][0]["input"]["items"].size(), 2);
+    EXPECT_EQ(response["content"][0]["type"], "text");
+
+    // Parse the text content as JSON
+    auto parsed = json::parse(response["content"][0]["text"].get<std::string>());
+    EXPECT_TRUE(parsed.contains("items"));
+    EXPECT_EQ(parsed["items"].size(), 2);
 }
 
 // Test valid stop reasons
@@ -100,13 +101,15 @@ TEST_F(AnthropicHandlerTest, HeaderFormat) {
 
     std::vector<std::string> expected_headers = {
         "x-api-key: " + api_key,
-        "anthropic-version: " + api_version
+        "anthropic-version: " + api_version,
+        "anthropic-beta: structured-outputs-2025-11-13"
     };
 
-    EXPECT_EQ(expected_headers.size(), 2);
+    EXPECT_EQ(expected_headers.size(), 3);
     EXPECT_TRUE(expected_headers[0].find("x-api-key") != std::string::npos);
     EXPECT_TRUE(expected_headers[1].find("anthropic-version") != std::string::npos);
     EXPECT_TRUE(expected_headers[1].find(ANTHROPIC_DEFAULT_API_VERSION) != std::string::npos);
+    EXPECT_TRUE(expected_headers[2].find("anthropic-beta") != std::string::npos);
 }
 
 // Test request payload structure
@@ -143,17 +146,22 @@ TEST_F(AnthropicHandlerTest, RequestWithSystemPrompt) {
     EXPECT_EQ(request["system"], "You are a helpful assistant.");
 }
 
-// Test request with tools for structured output
-TEST_F(AnthropicHandlerTest, RequestWithTools) {
-    json tool = {
-        {"name", "flock_response"},
-        {"description", "Return the structured response"},
-        {"input_schema", {
+// Test request with output_format for structured output
+TEST_F(AnthropicHandlerTest, RequestWithOutputFormat) {
+    json output_format = {
+        {"type", "json_schema"},
+        {"schema", {
             {"type", "object"},
             {"properties", {
-                {"items", {{"type", "array"}}}
+                {"items", {
+                    {"type", "array"},
+                    {"minItems", 1},
+                    {"maxItems", 1},
+                    {"items", {{"type", "string"}}}
+                }}
             }},
-            {"required", {"items"}}
+            {"required", {"items"}},
+            {"additionalProperties", false}
         }}
     };
 
@@ -161,14 +169,12 @@ TEST_F(AnthropicHandlerTest, RequestWithTools) {
         {"model", "claude-3-haiku-20240307"},
         {"max_tokens", 1024},
         {"messages", {{{"role", "user"}, {"content", "test"}}}},
-        {"tools", {tool}},
-        {"tool_choice", {{"type", "tool"}, {"name", "flock_response"}}}
+        {"output_format", output_format}
     };
 
-    EXPECT_TRUE(request.contains("tools"));
-    EXPECT_TRUE(request.contains("tool_choice"));
-    EXPECT_EQ(request["tools"][0]["name"], "flock_response");
-    EXPECT_EQ(request["tool_choice"]["name"], "flock_response");
+    EXPECT_TRUE(request.contains("output_format"));
+    EXPECT_EQ(request["output_format"]["type"], "json_schema");
+    EXPECT_TRUE(request["output_format"]["schema"]["properties"].contains("items"));
 }
 
 // Test image content structure
@@ -212,19 +218,20 @@ TEST_F(AnthropicHandlerTest, MixedContentArray) {
     EXPECT_EQ(content[1]["type"], "image");
 }
 
-// Test response with multiple content blocks
+// Test response with thinking and text content blocks
 TEST_F(AnthropicHandlerTest, MultipleContentBlocks) {
+    // Claude may return thinking blocks along with text when using extended thinking
     json response = {
         {"content", {
-            {{"type", "text"}, {"text", "Let me analyze this."}},
-            {{"type", "tool_use"}, {"id", "toolu_01"}, {"name", "flock_response"},
-             {"input", {{"items", {"result"}}}}}
+            {{"type", "thinking"}, {"thinking", "Let me analyze this step by step..."}},
+            {{"type", "text"}, {"text", "{\"items\": [\"result\"]}"}}
         }},
-        {"stop_reason", "tool_use"}
+        {"stop_reason", "end_turn"}
     };
 
     EXPECT_EQ(response["content"].size(), 2);
-    // The handler should prioritize tool_use over text
+    // The handler should extract the text block for structured output
+    EXPECT_EQ(response["content"][1]["type"], "text");
 }
 
 }// namespace flock

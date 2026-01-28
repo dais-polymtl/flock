@@ -58,7 +58,8 @@ protected:
     std::vector<std::string> getExtraHeaders() const override {
         return {
             "x-api-key: " + _api_key,
-            "anthropic-version: " + _api_version
+            "anthropic-version: " + _api_version,
+            "anthropic-beta: structured-outputs-2025-11-13"
         };
     }
 
@@ -89,6 +90,8 @@ protected:
             return {};
         }
         const auto& content = response["content"];
+
+        // First, check for tool_use blocks (Claude 3.x fallback)
         for (const auto& block : content) {
             if (block.contains("type") && block["type"] == "tool_use" && block.contains("input")) {
                 auto input = block["input"];
@@ -98,11 +101,17 @@ protected:
                 return input;
             }
         }
+
+        // Then, check for text blocks (Claude 4.x with output_format)
         for (const auto& block : content) {
             if (block.contains("type") && block["type"] == "text" && block.contains("text")) {
                 std::string text = block["text"].get<std::string>();
                 try {
-                    return nlohmann::json::parse(text);
+                    auto parsed = nlohmann::json::parse(text);
+                    if (parsed.contains("items") && !parsed["items"].is_array()) {
+                        parsed["items"] = nlohmann::json::array({parsed["items"]});
+                    }
+                    return parsed;
                 } catch (...) {
                     return nlohmann::json({{"items", nlohmann::json::array({text})}});
                 }

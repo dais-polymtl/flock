@@ -31,7 +31,7 @@ CREATE SECRET (
 ```sql
 CREATE MODEL(
    'ClaudeModel',
-   'claude-3-haiku-20240307',
+   'claude-sonnet-4-5',
    'anthropic',
    {"tuple_format": "json", "batch_size": 32, "model_parameters": {"temperature": 0.7, "max_tokens": 1024}}
 );
@@ -48,14 +48,17 @@ SELECT llm_complete(
 
 ## Available Claude Models
 
-Anthropic offers several Claude models with different capabilities and price points:
+Anthropic offers several Claude models with different capabilities and price points. See the [Anthropic Models Documentation](https://docs.anthropic.com/en/docs/about-claude/models) for the full list.
 
-| Model | Description | Best For |
-|-------|-------------|----------|
-| `claude-3-opus-20240229` | Most capable model | Complex analysis, research, nuanced tasks |
-| `claude-3-sonnet-20240229` | Balanced performance and speed | General purpose tasks |
-| `claude-3-haiku-20240307` | Fastest and most cost-effective | Quick responses, high-volume tasks |
-| `claude-3-5-sonnet-20241022` | Latest Sonnet version | Best overall performance for most tasks |
+| Model | Description | API Method |
+|-------|-------------|------------|
+| `claude-sonnet-4-5` | Latest Sonnet, best overall | `output_format` |
+| `claude-haiku-4-5` | Fast and cost-effective | `output_format` |
+| `claude-opus-4-5` | Most capable | `output_format` |
+| `claude-3-5-sonnet-20241022` | Previous Sonnet version | `tool_use` |
+| `claude-3-haiku-20240307` | Previous Haiku version | `tool_use` |
+
+All models are fully supported. The adapter automatically selects the appropriate API method based on model version.
 
 ## Model Parameters
 
@@ -64,7 +67,7 @@ You can customize Claude's behavior with model parameters:
 ```sql
 CREATE MODEL(
    'ClaudeCustom',
-   'claude-3-5-sonnet-20241022',
+   'claude-sonnet-4-5',
    'anthropic',
    {
      "model_parameters": {
@@ -93,7 +96,7 @@ Unlike other providers, Anthropic handles system prompts separately from the mes
 ```sql
 CREATE MODEL(
    'AnalystClaude',
-   'claude-3-haiku-20240307',
+   'claude-sonnet-4-5',
    'anthropic',
    {
      "model_parameters": {
@@ -125,24 +128,31 @@ Note: URL-based images are not directly supported. Images must be base64-encoded
 
 ## Structured Output
 
-Anthropic supports structured output through their tool_use feature. Flock automatically handles this conversion:
+Flock ensures structured JSON responses from all Claude models using a hybrid approach:
+
+- **Claude 4.x models**: Uses the native [`output_format`](https://docs.anthropic.com/en/docs/build-with-claude/structured-outputs) API (preferred, guaranteed schema compliance)
+- **Claude 3.x models**: Falls back to [`tool_use`](https://docs.anthropic.com/en/docs/build-with-claude/tool-use) for structured output (compatible with older models)
+
+This hybrid approach ensures all Claude models work seamlessly with Flock, while using the optimal API for each model version.
+
+### Custom Schema (Claude 4.x only)
+
+For Claude 4.x models, you can specify a custom JSON schema:
 
 ```sql
 SELECT llm_complete(
     {'model_name': 'ClaudeModel',
      'model_parameters': '{
-       "response_format": {
+       "output_format": {
          "type": "json_schema",
-         "json_schema": {
-           "name": "analysis",
-           "schema": {
-             "type": "object",
-             "properties": {
-               "sentiment": {"type": "string"},
-               "confidence": {"type": "number"}
-             },
-             "required": ["sentiment", "confidence"]
-           }
+         "schema": {
+           "type": "object",
+           "properties": {
+             "sentiment": {"type": "string"},
+             "confidence": {"type": "number"}
+           },
+           "required": ["sentiment", "confidence"],
+           "additionalProperties": false
          }
        }
      }'
@@ -150,6 +160,8 @@ SELECT llm_complete(
     {'prompt': 'Analyze the sentiment of this text: I love this product!'}
 ) AS analysis;
 ```
+
+Note: Custom schemas require `"additionalProperties": false` for all objects.
 
 ## Important: No Embedding Support
 
@@ -160,7 +172,7 @@ Anthropic does not provide an embeddings API. If you need embeddings for similar
 CREATE MODEL('EmbeddingModel', 'text-embedding-3-small', 'openai');
 
 -- Use Claude for completions
-CREATE MODEL('ClaudeModel', 'claude-3-haiku-20240307', 'anthropic');
+CREATE MODEL('ClaudeModel', 'claude-sonnet-4-5', 'anthropic');
 ```
 
 Attempting to use `llm_embedding` with an Anthropic model will result in a clear error message.

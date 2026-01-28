@@ -301,19 +301,16 @@ def test_llm_complete_with_structured_output_without_table(
             }
             """
     elif provider == "anthropic":
-        # Anthropic uses tool_use for structured output, handled automatically by adapter
+        # Anthropic uses output_format for structured output
         response_format = """
-            "response_format": {
+            "output_format": {
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "capital_finder",
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "capital": { "type": "string" }
-                        },
-                        "required": ["capital"]
-                    }
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "capital": { "type": "string" }
+                    },
+                    "required": ["capital"]
                 }
             }
             """
@@ -403,19 +400,16 @@ def test_llm_complete_with_structured_output_with_table(
             }
             """
     elif provider == "anthropic":
-        # Anthropic uses tool_use for structured output, handled automatically by adapter
+        # Anthropic uses output_format for structured output
         response_format = """
-            "response_format": {
+            "output_format": {
                 "type": "json_schema",
-                "json_schema": {
-                    "name": "capital_finder",
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "capital": { "type": "string" }
-                        },
-                        "required": ["capital"]
-                    }
+                "schema": {
+                    "type": "object",
+                    "properties": {
+                        "capital": { "type": "string" }
+                    },
+                    "required": ["capital"]
                 }
             }
             """
