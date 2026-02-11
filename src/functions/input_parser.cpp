@@ -28,7 +28,7 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
                     }
                     auto required_keys = {"data"};
                     for (const auto& key: required_keys) {
-                        if (!context_column_json.contains(key) || (key != "data" && context_column_json[key].get<std::string>() == "NULL")) {
+                        if (!context_column_json.contains(key) || (key == "data" && context_column_json[key].get<std::string>() == "NULL")) {
                             throw std::runtime_error(duckdb_fmt::format("Expected 'context_columns' to contain key: {}", key));
                         }
                     }
