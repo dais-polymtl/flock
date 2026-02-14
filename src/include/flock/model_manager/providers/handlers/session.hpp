@@ -43,7 +43,7 @@ public:
         if (curl_ == nullptr) {
             throw std::runtime_error("curl cannot initialize");// here we throw it shouldn't happen
         }
-        curl_easy_setopt(curl_, CURLOPT_NOSIGNAL, 1);
+        curl_easy_setopt(curl_, CURLOPT_NOSIGNAL, 1L);
     }
 
     void ignoreSSL() { curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYPEER, 0L); }
