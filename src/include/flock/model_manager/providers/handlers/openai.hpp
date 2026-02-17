@@ -3,10 +3,6 @@
 #include "flock/model_manager/providers/handlers/base_handler.hpp"
 #include "session.hpp"
 #include <cstdlib>
-#include <iostream>
-#include <nlohmann/json.hpp>
-#include <stdexcept>
-#include <string>
 
 namespace flock {
 
@@ -65,7 +61,6 @@ protected:
                 }
             }
         } else {
-            // Embedding-specific checks (if any) can be added here
             if (response.contains("data") && response["data"].is_array() && response["data"].empty()) {
                 throw std::runtime_error("OpenAI API returned empty embedding data.");
             }
@@ -90,6 +85,21 @@ protected:
             }
             return results;
         }
+    }
+
+    std::pair<int64_t, int64_t> ExtractTokenUsage(const nlohmann::json& response) const override {
+        int64_t input_tokens = 0;
+        int64_t output_tokens = 0;
+        if (response.contains("usage") && response["usage"].is_object()) {
+            const auto& usage = response["usage"];
+            if (usage.contains("prompt_tokens") && usage["prompt_tokens"].is_number()) {
+                input_tokens = usage["prompt_tokens"].get<int64_t>();
+            }
+            if (usage.contains("completion_tokens") && usage["completion_tokens"].is_number()) {
+                output_tokens = usage["completion_tokens"].get<int64_t>();
+            }
+        }
+        return {input_tokens, output_tokens};
     }
 };
 

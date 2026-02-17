@@ -4,7 +4,6 @@
 namespace flock {
 
 void OpenAIProvider::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
-
     auto message_content = nlohmann::json::array();
 
     message_content.push_back({{"type", "text"}, {"text", prompt}});

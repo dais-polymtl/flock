@@ -1,5 +1,6 @@
 #pragma once
 
+#include "flock/core/common.hpp"
 #include <nlohmann/json.hpp>
 
 namespace flock {

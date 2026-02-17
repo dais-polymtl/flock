@@ -1,4 +1,8 @@
+#include "flock/core/config.hpp"
 #include "flock/functions/scalar/llm_filter.hpp"
+#include "flock/metrics/manager.hpp"
+
+#include <chrono>
 
 namespace flock {
 
@@ -24,6 +28,11 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
 
     auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1);
     Model model(model_details_json);
+
+    // Set model name and provider in metrics (context is already set in Execute)
+    auto model_details = model.GetModelDetails();
+    MetricsManager::SetModelInfo(model_details.model_name, model_details.provider_name);
+
     auto prompt_context_json = CastVectorOfStructsToJson(args.data[1], args.size());
     auto context_columns = nlohmann::json::array();
     if (prompt_context_json.contains("context_columns")) {
@@ -48,12 +57,26 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
 }
 
 void LlmFilter::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
+    // Get database instance and state ID for metrics
+    auto& context = state.GetContext();
+    auto* db = context.db.get();
+    const void* state_id = static_cast<const void*>(&state);
+
+    // Start metrics tracking
+    MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_FILTER);
+
+    auto exec_start = std::chrono::high_resolution_clock::now();
+
     const auto results = LlmFilter::Operation(args);
 
     auto index = 0;
     for (const auto& res: results) {
         result.SetValue(index++, duckdb::Value(res));
     }
+
+    auto exec_end = std::chrono::high_resolution_clock::now();
+    double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
+    MetricsManager::AddExecutionTime(exec_duration_ms);
 }
 
 }// namespace flock
