@@ -54,6 +54,7 @@ std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedMo
                                model_name, model_name);
 
     auto con = Config::GetConnection();
+    Config::StorageAttachmentGuard guard(con, true);
     auto query_result = con.Query(query);
 
     if (query_result->RowCount() == 0) {
