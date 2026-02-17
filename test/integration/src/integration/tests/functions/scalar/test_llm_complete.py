@@ -10,44 +10,16 @@ from integration.conftest import (
 AUDIO_EXPECTED_KEYWORDS = ["flock", "duckdb", "database", "semantic", "ai", "hybrid"]
 
 
-@pytest.fixture(params=[
-    ("gpt-4o-mini", "openai"),
-    ("gemma3:1b", "ollama"),
-    ("claude-3-haiku-20240307", "anthropic")
-])
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:1b", "ollama")])
 def model_config(request):
     """Fixture to test with different models for text-only tests."""
     return request.param
 
 
-@pytest.fixture(params=[
-    ("gpt-4o-mini", "openai"),
-    ("gemma3:4b", "ollama"),
-    ("claude-3-haiku-20240307", "anthropic"),
-])
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:4b", "ollama")])
 def model_config_image(request):
     """Fixture to test with different models for image tests."""
     return request.param
-
-
-def test_llm_complete_ollama_basic(integration_setup):
-    """Dedicated Ollama test - ensures Ollama is always exercised (local/free provider)."""
-    duckdb_cli_path, db_path = integration_setup
-
-    test_model_name = "test-ollama-basic"
-    create_model_query = "CREATE MODEL('test-ollama-basic', 'gemma3:1b', 'ollama');"
-    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
-
-    query = """
-    SELECT llm_complete(
-        {'model_name': 'test-ollama-basic'},
-        {'prompt': 'What is 2+2? Reply with just the number.'}
-    ) AS result;
-    """
-    result = run_cli(duckdb_cli_path, db_path, query)
-
-    assert result.returncode == 0, f"Ollama test failed: {result.stderr}"
-    assert "result" in result.stdout.lower()
 
 
 def test_llm_complete_basic_functionality(integration_setup, model_config):
@@ -324,18 +296,14 @@ def test_llm_complete_with_structured_output_without_table(
                 "required": ["capital"]
             }
             """
-    elif provider == "anthropic":
-        # Anthropic uses output_format for structured output
+    elif provider == "ollama":
         response_format = """
-            "output_format": {
-                "type": "json_schema",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "capital": { "type": "string" }
-                    },
-                    "required": ["capital"]
-                }
+            "format": {
+                "type": "object",
+                "properties": {
+                    "capital": { "type": "string" }
+                },
+                "required": ["capital"]
             }
             """
     query = (
@@ -356,7 +324,7 @@ def test_llm_complete_with_structured_output_without_table(
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     response = result.stdout.strip().split("\n")[1].split(",")[0].lower()
-    assert "ottawa" in response
+    assert response == '"{""capital"":""ottawa""}"'
 
 
 def test_llm_complete_with_structured_output_with_table(
@@ -398,7 +366,7 @@ def test_llm_complete_with_structured_output_with_table(
                     "schema": {
                         "type": "object",
                         "properties": {
-                            "capital": {
+                            "capital": { 
                                 "type": "string",
                                 "pattern": "^[A-Za-z]+$"
                             }
@@ -415,26 +383,12 @@ def test_llm_complete_with_structured_output_with_table(
             "format": {
                 "type": "object",
                 "properties": {
-                    "capital": {
+                    "capital": { 
                         "type": "string",
                         "pattern": "^[A-Za-z]+$"
                     }
                 },
                 "required": ["capital"]
-            }
-            """
-    elif provider == "anthropic":
-        # Anthropic uses output_format for structured output
-        response_format = """
-            "output_format": {
-                "type": "json_schema",
-                "schema": {
-                    "type": "object",
-                    "properties": {
-                        "capital": { "type": "string" }
-                    },
-                    "required": ["capital"]
-                }
             }
             """
 
@@ -457,8 +411,10 @@ def test_llm_complete_with_structured_output_with_table(
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
     assert len(lines) >= 3
-    # Check for expected capitals in output (flexible assertion for different response formats)
-    assert "paris" in result.stdout.lower() and "ottawa" in result.stdout.lower()
+    assert (
+        '"{""capital"":""paris""}"' in result.stdout.lower()
+        and '"{""capital"":""ottawa""}"' in result.stdout.lower()
+    )
 
 
 def _llm_complete_performance_large_dataset(integration_setup, model_config):
@@ -500,43 +456,6 @@ def _llm_complete_performance_large_dataset(integration_setup, model_config):
     assert len(lines) >= 6, (
         f"Expected at least 6 lines (header + 5 data), got {len(lines)}"
     )
-
-
-def test_llm_complete_ollama_image(integration_setup):
-    """Dedicated Ollama image test - ensures Ollama image support is always exercised."""
-    duckdb_cli_path, db_path = integration_setup
-
-    test_model_name = "test-ollama-image"
-    create_model_query = "CREATE MODEL('test-ollama-image', 'gemma3:4b', 'ollama');"
-    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
-
-    create_table_query = """
-    CREATE OR REPLACE TABLE ollama_test_images (id INTEGER, name VARCHAR, image VARCHAR);
-    """
-    run_cli(duckdb_cli_path, db_path, create_table_query)
-
-    image_url = "https://images.unsplash.com/photo-1549366021-9f761d450615?w=100"
-    image_data = get_image_data_for_provider(image_url, "ollama")
-
-    insert_data_query = f"""
-    INSERT INTO ollama_test_images VALUES (1, 'Lion', '{image_data}');
-    """
-    run_cli(duckdb_cli_path, db_path, insert_data_query)
-
-    query = """
-    SELECT llm_complete(
-        {'model_name': 'test-ollama-image'},
-        {
-            'prompt': 'What animal is in this image? Reply with one word.',
-            'context_columns': [{'data': name}, {'data': image, 'type': 'image'}]
-        }
-    ) AS result
-    FROM ollama_test_images WHERE id = 1;
-    """
-    result = run_cli(duckdb_cli_path, db_path, query)
-
-    assert result.returncode == 0, f"Ollama image test failed: {result.stderr}"
-    assert "result" in result.stdout.lower()
 
 
 def test_llm_complete_with_image_integration(integration_setup, model_config_image):

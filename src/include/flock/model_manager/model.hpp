@@ -26,8 +26,10 @@ public:
     explicit Model() = default;
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type = OutputType::STRING, const nlohmann::json& media_data = nlohmann::json::object());
     void AddEmbeddingRequest(const std::vector<std::string>& inputs);
+    void AddTranscriptionRequest(const nlohmann::json& audio_files);
     std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json");
     std::vector<nlohmann::json> CollectEmbeddings(const std::string& contentType = "application/json");
+    std::vector<nlohmann::json> CollectTranscriptions(const std::string& contentType = "multipart/form-data");
     ModelDetails GetModelDetails();
 
     static void SetMockProvider(const std::shared_ptr<IProvider>& mock_provider) {

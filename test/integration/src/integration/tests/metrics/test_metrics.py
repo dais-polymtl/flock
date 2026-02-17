@@ -14,7 +14,7 @@ def get_json_from_csv_output(stdout, column_name="metrics"):
     return None
 
 
-@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:1b", "ollama")])
 def model_config(request):
     return request.param
 
@@ -63,7 +63,7 @@ def test_metrics_after_llm_complete(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_complete and get_metrics in the same query
     query = (
@@ -121,7 +121,7 @@ def test_metrics_reset_clears_counters(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # First query: execute llm_complete and get metrics in the same query
     query1 = (
@@ -176,7 +176,7 @@ def test_sequential_numbering_multiple_calls(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Make three calls to llm_complete in the same query
     query = (
@@ -253,7 +253,7 @@ def test_flock_get_debug_metrics_returns_nested_structure(
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_complete and get debug metrics
     query = (
@@ -315,7 +315,7 @@ def test_debug_metrics_registration_order(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Make multiple calls
     query = (
@@ -378,7 +378,7 @@ def test_aggregate_function_metrics_tracking(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_reduce and get metrics
     query = (
@@ -449,7 +449,7 @@ def test_aggregate_function_metrics_merging_with_group_by(
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_reduce with GROUP BY that will process multiple states
     # This should result in multiple states being processed, but only ONE merged metrics entry
@@ -521,7 +521,7 @@ def test_aggregate_function_metrics_merging_multiple_groups(
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_reduce with multiple GROUP BY groups
     # Each group should produce ONE merged metrics entry
@@ -579,7 +579,7 @@ def test_multiple_aggregate_functions_sequential_numbering(
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_reduce twice in the same query
     query = (
@@ -644,7 +644,7 @@ def test_aggregate_function_debug_metrics(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
         """
@@ -704,7 +704,7 @@ def test_llm_rerank_metrics(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
         """
@@ -758,7 +758,7 @@ def test_llm_first_metrics(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
         """
@@ -816,7 +816,7 @@ def test_mixed_scalar_and_aggregate_metrics(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
         """
