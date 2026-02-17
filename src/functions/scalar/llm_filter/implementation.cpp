@@ -7,7 +7,7 @@
 namespace flock {
 
 void LlmFilter::ValidateArguments(duckdb::DataChunk& args) {
-    if (args.ColumnCount() != 3) {
+    if (args.ColumnCount() < 2 || args.ColumnCount() > 3) {
         throw std::runtime_error("Invalid number of arguments.");
     }
 
@@ -18,7 +18,7 @@ void LlmFilter::ValidateArguments(duckdb::DataChunk& args) {
         throw std::runtime_error("Prompt details must be a struct.");
     }
 
-    if (args.data[2].GetType().id() != duckdb::LogicalTypeId::STRUCT) {
+    if (args.ColumnCount() == 3 && args.data[2].GetType().id() != duckdb::LogicalTypeId::STRUCT) {
         throw std::runtime_error("Inputs must be a struct.");
     }
 }
@@ -41,16 +41,28 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args) {
     }
     auto prompt_details = PromptManager::CreatePromptDetails(prompt_context_json);
 
-    auto responses = BatchAndComplete(context_columns, prompt_details.prompt, ScalarFunctionType::FILTER, model);
-
     std::vector<std::string> results;
-    results.reserve(responses.size());
-    for (const auto& response: responses) {
+    if (context_columns.empty()) {
+        // Simple filter without per-row context. Ask once and return the boolean result.
+        model.AddCompletionRequest(prompt_details.prompt, 1, OutputType::BOOL);
+        auto response = model.CollectCompletions()[0]["items"][0];
+
         if (response.is_null()) {
             results.emplace_back("true");
-            continue;
+        } else {
+            results.emplace_back(response.dump());
         }
-        results.push_back(response.dump());
+    } else {
+        auto responses = BatchAndComplete(context_columns, prompt_details.prompt, ScalarFunctionType::FILTER, model);
+
+        results.reserve(responses.size());
+        for (const auto& response: responses) {
+            if (response.is_null()) {
+                results.emplace_back("true");
+                continue;
+            }
+            results.push_back(response.dump());
+        }
     }
 
     return results;
