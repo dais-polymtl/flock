@@ -697,27 +697,23 @@ def test_llm_filter_audio_ollama_error(integration_setup):
     duckdb_cli_path, db_path = integration_setup
 
     test_model_name = "test-ollama-filter-audio"
-    create_model_query = (
-        "CREATE MODEL('test-ollama-filter-audio', 'gemma3:1b', 'ollama');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'gemma3:1b', 'ollama');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     transcription_model_name = "test-ollama-filter-transcription"
-    create_transcription_model_query = (
-        "CREATE MODEL('test-ollama-filter-transcription', 'gemma3:1b', 'ollama');"
-    )
+    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gemma3:1b', 'ollama');"
     run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
 
     query = """
         SELECT llm_filter(
-            {'model_name': 'test-ollama-filter-audio'},
+            {'model_name': '""" + test_model_name + """'},
             {
                 'prompt': 'Is the sentiment positive?',
                 'context_columns': [
                     {
                         'data': audio_url,
                         'type': 'audio',
-                        'transcription_model': 'test-ollama-filter-transcription'
+                        'transcription_model': '""" + transcription_model_name + """'
                     }
                 ]
             }
