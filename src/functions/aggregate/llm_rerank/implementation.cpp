@@ -1,4 +1,9 @@
+#include "flock/core/config.hpp"
 #include "flock/functions/aggregate/llm_rerank.hpp"
+#include "flock/metrics/manager.hpp"
+
+#include <chrono>
+#include <vector>
 
 namespace flock {
 
@@ -116,22 +121,59 @@ void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& agg
                          idx_t count, idx_t offset) {
     const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
+    auto db = Config::db;
+    std::vector<const void*> processed_state_ids;
+    std::string merged_model_name;
+    std::string merged_provider;
+
+    // Process each state individually
     for (idx_t i = 0; i < count; i++) {
         auto idx = i + offset;
         auto* state = states_vector[idx];
 
         if (state && !state->value->empty()) {
+            // Use model_details and user_query from the state (not static variables)
+            Model model(state->model_details);
+            auto model_details_obj = model.GetModelDetails();
+
+            // Get state ID for metrics
+            const void* state_id = static_cast<const void*>(state);
+            processed_state_ids.push_back(state_id);
+
+            // Start metrics tracking
+            MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_RERANK);
+            MetricsManager::SetModelInfo(model_details_obj.model_name, model_details_obj.provider_name);
+
+            // Store model info for merged metrics (use first non-empty)
+            if (merged_model_name.empty() && !model_details_obj.model_name.empty()) {
+                merged_model_name = model_details_obj.model_name;
+                merged_provider = model_details_obj.provider_name;
+            }
+
+            auto exec_start = std::chrono::high_resolution_clock::now();
+
             auto tuples_with_ids = nlohmann::json::array();
             for (auto j = 0; j < static_cast<int>(state->value->size()); j++) {
                 tuples_with_ids.push_back((*state->value)[j]);
             }
             LlmRerank function_instance;
+            function_instance.user_query = state->user_query;
+            function_instance.model_details = state->model_details;
             auto reranked_tuples = function_instance.SlidingWindow(tuples_with_ids);
+
+            auto exec_end = std::chrono::high_resolution_clock::now();
+            double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
+            MetricsManager::AddExecutionTime(exec_duration_ms);
+
             result.SetValue(idx, reranked_tuples.dump());
         } else {
-            result.SetValue(idx, nullptr);// Empty result for null/empty states
+            result.SetValue(idx, nullptr);
         }
     }
+
+    // Merge all metrics from processed states into a single metrics entry
+    MetricsManager::MergeAggregateMetrics(db, processed_state_ids, FunctionType::LLM_RERANK,
+                                          merged_model_name, merged_provider);
 }
 
 }// namespace flock

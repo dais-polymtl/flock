@@ -11,6 +11,9 @@ void ScalarRegistry::Register(duckdb::ExtensionLoader& loader) {
     RegisterFusionCombMED(loader);
     RegisterFusionCombMNZ(loader);
     RegisterFusionCombSUM(loader);
+    RegisterFlockGetMetrics(loader);
+    RegisterFlockGetDebugMetrics(loader);
+    RegisterFlockResetMetrics(loader);
 }
 
 }// namespace flock

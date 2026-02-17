@@ -1,11 +1,10 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
-#include <tuple>
-
 #include "flock/core/common.hpp"
 #include "flock/functions/input_parser.hpp"
+#include "flock/metrics/manager.hpp"
 #include "flock/model_manager/model.hpp"
+#include <nlohmann/json.hpp>
 
 namespace flock {
 
@@ -13,8 +12,10 @@ class AggregateFunctionState {
 public:
     nlohmann::basic_json<>* value;
     bool initialized;
+    nlohmann::json model_details;
+    std::string user_query;
 
-    AggregateFunctionState() : value(nullptr), initialized(false) {}
+    AggregateFunctionState() : value(nullptr), initialized(false), model_details(nlohmann::json::object()), user_query("") {}
 
     ~AggregateFunctionState() {
         if (value) {
@@ -32,8 +33,8 @@ public:
 class AggregateFunctionBase {
 public:
     Model model;
-    static nlohmann::json model_details;
-    static std::string user_query;
+    std::string user_query;
+    nlohmann::json model_details;
 
 public:
     explicit AggregateFunctionBase() = default;
@@ -64,8 +65,7 @@ public:
         // ValidateArguments(inputs, input_count);
 
         auto [model_details_json, prompt_details, columns] = CastInputsToJson(inputs, count);
-        model_details = model_details_json;
-        user_query = PromptManager::CreatePromptDetails(prompt_details).prompt;
+        auto prompt_str = PromptManager::CreatePromptDetails(prompt_details).prompt;
 
         auto state_map_p = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
@@ -86,6 +86,11 @@ public:
             }
 
             if (state) {
+                // Store model_details and user_query in the state (only set once, on first update)
+                if (state->model_details.empty()) {
+                    state->model_details = model_details_json;
+                    state->user_query = prompt_str;
+                }
                 state->Update(tuple);
             }
         }
@@ -97,10 +102,14 @@ public:
         // ValidateArguments(inputs, input_count);
 
         auto [model_details_json, prompt_details, tuples] = CastInputsToJson(inputs, count);
-        model_details = model_details_json;
-        user_query = PromptManager::CreatePromptDetails(prompt_details).prompt;
+        auto prompt_str = PromptManager::CreatePromptDetails(prompt_details).prompt;
 
         if (const auto state = reinterpret_cast<AggregateFunctionState*>(state_p)) {
+            // Store model_details and user_query in the state (only set once, on first update)
+            if (state->model_details.empty()) {
+                state->model_details = model_details_json;
+                state->user_query = prompt_str;
+            }
             state->Update(tuples);
         }
     }

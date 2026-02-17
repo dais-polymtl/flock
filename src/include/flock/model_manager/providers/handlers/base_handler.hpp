@@ -1,12 +1,11 @@
 #pragma once
 
+#include "flock/core/common.hpp"
+#include "flock/metrics/manager.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "session.hpp"
-#include <iostream>
+#include <chrono>
 #include <nlohmann/json.hpp>
-#include <stdexcept>
-#include <string>
-#include <vector>
 
 namespace flock {
 
@@ -16,12 +15,10 @@ public:
         : _throw_exception(throw_exception) {}
     virtual ~BaseModelProviderHandler() = default;
 
-    // AddRequest: just add the json to the batch (type is ignored, kept for interface compatibility)
     void AddRequest(const nlohmann::json& json, RequestType type = RequestType::Completion) {
         _request_batch.push_back(json);
     }
 
-    // CollectCompletions: process all as completions, then clear
     std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json") {
         std::vector<nlohmann::json> completions;
         if (!_request_batch.empty()) completions = ExecuteBatch(_request_batch, true, contentType, true);
@@ -29,7 +26,6 @@ public:
         return completions;
     }
 
-    // CollectEmbeddings: process all as embeddings, then clear
     std::vector<nlohmann::json> CollectEmbeddings(const std::string& contentType = "application/json") {
         std::vector<nlohmann::json> embeddings;
         if (!_request_batch.empty()) embeddings = ExecuteBatch(_request_batch, true, contentType, false);
@@ -37,7 +33,6 @@ public:
         return embeddings;
     }
 
-    // Unified batch implementation with customizable headers
     std::vector<nlohmann::json> ExecuteBatch(const std::vector<nlohmann::json>& jsons, bool async = true, const std::string& contentType = "application/json", bool is_completion = true) {
         struct CurlRequestData {
             std::string response;
@@ -66,6 +61,9 @@ public:
             curl_easy_setopt(requests[i].easy, CURLOPT_POSTFIELDS, requests[i].payload.c_str());
             curl_multi_add_handle(multi_handle, requests[i].easy);
         }
+
+        auto api_start = std::chrono::high_resolution_clock::now();
+
         int still_running = 0;
         curl_multi_perform(multi_handle, &still_running);
         while (still_running) {
@@ -73,6 +71,13 @@ public:
             curl_multi_wait(multi_handle, NULL, 0, 1000, &numfds);
             curl_multi_perform(multi_handle, &still_running);
         }
+
+        auto api_end = std::chrono::high_resolution_clock::now();
+        double api_duration_ms = std::chrono::duration<double, std::milli>(api_end - api_start).count();
+
+        int64_t batch_input_tokens = 0;
+        int64_t batch_output_tokens = 0;
+
         std::vector<nlohmann::json> results(jsons.size());
         for (size_t i = 0; i < requests.size(); ++i) {
             curl_easy_getinfo(requests[i].easy, CURLINFO_RESPONSE_CODE, NULL);
@@ -80,6 +85,11 @@ public:
                 try {
                     nlohmann::json parsed = nlohmann::json::parse(requests[i].response);
                     checkResponse(parsed, is_completion);
+
+                    auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
+                    batch_input_tokens += input_tokens;
+                    batch_output_tokens += output_tokens;
+
                     if (is_completion) {
                         results[i] = ExtractCompletionOutput(parsed);
                     } else {
@@ -94,6 +104,13 @@ public:
             curl_multi_remove_handle(multi_handle, requests[i].easy);
             curl_easy_cleanup(requests[i].easy);
         }
+
+        MetricsManager::UpdateTokens(batch_input_tokens, batch_output_tokens);
+        MetricsManager::AddApiDuration(api_duration_ms);
+        for (size_t i = 0; i < jsons.size(); ++i) {
+            MetricsManager::IncrementApiCalls();
+        }
+
         curl_slist_free_all(headers);
         curl_multi_cleanup(multi_handle);
         return results;
@@ -113,6 +130,7 @@ protected:
     virtual void checkProviderSpecificResponse(const nlohmann::json&, bool is_completion) {}
     virtual nlohmann::json ExtractCompletionOutput(const nlohmann::json&) const { return {}; }
     virtual nlohmann::json ExtractEmbeddingVector(const nlohmann::json&) const { return {}; }
+    virtual std::pair<int64_t, int64_t> ExtractTokenUsage(const nlohmann::json& response) const = 0;
 
     void trigger_error(const std::string& msg) {
         if (_throw_exception) {
