@@ -1,9 +1,4 @@
-#include "flock/core/config.hpp"
 #include "flock/functions/aggregate/llm_first_or_last.hpp"
-#include "flock/metrics/manager.hpp"
-
-#include <chrono>
-#include <vector>
 
 namespace flock {
 
@@ -82,40 +77,11 @@ void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateIn
                                      AggregateFunctionType function_type) {
     const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
-    // Map AggregateFunctionType to FunctionType
-    FunctionType metrics_function_type = (function_type == AggregateFunctionType::FIRST) ? FunctionType::LLM_FIRST : FunctionType::LLM_LAST;
-
-    auto db = Config::db;
-    std::vector<const void*> processed_state_ids;
-    std::string merged_model_name;
-    std::string merged_provider;
-
-    // Process each state individually
     for (idx_t i = 0; i < count; i++) {
         auto idx = i + offset;
         auto* state = states_vector[idx];
 
         if (state && !state->value->empty()) {
-            // Use model_details and user_query from the state (not static variables)
-            Model model(state->model_details);
-            auto model_details_obj = model.GetModelDetails();
-
-            // Get state ID for metrics
-            const void* state_id = static_cast<const void*>(state);
-            processed_state_ids.push_back(state_id);
-
-            // Start metrics tracking
-            MetricsManager::StartInvocation(db, state_id, metrics_function_type);
-            MetricsManager::SetModelInfo(model_details_obj.model_name, model_details_obj.provider_name);
-
-            // Store model info for merged metrics (use first non-empty)
-            if (merged_model_name.empty() && !model_details_obj.model_name.empty()) {
-                merged_model_name = model_details_obj.model_name;
-                merged_provider = model_details_obj.provider_name;
-            }
-
-            auto exec_start = std::chrono::high_resolution_clock::now();
-
             auto tuples_with_ids = *state->value;
             tuples_with_ids.push_back(nlohmann::json::object());
             for (auto j = 0; j < static_cast<int>((*state->value)[0]["data"].size()); j++) {
@@ -127,23 +93,12 @@ void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateIn
             }
             LlmFirstOrLast function_instance;
             function_instance.function_type = function_type;
-            function_instance.user_query = state->user_query;
-            function_instance.model_details = state->model_details;
             auto response = function_instance.Evaluate(tuples_with_ids);
-
-            auto exec_end = std::chrono::high_resolution_clock::now();
-            double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
-            MetricsManager::AddExecutionTime(exec_duration_ms);
-
             result.SetValue(idx, response.dump());
         } else {
-            result.SetValue(idx, nullptr);
+            result.SetValue(idx, nullptr);// Empty JSON object for null/empty states
         }
     }
-
-    // Merge all metrics from processed states into a single metrics entry
-    MetricsManager::MergeAggregateMetrics(db, processed_state_ids, metrics_function_type,
-                                          merged_model_name, merged_provider);
 }
 
 }// namespace flock

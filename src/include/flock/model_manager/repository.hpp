@@ -1,9 +1,9 @@
 #pragma once
 
-#include "flock/core/common.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <nlohmann/json.hpp>
+#include <string>
 #include <unordered_map>
 
 namespace flock {

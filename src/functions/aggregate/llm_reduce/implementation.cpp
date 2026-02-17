@@ -1,9 +1,4 @@
-#include "flock/core/config.hpp"
 #include "flock/functions/aggregate/llm_reduce.hpp"
-#include "flock/metrics/manager.hpp"
-
-#include <chrono>
-#include <vector>
 
 namespace flock {
 
@@ -71,59 +66,23 @@ void LlmReduce::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputDa
                                 const AggregateFunctionType function_type) {
     const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
-    auto db = Config::db;
-    std::vector<const void*> processed_state_ids;
-    std::string merged_model_name;
-    std::string merged_provider;
-
-    // Process each state individually
     for (idx_t i = 0; i < count; i++) {
         auto idx = i + offset;
         auto* state = states_vector[idx];
 
-        if (state && state->value && !state->value->empty()) {
-            // Use model_details and user_query from the state
-            Model model(state->model_details);
-            auto model_details_obj = model.GetModelDetails();
-
-            // Get state ID for metrics
-            const void* state_id = static_cast<const void*>(state);
-            processed_state_ids.push_back(state_id);
-
-            // Start metrics tracking for this state
-            MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_REDUCE);
-            MetricsManager::SetModelInfo(model_details_obj.model_name, model_details_obj.provider_name);
-
-            // Store model info for merged metrics (use first non-empty)
-            if (merged_model_name.empty() && !model_details_obj.model_name.empty()) {
-                merged_model_name = model_details_obj.model_name;
-                merged_provider = model_details_obj.provider_name;
-            }
-
-            auto exec_start = std::chrono::high_resolution_clock::now();
-
+        if (state && !state->value->empty()) {
             LlmReduce reduce_instance;
-            reduce_instance.model = Model(state->model_details);
-            reduce_instance.user_query = state->user_query;
+            reduce_instance.model = Model(model_details);
             auto response = reduce_instance.ReduceLoop(*state->value, function_type);
-
-            auto exec_end = std::chrono::high_resolution_clock::now();
-            double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
-            MetricsManager::AddExecutionTime(exec_duration_ms);
-
             if (response.is_string()) {
                 result.SetValue(idx, response.get<std::string>());
             } else {
                 result.SetValue(idx, response.dump());
             }
         } else {
-            result.SetValue(idx, nullptr);
+            result.SetValue(idx, nullptr);// Empty result for null/empty states
         }
     }
-
-    // Merge all metrics from processed states into a single metrics entry
-    MetricsManager::MergeAggregateMetrics(db, processed_state_ids, FunctionType::LLM_REDUCE,
-                                          merged_model_name, merged_provider);
 }
 
 }// namespace flock

@@ -4,6 +4,11 @@
 #include "session.hpp"
 #include <cstdlib>
 #include <curl/curl.h>
+#include <iostream>
+#include <nlohmann/json.hpp>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 namespace flock {
 
@@ -36,6 +41,7 @@ protected:
                 throw std::runtime_error("The request was refused due to some internal error with Ollama API");
             }
         } else {
+            // Embedding-specific checks (if any) can be added here
             if (response.contains("embeddings") && (!response["embeddings"].is_array() || response["embeddings"].empty())) {
                 throw std::runtime_error("Ollama API returned empty or invalid embedding data.");
             }
@@ -54,18 +60,6 @@ protected:
             return response["embeddings"];
         }
         return {};
-    }
-
-    std::pair<int64_t, int64_t> ExtractTokenUsage(const nlohmann::json& response) const override {
-        int64_t input_tokens = 0;
-        int64_t output_tokens = 0;
-        if (response.contains("prompt_eval_count") && response["prompt_eval_count"].is_number()) {
-            input_tokens = response["prompt_eval_count"].get<int64_t>();
-        }
-        if (response.contains("eval_count") && response["eval_count"].is_number()) {
-            output_tokens = response["eval_count"].get<int64_t>();
-        }
-        return {input_tokens, output_tokens};
     }
 
     Session _session;

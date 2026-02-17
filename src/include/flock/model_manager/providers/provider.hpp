@@ -1,12 +1,11 @@
 #pragma once
 
 #include "fmt/format.h"
+#include <nlohmann/json.hpp>
 #include <regex>
 
-#include "flock/core/common.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "flock/model_manager/repository.hpp"
-#include <nlohmann/json.hpp>
 
 namespace flock {
 

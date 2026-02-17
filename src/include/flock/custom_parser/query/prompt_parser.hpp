@@ -5,6 +5,9 @@
 #include "flock/custom_parser/tokenizer.hpp"
 
 #include "fmt/format.h"
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace flock {
 

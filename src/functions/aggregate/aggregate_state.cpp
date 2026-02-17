@@ -37,12 +37,6 @@ void AggregateFunctionState::Combine(const AggregateFunctionState& source) {
         Initialize();
     }
 
-    // Copy model_details and user_query from source if not already set
-    if (model_details.empty() && !source.model_details.empty()) {
-        model_details = source.model_details;
-        user_query = source.user_query;
-    }
-
     if (source.value) {
         auto idx = 0u;
         for (auto& column: *source.value) {

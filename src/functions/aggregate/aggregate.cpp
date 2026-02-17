@@ -2,6 +2,9 @@
 
 namespace flock {
 
+nlohmann::json AggregateFunctionBase::model_details;
+std::string AggregateFunctionBase::user_query;
+
 void AggregateFunctionBase::ValidateArguments(duckdb::Vector inputs[], idx_t input_count) {
     if (input_count != 3) {
         throw std::runtime_error("Expected exactly 3 arguments for aggregate function, got " + std::to_string(input_count));
