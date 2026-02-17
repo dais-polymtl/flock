@@ -3,21 +3,101 @@
 #include "flock/metrics/manager.hpp"
 
 #include <chrono>
+#include <set>
 #include <vector>
 
 namespace flock {
 
 std::vector<int> LlmRerank::RerankBatch(const nlohmann::json& tuples) {
-    nlohmann::json data;
     auto [prompt, media_data] =
             PromptManager::Render(user_query, tuples, AggregateFunctionType::RERANK, model.GetModelDetails().tuple_format);
-    model.AddCompletionRequest(prompt, static_cast<int>(tuples[0]["data"].size()), OutputType::INTEGER, media_data);
+
+    int num_tuples = static_cast<int>(tuples[0]["data"].size());
+
+    model.AddCompletionRequest(prompt, num_tuples, OutputType::INTEGER, media_data);
     auto responses = model.CollectCompletions();
-    return responses[0]["items"];
+
+    // Find flock_row_id column to get valid IDs
+    std::set<std::string> valid_ids;
+    for (const auto& column: tuples) {
+        if (column.contains("name") && column["name"].is_string() &&
+            column["name"].get<std::string>() == "flock_row_id" &&
+            column.contains("data") && column["data"].is_array()) {
+            for (const auto& id: column["data"]) {
+                if (id.is_string()) {
+                    valid_ids.insert(id.get<std::string>());
+                }
+            }
+            break;
+        }
+    }
+
+    std::vector<int> indices;
+    std::set<std::string> seen_ids;
+
+    for (const auto& item: responses[0]["items"]) {
+        std::string id_str;
+        int id_int = -1;
+
+        // Handle both integer and string responses
+        if (item.is_number_integer()) {
+            id_int = item.get<int>();
+            id_str = std::to_string(id_int);
+        } else if (item.is_string()) {
+            id_str = item.get<std::string>();
+            try {
+                id_int = std::stoi(id_str);
+            } catch (...) {
+                throw std::runtime_error(
+                        "Invalid LLM response: The LLM returned ID '" + id_str +
+                        "' which is not a valid flock_row_id.");
+            }
+        } else {
+            throw std::runtime_error(
+                    "Invalid LLM response: Expected integer or string ID, got: " + item.dump());
+        }
+
+        // Validate that the ID exists in flock_row_id
+        if (valid_ids.find(id_str) == valid_ids.end()) {
+            throw std::runtime_error(
+                    "Invalid LLM response: The LLM returned ID '" + id_str +
+                    "' which is not a valid flock_row_id.");
+        }
+
+        // Check for duplicates
+        if (seen_ids.count(id_str) > 0) {
+            throw std::runtime_error(
+                    "Invalid LLM response: The LLM returned duplicate ID '" + id_str + "'.");
+        }
+        seen_ids.insert(id_str);
+        indices.push_back(id_int);
+    }
+
+    return indices;
 };
 
 nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
     const auto num_tuples = static_cast<int>(tuples[0]["data"].size());
+
+    // If there's only 1 tuple, no need to call the LLM - just return it
+    if (num_tuples <= 1) {
+        auto result = nlohmann::json::array();
+        for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
+            result.push_back(nlohmann::json::object());
+            for (const auto& item: tuples[i].items()) {
+                if (item.key() == "data") {
+                    result[i]["data"] = nlohmann::json::array();
+                    if (!item.value().empty()) {
+                        result[i]["data"].push_back(item.value()[0]);
+                    }
+                } else {
+                    result[i][item.key()] = item.value();
+                }
+            }
+        }
+        return result;
+    }
+
     auto final_ranked_tuples = nlohmann::json::array();
     auto carry_forward_tuples = nlohmann::json::array();
     auto start_index = 0;
@@ -36,7 +116,8 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
         auto window_tuples = carry_forward_tuples;
 
         // Then add new tuples up to batch_size
-        auto remaining_space = batch_size - static_cast<int>(window_tuples[0]["data"].size());
+        // Handle case where carry_forward_tuples is empty (first iteration)
+        auto remaining_space = window_tuples.empty() ? batch_size : (batch_size - static_cast<int>(window_tuples[0]["data"].size()));
         auto end_index = std::min<int>(start_index + remaining_space, num_tuples);
         for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
             if (i >= static_cast<int>(window_tuples.size())) {
@@ -59,6 +140,11 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
         // Clear carry forward for next iteration
         carry_forward_tuples.clear();
 
+        // Skip if window_tuples is empty (shouldn't happen, but safety check)
+        if (window_tuples.empty() || window_tuples[0]["data"].empty()) {
+            continue;
+        }
+
         try {
             auto indexed_tuples = window_tuples;
             indexed_tuples.push_back(nlohmann::json::object());
@@ -72,6 +158,20 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
 
             auto ranked_indices = RerankBatch(indexed_tuples);
 
+            // Initialize final_ranked_tuples structure if needed (first time adding results)
+            if (final_ranked_tuples.empty() && !window_tuples.empty()) {
+                for (auto i = 0u; i < window_tuples.size(); i++) {
+                    final_ranked_tuples.push_back(nlohmann::json::object());
+                    // Copy metadata from window_tuples
+                    for (const auto& item: window_tuples[i].items()) {
+                        if (item.key() != "data") {
+                            final_ranked_tuples[i][item.key()] = item.value();
+                        }
+                    }
+                    final_ranked_tuples[i]["data"] = nlohmann::json::array();
+                }
+            }
+
             // Add the bottom half to final results (they won't be re-ranked)
             auto half_batch = static_cast<int>(ranked_indices.size()) / 2;
             for (auto i = half_batch; i < static_cast<int>(ranked_indices.size()); i++) {
@@ -83,6 +183,19 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
             }
 
             // Carry forward top half to next batch for re-ranking
+            // Initialize carry_forward_tuples structure if needed
+            if (carry_forward_tuples.empty() && !window_tuples.empty()) {
+                for (auto i = 0u; i < window_tuples.size(); i++) {
+                    carry_forward_tuples.push_back(nlohmann::json::object());
+                    // Copy metadata from window_tuples
+                    for (const auto& item: window_tuples[i].items()) {
+                        if (item.key() != "data") {
+                            carry_forward_tuples[i][item.key()] = item.value();
+                        }
+                    }
+                    carry_forward_tuples[i]["data"] = nlohmann::json::array();
+                }
+            }
             for (auto i = 0; i < half_batch; i++) {
                 auto idx = 0u;
                 for (auto& column: window_tuples) {
@@ -128,10 +241,10 @@ void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& agg
 
     // Process each state individually
     for (idx_t i = 0; i < count; i++) {
-        auto idx = i + offset;
-        auto* state = states_vector[idx];
+        auto result_idx = i + offset;
+        auto* state = states_vector[i];
 
-        if (state && !state->value->empty()) {
+        if (state && state->value && !state->value->empty()) {
             // Use model_details and user_query from the state (not static variables)
             Model model(state->model_details);
             auto model_details_obj = model.GetModelDetails();
@@ -165,9 +278,9 @@ void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& agg
             double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
             MetricsManager::AddExecutionTime(exec_duration_ms);
 
-            result.SetValue(idx, reranked_tuples.dump());
+            result.SetValue(result_idx, reranked_tuples.dump());
         } else {
-            result.SetValue(idx, nullptr);
+            result.SetValue(result_idx, nullptr);
         }
     }
 

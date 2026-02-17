@@ -79,13 +79,13 @@ std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataC
 }
 
 void LlmEmbedding::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
-    // Get database instance and state ID for metrics
+    // Get database instance and generate unique ID for metrics
     auto& context = state.GetContext();
     auto* db = context.db.get();
-    const void* state_id = static_cast<const void*>(&state);
+    const void* invocation_id = MetricsManager::GenerateUniqueId();
 
     // Start metrics tracking
-    MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_EMBEDDING);
+    MetricsManager::StartInvocation(db, invocation_id, FunctionType::LLM_EMBEDDING);
 
     auto exec_start = std::chrono::high_resolution_clock::now();
 
