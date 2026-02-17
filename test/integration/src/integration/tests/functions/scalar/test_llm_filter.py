@@ -55,7 +55,7 @@ def test_llm_filter_basic_functionality(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                    {'prompt': 'Is this text positive? Answer true or false.', 'context_columns': [{'data': text}]}
+                    {'prompt': 'Is this text positive?', 'context_columns': [{'data': text}]}
         ) AS is_positive
     FROM test_data 
     WHERE id = 1;
@@ -66,6 +66,33 @@ def test_llm_filter_basic_functionality(integration_setup, model_config):
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     assert "true" in result.stdout.lower() or "false" in result.stdout.lower()
     assert "is_positive" in result.stdout.lower()
+
+
+def test_llm_filter_without_context_columns(integration_setup, model_config):
+    """Test llm_filter without context_columns parameter."""
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    test_model_name = f"test-filter-no-context_{model_name}"
+    create_model_query = (
+        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
+    )
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
+
+    query = (
+        """
+        SELECT llm_filter(
+            {'model_name': '"""
+        + test_model_name
+        + """'},
+            {'prompt': 'Is paris the best capital in the world?'}
+        ) AS filter_result;
+        """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+    assert "true" in result.stdout.lower() or "false" in result.stdout.lower()
 
 
 def test_llm_filter_batch_processing(integration_setup, model_config):
@@ -106,7 +133,7 @@ def test_llm_filter_batch_processing(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """', 'batch_size': 2},
-                    {'prompt': 'Is this item technology-related? Answer true or false.', 'context_columns': [{'data': text}]}
+                    {'prompt': 'Is this item technology-related?', 'context_columns': [{'data': text}]}
         ) AS is_tech
     FROM test_items;
     """
@@ -226,7 +253,7 @@ def test_llm_filter_with_special_characters(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """'},
-                    {'prompt': 'Does this text contain non-ASCII characters? Answer true or false.', 'context_columns': [{'data': text}]}
+                    {'prompt': 'Does this text contain non-ASCII characters?', 'context_columns': [{'data': text}]}
         ) AS has_unicode
     FROM special_text
     WHERE id = 1;
@@ -270,7 +297,7 @@ def test_llm_filter_with_model_params(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """', 'tuple_format': 'Markdown', 'batch_size': 1, 'model_parameters': '{"temperature": 0}'},
-                    {'prompt': 'Is this text expressing positive sentiment? Answer true or false only.', 'context_columns': [{'data': text}]}
+                    {'prompt': 'Is this text expressing positive sentiment?', 'context_columns': [{'data': text}]}
         ) AS is_positive
     FROM test_data;
     """
@@ -399,7 +426,7 @@ def _test_llm_filter_performance_large_dataset(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """', 'batch_size': 5},
-                    {'prompt': 'Does this content contain the word "item"? Answer true or false.', 'context_columns': [{'data': content}]}
+                    {'prompt': 'Does this content contain the word "item"?', 'context_columns': [{'data': content}]}
         ) AS filter_result
     FROM large_content
     LIMIT 10;
@@ -467,7 +494,7 @@ def test_llm_filter_with_image_integration(integration_setup, model_config_image
         + test_model_name
         + """'},
             {
-                'prompt': 'Is this image showing a motorized vehicle? Answer true or false.',
+                'prompt': 'Is this image showing a motorized vehicle?',
                 'context_columns': [
                     {'data': vehicle_type},
                     {'data': image_url, 'type': 'image'}
@@ -538,7 +565,7 @@ def test_llm_filter_image_batch_processing(integration_setup, model_config_image
         + test_model_name
         + """'},
             {
-                'prompt': 'Does this food image look appetizing and well-presented? Answer true or false.',
+                'prompt': 'Does this food image look appetizing and well-presented?',
                 'context_columns': [
                     {'data': food_name},
                     {'data': image_url, 'type': 'image'}
@@ -614,7 +641,7 @@ def test_llm_filter_image_with_text_context(integration_setup, model_config_imag
         + test_model_name
         + """'},
             {
-                'prompt': 'Based on the image and the season/price information, is this clothing item appropriate for its intended season and price range? Answer true or false.',
+                'prompt': 'Based on the image and the season/price information, is this clothing item appropriate for its intended season and price range?',
                 'context_columns': [
                     {'data': item_name},
                     {'data': image_url, 'type': 'image'},
@@ -652,7 +679,9 @@ def test_llm_filter_with_audio_transcription(integration_setup, model_config):
 
     transcription_model_name = f"test-transcription-filter_{model_name}"
     create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
-    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
+    run_cli(
+        duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False
+    )
 
     # Get audio file path
     audio_path = get_audio_file_path()
@@ -665,7 +694,7 @@ def test_llm_filter_with_audio_transcription(integration_setup, model_config):
         + test_model_name
         + """'},
             {
-                'prompt': 'Does this audio mention DuckDB or databases? Answer true or false.',
+                'prompt': 'Does this audio mention DuckDB or databases?',
                 'context_columns': [
                     {
                         'data': audio_path,
@@ -697,23 +726,29 @@ def test_llm_filter_audio_ollama_error(integration_setup):
     duckdb_cli_path, db_path = integration_setup
 
     test_model_name = "test-ollama-filter-audio"
-    create_model_query = f"CREATE MODEL('{test_model_name}', 'gemma3:1b', 'ollama');"
+    create_model_query = (
+        "CREATE MODEL('test-ollama-filter-audio', 'gemma3:1b', 'ollama');"
+    )
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     transcription_model_name = "test-ollama-filter-transcription"
-    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gemma3:1b', 'ollama');"
-    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
+    create_transcription_model_query = (
+        "CREATE MODEL('test-ollama-filter-transcription', 'gemma3:1b', 'ollama');"
+    )
+    run_cli(
+        duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False
+    )
 
     query = """
         SELECT llm_filter(
-            {'model_name': '""" + test_model_name + """'},
+            {'model_name': 'test-ollama-filter-audio'},
             {
                 'prompt': 'Is the sentiment positive?',
                 'context_columns': [
                     {
                         'data': audio_url,
                         'type': 'audio',
-                        'transcription_model': '""" + transcription_model_name + """'
+                        'transcription_model': 'test-ollama-filter-transcription'
                     }
                 ]
             }

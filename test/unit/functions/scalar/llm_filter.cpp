@@ -62,6 +62,19 @@ TEST_F(LLMFilterTest, LLMFilterBasicUsage) {
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
 }
 
+TEST_F(LLMFilterTest, LLMFilterWithoutContextColumns) {
+    const nlohmann::json expected_response = {{"items", {true}}};
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is paris the best capital in the world?'}) AS filter_result;");
+    ASSERT_EQ(results->RowCount(), 1);
+    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
+}
+
 TEST_F(LLMFilterTest, LLMFilterWithMultipleRows) {
     const nlohmann::json expected_response = {{"items", {true}}};
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
