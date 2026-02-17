@@ -117,4 +117,90 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
     }
 }
 
+// Test llm_filter with audio transcription
+TEST_F(LLMFilterTest, LLMFilterWithAudioTranscription) {
+    const nlohmann::json expected_transcription = "{\"text\": \"This audio contains positive sentiment\"}";
+    const nlohmann::json expected_complete_response = {{"items", {true}}};
+
+    // Mock transcription model
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription}));
+
+    // Mock completion model
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT llm_filter("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Is the sentiment in this audio positive?', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'gpt-4o-transcribe'}"
+            "]}) AS result FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+}
+
+// Test llm_filter with audio and text columns
+TEST_F(LLMFilterTest, LLMFilterWithAudioAndText) {
+    const nlohmann::json expected_transcription = "{\"text\": \"Product review audio\"}";
+    const nlohmann::json expected_complete_response = {{"items", {true}}};
+
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription}));
+
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT llm_filter("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Is this product review positive?', "
+            "'context_columns': ["
+            "{'data': text_review, 'name': 'text_review'}, "
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'gpt-4o-transcribe'}"
+            "]}) AS result FROM VALUES ('Great product', 'https://example.com/audio.mp3') AS tbl(text_review, audio_url);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+}
+
+// Test audio transcription error handling for Ollama
+TEST_F(LLMFilterTest, LLMFilterAudioTranscriptionOllamaError) {
+    auto con = Config::GetConnection();
+
+    // Mock transcription model to throw error (simulating Ollama behavior)
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
+
+    // Test with Ollama which doesn't support transcription
+    const auto results = con.Query(
+            "SELECT llm_filter("
+            "{'model_name': 'gemma3:4b'}, "
+            "{'prompt': 'Is the sentiment positive?', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'gemma3:4b'}"
+            "]}) AS result FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);");
+
+    // Should fail because Ollama doesn't support transcription
+    ASSERT_TRUE(results->HasError());
+}
+
 }// namespace flock

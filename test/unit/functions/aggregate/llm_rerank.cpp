@@ -6,18 +6,15 @@ namespace flock {
 
 class LLMRerankTest : public LLMAggregateTestBase<LlmRerank> {
 protected:
-    // The LLM response (for mocking) - returns ranking indices
-    static constexpr const char* LLM_RESPONSE_WITHOUT_GROUP_BY = R"({"items":[0, 1, 2]})";
-    static constexpr const char* LLM_RESPONSE_WITH_GROUP_BY = R"({"items":[0]})";
-    // The expected function output (reranked data as JSON array)
-    static constexpr const char* EXPECTED_RESPONSE = R"([{"product_description":"High-performance running shoes with advanced cushioning"},{"product_description":"Professional business shoes"},{"product_description":"Casual sneakers for everyday wear"}])";
+    static constexpr const char* LLM_RESPONSE = R"({"items":[0, 1, 2]})";
+    static constexpr const char* EXPECTED_RESPONSE_SINGLE = R"([{"data":["High-performance running shoes with advanced cushioning"]}])";
 
     std::string GetExpectedResponse() const override {
-        return EXPECTED_RESPONSE;
+        return EXPECTED_RESPONSE_SINGLE;
     }
 
     nlohmann::json GetExpectedJsonResponse() const override {
-        return nlohmann::json::parse(LLM_RESPONSE_WITHOUT_GROUP_BY);
+        return nlohmann::json::parse(LLM_RESPONSE);
     }
 
     std::string GetFunctionName() const override {
@@ -45,8 +42,29 @@ protected:
     }
 };
 
-// Test llm_rerank with SQL queries without GROUP BY - new API
-TEST_F(LLMRerankTest, LLMRerankWithoutGroupBy) {
+// Test 1-tuple case: no LLM call needed, returns the single tuple directly
+TEST_F(LLMRerankTest, SingleTupleNoLLMCall) {
+    auto con = Config::GetConnection();
+
+    const auto results = con.Query(
+            "SELECT llm_rerank("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Rank these products', 'context_columns': [{'data': description}]}"
+            ") AS reranked_products FROM VALUES "
+            "('High-performance running shoes with advanced cushioning') AS products(description);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+
+    nlohmann::json parsed = nlohmann::json::parse(results->GetValue(0, 0).GetValue<std::string>());
+    EXPECT_EQ(parsed.size(), 1);
+    EXPECT_TRUE(parsed[0].contains("data"));
+    EXPECT_EQ(parsed[0]["data"].size(), 1);
+    EXPECT_EQ(parsed[0]["data"][0], "High-performance running shoes with advanced cushioning");
+}
+
+// Test multiple tuples without GROUP BY: LLM is called once
+TEST_F(LLMRerankTest, MultipleTuplesWithoutGroupBy) {
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
@@ -55,14 +73,15 @@ TEST_F(LLMRerankTest, LLMRerankWithoutGroupBy) {
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
-            "SELECT " + GetFunctionName() + "("
-                                            "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'Rank these products by their relevance and quality based on descriptions', 'context_columns': [{'data': description}]}"
-                                            ") AS reranked_products FROM VALUES "
-                                            "('High-performance running shoes with advanced cushioning'), "
-                                            "('Professional business shoes'), "
-                                            "('Casual sneakers for everyday wear') AS products(description);");
+            "SELECT llm_rerank("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Rank these products by relevance', 'context_columns': [{'data': description}]}"
+            ") AS reranked_products FROM VALUES "
+            "('High-performance running shoes with advanced cushioning'), "
+            "('Professional business shoes'), "
+            "('Casual sneakers for everyday wear') AS products(description);");
 
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 1);
     EXPECT_NO_THROW({
         nlohmann::json parsed = nlohmann::json::parse(results->GetValue(0, 0).GetValue<std::string>());
@@ -72,31 +91,59 @@ TEST_F(LLMRerankTest, LLMRerankWithoutGroupBy) {
     });
 }
 
-// Test llm_rerank with SQL queries with GROUP BY - new API
-TEST_F(LLMRerankTest, LLMRerankWithGroupBy) {
+// Test GROUP BY with multiple tuples per group: LLM is called for each group
+TEST_F(LLMRerankTest, GroupByWithMultipleTuplesPerGroup) {
+    nlohmann::json response_2_items = nlohmann::json{{"items", {1, 0}}};
+
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-            .Times(3);
+            .Times(2);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-            .Times(3)
-            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{nlohmann::json::parse(LLM_RESPONSE_WITH_GROUP_BY)}));
+            .Times(2)
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{response_2_items}));
 
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
-            "SELECT category, " + GetFunctionName() + "("
-                                                      "{'model_name': 'gpt-4o'}, "
-                                                      "{'prompt': 'Rank these products by their relevance and quality based on descriptions', 'context_columns': [{'data': description}]}"
-                                                      ") AS reranked_products FROM VALUES "
-                                                      "('electronics', 'High-performance running shoes with advanced cushioning'), "
-                                                      "('audio', 'Professional business shoes'), "
-                                                      "('fitness', 'Casual sneakers for everyday wear') "
-                                                      "AS products(category, description) GROUP BY category;");
+            "SELECT category, llm_rerank("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Rank these products by relevance', 'context_columns': [{'data': description}]}"
+            ") AS reranked_products FROM VALUES "
+            "('footwear', 'Running shoes with cushioning'), "
+            "('footwear', 'Business shoes for professionals'), "
+            "('electronics', 'Wireless headphones'), "
+            "('electronics', 'Smart fitness tracker') "
+            "AS products(category, description) GROUP BY category;");
 
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 2);
+    for (idx_t i = 0; i < results->RowCount(); i++) {
+        EXPECT_NO_THROW({
+            nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
+            EXPECT_TRUE(parsed[0].contains("data"));
+            EXPECT_EQ(parsed[0]["data"].size(), 2);
+        });
+    }
+}
+
+// Test GROUP BY with single tuple per group: no LLM calls needed
+TEST_F(LLMRerankTest, GroupByWithSingleTuplePerGroup) {
+    auto con = Config::GetConnection();
+
+    const auto results = con.Query(
+            "SELECT category, llm_rerank("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Rank these products by relevance', 'context_columns': [{'data': description}]}"
+            ") AS reranked_products FROM VALUES "
+            "('footwear', 'Running shoes with cushioning'), "
+            "('electronics', 'Wireless headphones'), "
+            "('fitness', 'Smart fitness tracker') "
+            "AS products(category, description) GROUP BY category;");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 3);
     for (idx_t i = 0; i < results->RowCount(); i++) {
         EXPECT_NO_THROW({
             nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
-            EXPECT_EQ(parsed.size(), 1);
             EXPECT_TRUE(parsed[0].contains("data"));
             EXPECT_EQ(parsed[0]["data"].size(), 1);
         });
@@ -109,74 +156,62 @@ TEST_F(LLMRerankTest, ValidateArguments) {
 }
 
 // Test operation with invalid arguments
-TEST_F(LLMRerankTest, Operation_InvalidArguments_ThrowsException) {
+TEST_F(LLMRerankTest, InvalidArguments) {
     TestOperationInvalidArguments();
 }
 
-// Test operation with multiple input scenarios - new API
-TEST_F(LLMRerankTest, Operation_MultipleInputs_ProcessesCorrectly) {
-    const nlohmann::json expected_response = nlohmann::json::parse(LLM_RESPONSE_WITH_GROUP_BY);
+// Test with audio transcription
+TEST_F(LLMRerankTest, AudioTranscription) {
+    const nlohmann::json expected_transcription1 = nlohmann::json::parse(R"({"text": "First audio candidate"})");
+    const nlohmann::json expected_transcription2 = nlohmann::json::parse(R"({"text": "Second audio candidate"})");
+    nlohmann::json response_2_items = nlohmann::json{{"items", {1, 0}}};
+
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription1, expected_transcription2}));
 
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-            .Times(3);
+            .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-            .Times(3)
-            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{response_2_items}));
 
     auto con = Config::GetConnection();
-
     const auto results = con.Query(
-            "SELECT category, " + GetFunctionName() + "("
-                                                      "{'model_name': 'gpt-4o'}, "
-                                                      "{'prompt': 'Rank products by relevance to customer preferences', 'context_columns': [{'data': id::TEXT}, {'data': description}]}"
-                                                      ") AS reranked_products FROM VALUES "
-                                                      "('electronics', 1, 'High-performance running shoes with advanced cushioning'), "
-                                                      "('audio', 2, 'Professional business shoes'), "
-                                                      "('fitness', 3, 'Casual sneakers for everyday wear') "
-                                                      "AS products(category, id, description) GROUP BY category;");
+            "SELECT llm_rerank("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Rank these audio candidates from best to worst', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'gpt-4o-transcribe'}"
+            "]}) AS result FROM VALUES "
+            "('https://example.com/audio1.mp3'), "
+            "('https://example.com/audio2.mp3') AS tbl(audio_url);");
 
-    ASSERT_EQ(results->RowCount(), 3);
-    for (idx_t i = 0; i < results->RowCount(); i++) {
-        EXPECT_NO_THROW({
-            nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
-            EXPECT_EQ(parsed.size(), 2);
-            EXPECT_TRUE(parsed[0].contains("data"));
-            EXPECT_EQ(parsed[0]["data"].size(), 1);
-        });
-    }
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
 }
 
-// Test large input set processing - new API
-TEST_F(LLMRerankTest, Operation_LargeInputSet_ProcessesCorrectly) {
-    constexpr size_t input_count = 100;
-    const nlohmann::json expected_response = nlohmann::json::parse(LLM_RESPONSE_WITH_GROUP_BY);
-
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-            .Times(100);
-    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-            .Times(100)
-            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
-
+// Test audio transcription error handling for Ollama
+TEST_F(LLMRerankTest, AudioTranscriptionOllamaError) {
     auto con = Config::GetConnection();
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
 
     const auto results = con.Query(
-            "SELECT id, " + GetFunctionName() + "("
-                                                "{'model_name': 'gpt-4o'}, "
-                                                "{'prompt': 'Rerank products by relevance and importance', 'context_columns': [{'data': id::TEXT}, {'data': 'Product description ' || id::TEXT}]}"
-                                                ") AS reranked_products FROM range(" +
-            std::to_string(input_count) + ") AS t(id) GROUP BY id;");
+            "SELECT llm_rerank("
+            "{'model_name': 'gemma3:4b'}, "
+            "{'prompt': 'Rank these audio files', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'gemma3:4b'}"
+            "]}) AS result FROM VALUES "
+            "('https://example.com/audio1.mp3'), "
+            "('https://example.com/audio2.mp3') AS tbl(audio_url);");
 
-    ASSERT_EQ(results->RowCount(), 100);
-    for (idx_t i = 0; i < results->RowCount(); i++) {
-        EXPECT_NO_THROW({
-            nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
-            EXPECT_EQ(parsed.size(), 2);
-            EXPECT_TRUE(parsed[0].contains("data"));
-            EXPECT_EQ(parsed[0]["data"].size(), 1);
-        });
-    }
-
-    ::testing::Mock::AllowLeak(mock_provider.get());
+    ASSERT_TRUE(results->HasError());
 }
 
 }// namespace flock

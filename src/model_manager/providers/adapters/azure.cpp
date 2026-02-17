@@ -1,4 +1,6 @@
 #include "flock/model_manager/providers/adapters/azure.hpp"
+#include "flock/model_manager/model.hpp"
+#include "flock/model_manager/providers/handlers/url_handler.hpp"
 
 namespace flock {
 
@@ -8,30 +10,49 @@ void AzureProvider::AddCompletionRequest(const std::string& prompt, const int nu
 
     message_content.push_back({{"type", "text"}, {"text", prompt}});
 
-    if (!media_data.empty()) {
-        auto detail = media_data[0].contains("detail") ? media_data[0]["detail"].get<std::string>() : "low";
-        auto image_type = media_data[0]["type"].get<std::string>();
-        auto mime_type = std::string("image/");
-        if (size_t pos = image_type.find("/"); pos != std::string::npos) {
-            mime_type += image_type.substr(pos + 1);
-        } else {
-            mime_type += std::string("png");
-        }
+    // Process image columns
+    if (media_data.contains("image") && !media_data["image"].empty() && media_data["image"].is_array()) {
+        std::string detail = "low";
         auto column_index = 1u;
-        for (const auto& column: media_data) {
+        for (const auto& column: media_data["image"]) {
+            // Process image column as before
+            if (column_index == 1) {
+                detail = column.contains("detail") ? column["detail"].get<std::string>() : "low";
+            }
+            auto image_type = column.contains("type") ? column["type"].get<std::string>() : "image";
+            auto mime_type = std::string("image/");
+            if (size_t pos = image_type.find("/"); pos != std::string::npos) {
+                mime_type += image_type.substr(pos + 1);
+            } else {
+                mime_type += std::string("png");
+            }
             message_content.push_back(
                     {{"type", "text"},
                      {"text", "ATTACHMENT COLUMN"}});
             auto row_index = 1u;
             for (const auto& image: column["data"]) {
+                // Skip null values
+                if (image.is_null()) {
+                    continue;
+                }
                 message_content.push_back(
                         {{"type", "text"}, {"text", "ROW " + std::to_string(row_index) + " :"}});
                 auto image_url = std::string();
-                auto image_str = image.get<std::string>();
-                if (is_base64(image_str)) {
-                    image_url = duckdb_fmt::format("data:{};base64,{}", mime_type, image_str);
+                std::string image_str;
+                if (image.is_string()) {
+                    image_str = image.get<std::string>();
                 } else {
+                    image_str = image.dump();
+                }
+
+                // Handle file path or URL
+                if (URLHandler::IsUrl(image_str)) {
+                    // URL - send directly to API
                     image_url = image_str;
+                } else {
+                    // File path - read and convert to base64
+                    auto base64_result = URLHandler::ResolveFileToBase64(image_str);
+                    image_url = duckdb_fmt::format("data:{};base64,{}", mime_type, base64_result.base64_content);
                 }
 
                 message_content.push_back(
@@ -80,6 +101,21 @@ void AzureProvider::AddEmbeddingRequest(const std::vector<std::string>& inputs) 
         };
 
         model_handler_->AddRequest(request_payload, IModelProviderHandler::RequestType::Embedding);
+    }
+}
+
+void AzureProvider::AddTranscriptionRequest(const nlohmann::json& audio_files) {
+    for (const auto& audio_file: audio_files) {
+        auto audio_file_str = audio_file.get<std::string>();
+
+        // Handle file download and validation
+        auto file_result = URLHandler::ResolveFilePath(audio_file_str);
+
+        nlohmann::json transcription_request = {
+                {"file_path", file_result.file_path},
+                {"model", model_details_.model},
+                {"is_temp_file", file_result.is_temp_file}};
+        model_handler_->AddRequest(transcription_request, IModelProviderHandler::RequestType::Transcription);
     }
 }
 

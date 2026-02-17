@@ -58,7 +58,12 @@ std::string PromptManager::ConstructInputTuplesHeaderXML(const nlohmann::json& c
     auto header = std::string("<header>");
     auto column_idx = 1u;
     for (const auto& column: columns) {
-        auto column_name = column.contains("name") ? column["name"].get<std::string>() : "COLUMN " + std::to_string(column_idx++);
+        std::string column_name;
+        if (column.contains("name") && column["name"].is_string()) {
+            column_name = column["name"].get<std::string>();
+        } else {
+            column_name = "COLUMN " + std::to_string(column_idx++);
+        }
         header += "<column>" + column_name + "</column>";
     }
     header += "</header>\n";
@@ -72,7 +77,7 @@ std::string PromptManager::ConstructInputTuplesHeaderMarkdown(const nlohmann::js
     auto header = std::string(" | ");
     auto column_idx = 1u;
     for (const auto& column: columns) {
-        if (column.contains("name")) {
+        if (column.contains("name") && column["name"].is_string()) {
             header += "COLUMN_" + column["name"].get<std::string>() + " | ";
         } else {
             header += "COLUMN " + std::to_string(column_idx++) + " | ";
@@ -81,7 +86,12 @@ std::string PromptManager::ConstructInputTuplesHeaderMarkdown(const nlohmann::js
     header += "\n | ";
     column_idx = 1u;
     for (const auto& column: columns) {
-        auto column_name = column.contains("name") ? column["name"].get<std::string>() : "COLUMN " + std::to_string(column_idx++);
+        std::string column_name;
+        if (column.contains("name") && column["name"].is_string()) {
+            column_name = column["name"].get<std::string>();
+        } else {
+            column_name = "COLUMN " + std::to_string(column_idx++);
+        }
         header += std::string(column_name.length(), '-') + " | ";
     }
     header += "\n";
@@ -97,7 +107,16 @@ std::string PromptManager::ConstructInputTuplesXML(const nlohmann::json& columns
     for (auto i = 0; i < static_cast<int>(columns[0]["data"].size()); i++) {
         tuples_str += "<row>";
         for (const auto& column: columns) {
-            tuples_str += "<column>" + column["data"][i].get<std::string>() + "</column>";
+            std::string value_str;
+            const auto& data_item = column["data"][i];
+            if (data_item.is_null()) {
+                value_str = "";
+            } else if (data_item.is_string()) {
+                value_str = data_item.get<std::string>();
+            } else {
+                value_str = data_item.dump();
+            }
+            tuples_str += "<column>" + value_str + "</column>";
         }
         tuples_str += "</row>\n";
     }
@@ -124,7 +143,12 @@ std::string PromptManager::ConstructInputTuplesJSON(const nlohmann::json& column
     auto tuples_json = nlohmann::json::object();
     auto column_idx = 1u;
     for (const auto& column: columns) {
-        auto column_name = column.contains("name") ? column["name"].get<std::string>() : "COLUMN " + std::to_string(column_idx++);
+        std::string column_name;
+        if (column.contains("name") && column["name"].is_string()) {
+            column_name = column["name"].get<std::string>();
+        } else {
+            column_name = "COLUMN " + std::to_string(column_idx++);
+        }
         tuples_json[column_name] = column["data"];
     }
     auto tuples_str = tuples_json.dump(4);
@@ -216,4 +240,38 @@ PromptDetails PromptManager::CreatePromptDetails(const nlohmann::json& prompt_de
     }
     return prompt_details;
 }
+
+nlohmann::json PromptManager::TranscribeAudioColumn(const nlohmann::json& audio_column) {
+    auto transcription_model_name = audio_column["transcription_model"].get<std::string>();
+
+    // Look up the transcription model
+    nlohmann::json transcription_model_json;
+    transcription_model_json["model_name"] = transcription_model_name;
+    Model transcription_model(transcription_model_json);
+
+    // Add transcription requests to batch
+    transcription_model.AddTranscriptionRequest(audio_column["data"]);
+
+    // Collect transcriptions
+    auto transcription_results = transcription_model.CollectTranscriptions();
+
+    // Convert vector<nlohmann::json> to nlohmann::json array
+    nlohmann::json transcriptions = nlohmann::json::array();
+    for (const auto& result: transcription_results) {
+        transcriptions.push_back(result);
+    }
+
+    // Create transcription column with proper naming
+    auto transcription_column = nlohmann::json::object();
+    std::string original_name;
+    if (audio_column.contains("name") && audio_column["name"].is_string()) {
+        original_name = audio_column["name"].get<std::string>();
+    }
+    auto transcription_name = original_name.empty() ? "transcription" : "transcription_of_" + original_name;
+    transcription_column["name"] = transcription_name;
+    transcription_column["data"] = transcriptions;
+
+    return transcription_column;
+}
+
 }// namespace flock

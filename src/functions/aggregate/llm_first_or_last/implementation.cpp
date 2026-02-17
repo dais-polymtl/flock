@@ -3,23 +3,88 @@
 #include "flock/metrics/manager.hpp"
 
 #include <chrono>
+#include <set>
+#include <string>
 #include <vector>
 
 namespace flock {
 
 int LlmFirstOrLast::GetFirstOrLastTupleId(nlohmann::json& tuples) {
-    nlohmann::json data;
     const auto [prompt, media_data] = PromptManager::Render(user_query, tuples, function_type, model.GetModelDetails().tuple_format);
     model.AddCompletionRequest(prompt, 1, OutputType::INTEGER, media_data);
     auto response = model.CollectCompletions()[0];
-    return response["items"][0];
+
+    // Find flock_row_id column to get valid IDs
+    std::set<std::string> valid_ids;
+    for (const auto& column: tuples) {
+        if (column.contains("name") && column["name"].is_string() &&
+            column["name"].get<std::string>() == "flock_row_id" &&
+            column.contains("data") && column["data"].is_array()) {
+            for (const auto& id: column["data"]) {
+                if (id.is_string()) {
+                    valid_ids.insert(id.get<std::string>());
+                }
+            }
+            break;
+        }
+    }
+
+    // Get LLM response - can be integer or string
+    int result_id_int = -1;
+    std::string result_id_str;
+    if (response["items"][0].is_number_integer()) {
+        result_id_int = response["items"][0].get<int>();
+        result_id_str = std::to_string(result_id_int);
+    } else if (response["items"][0].is_string()) {
+        result_id_str = response["items"][0].get<std::string>();
+        try {
+            result_id_int = std::stoi(result_id_str);
+        } catch (...) {
+            throw std::runtime_error(
+                    "Invalid LLM response: The LLM returned ID '" + result_id_str +
+                    "' which is not a valid flock_row_id.");
+        }
+    } else {
+        throw std::runtime_error(
+                "Invalid LLM response: Expected integer or string ID, got: " + response["items"][0].dump());
+    }
+
+    // Validate that the ID exists in flock_row_id
+    if (valid_ids.find(result_id_str) == valid_ids.end()) {
+        throw std::runtime_error(
+                "Invalid LLM response: The LLM returned ID '" + result_id_str +
+                "' which is not a valid flock_row_id.");
+    }
+
+    return result_id_int;
 }
 
 nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
+    int num_tuples = static_cast<int>(tuples[0]["data"].size());
+
+    // If there's only 1 tuple, no need to call the LLM - just return it
+    if (num_tuples <= 1) {
+        auto result = nlohmann::json::array();
+        for (auto i = 0; i < static_cast<int>(tuples.size()) - 1; i++) {
+            result.push_back(nlohmann::json::object());
+            for (const auto& item: tuples[i].items()) {
+                if (item.key() == "data") {
+                    result[i]["data"] = nlohmann::json::array();
+                    if (!item.value().empty()) {
+                        result[i]["data"].push_back(item.value()[0]);
+                    }
+                } else {
+                    result[i][item.key()] = item.value();
+                }
+            }
+        }
+        return result;
+    }
+
     auto batch_tuples = nlohmann::json::array();
     int start_index = 0;
     model = Model(model_details);
-    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, static_cast<int>(tuples[0]["data"].size()));
+    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, num_tuples);
 
     if (batch_size <= 0) {
         throw std::runtime_error("Batch size must be greater than zero");
@@ -51,7 +116,8 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
             auto result_idx = GetFirstOrLastTupleId(batch_tuples);
 
             batch_tuples.clear();
-            for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
+            // Build result excluding flock_row_id column (last column)
+            for (auto i = 0; i < static_cast<int>(tuples.size()) - 1; i++) {
                 batch_tuples.push_back(nlohmann::json::object());
                 for (const auto& item: tuples[i].items()) {
                     if (item.key() == "data") {
@@ -72,8 +138,6 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
 
     } while (start_index < static_cast<int>(tuples[0]["data"].size()));
 
-    batch_tuples.erase(batch_tuples.end() - 1);
-
     return batch_tuples;
 }
 
@@ -92,10 +156,10 @@ void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateIn
 
     // Process each state individually
     for (idx_t i = 0; i < count; i++) {
-        auto idx = i + offset;
-        auto* state = states_vector[idx];
+        auto result_idx = i + offset;
+        auto* state = states_vector[i];
 
-        if (state && !state->value->empty()) {
+        if (state && state->value && !state->value->empty()) {
             // Use model_details and user_query from the state (not static variables)
             Model model(state->model_details);
             auto model_details_obj = model.GetModelDetails();
@@ -135,9 +199,9 @@ void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateIn
             double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
             MetricsManager::AddExecutionTime(exec_duration_ms);
 
-            result.SetValue(idx, response.dump());
+            result.SetValue(result_idx, response.dump());
         } else {
-            result.SetValue(idx, nullptr);
+            result.SetValue(result_idx, nullptr);
         }
     }
 

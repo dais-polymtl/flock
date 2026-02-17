@@ -1,10 +1,24 @@
 import pytest
-from integration.conftest import run_cli, get_image_data_for_provider
+from integration.conftest import (
+    run_cli,
+    get_image_data_for_provider,
+    get_audio_file_path,
+)
+
+# Expected keywords that should appear when audio is transcribed
+# Audio content: "Flock transforms DuckDB into a hybrid database and a semantic AI engine"
+AUDIO_EXPECTED_KEYWORDS = ["flock", "duckdb", "database", "semantic", "ai", "hybrid"]
 
 
-@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:1b", "ollama")])
 def model_config(request):
-    """Fixture to test with different models."""
+    """Fixture to test with different models for text-only tests."""
+    return request.param
+
+
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:4b", "ollama")])
+def model_config_image(request):
+    """Fixture to test with different models for image tests."""
     return request.param
 
 
@@ -17,7 +31,7 @@ def test_llm_reduce_basic_functionality(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE products (
@@ -44,7 +58,7 @@ def test_llm_reduce_basic_functionality(integration_setup, model_config):
                        {'model_name': '"""
         + test_model_name
         + """'},
-                    {'prompt': 'Summarize the following product descriptions into a single comprehensive summary', 'context_columns': [{'data': description}]}
+                    {'prompt': 'Summarize these products in exactly 5 words', 'context_columns': [{'data': description}]}
         ) AS product_summary
             FROM products; \
             """
@@ -67,7 +81,7 @@ def test_llm_reduce_with_group_by(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE product_reviews (
@@ -98,7 +112,7 @@ def test_llm_reduce_with_group_by(integration_setup, model_config):
                        {'model_name': '"""
         + test_model_name
         + """'},
-                    {'prompt': 'Create a brief summary of these product reviews', 'context_columns': [{'data': review_text}]}
+                    {'prompt': 'Summarize in 3 words', 'context_columns': [{'data': review_text}]}
         ) AS category_summary
             FROM product_reviews
             GROUP BY product_category
@@ -127,7 +141,7 @@ def test_llm_reduce_multiple_columns(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE employee_feedback (
@@ -155,7 +169,7 @@ def test_llm_reduce_multiple_columns(integration_setup, model_config):
                        {'model_name': '"""
         + test_model_name
         + """'},
-                    {'prompt': 'Summarize the team feedback and overall performance', 'context_columns': [{'data': employee_name}, {'data': feedback}, {'data': rating::VARCHAR}]}
+                    {'prompt': 'Rate team in one word', 'context_columns': [{'data': employee_name}, {'data': feedback}, {'data': rating::VARCHAR}]}
         ) AS team_summary
             FROM employee_feedback
             GROUP BY department; \
@@ -177,7 +191,7 @@ def test_llm_reduce_with_batch_processing(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE articles (
@@ -204,7 +218,7 @@ def test_llm_reduce_with_batch_processing(integration_setup, model_config):
                        {'model_name': '"""
         + test_model_name
         + """', 'batch_size': 2},
-                    {'prompt': 'Create a comprehensive summary of these articles', 'context_columns': [{'data': title}, {'data': content}]}
+                    {'prompt': 'List topics in 5 words max', 'context_columns': [{'data': title}, {'data': content}]}
         ) AS articles_summary
             FROM articles; \
             """
@@ -226,7 +240,7 @@ def test_llm_reduce_with_model_parameters(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE news_items (
@@ -251,7 +265,7 @@ def test_llm_reduce_with_model_parameters(integration_setup, model_config):
         + test_model_name
         + """', 'tuple_format': 'Markdown',
                                                             'model_parameters': '{"temperature": 0.1}'},
-                    {'prompt': 'Provide a concise summary of these news items', 'context_columns': [{'data': headline}, {'data': summary}]}
+                    {'prompt': 'Summarize in 3 words', 'context_columns': [{'data': headline}, {'data': summary}]}
         ) AS news_summary
             FROM news_items; \
             """
@@ -271,7 +285,7 @@ def test_llm_reduce_empty_table(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE empty_data (
@@ -343,7 +357,7 @@ def test_llm_reduce_error_handling_empty_prompt(integration_setup, model_config)
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE test_data (
@@ -384,7 +398,7 @@ def test_llm_reduce_error_handling_missing_arguments(integration_setup, model_co
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Test with only 1 argument (should fail since llm_reduce requires 2)
     query = (
@@ -410,7 +424,7 @@ def test_llm_reduce_with_special_characters(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE international_content (
@@ -434,7 +448,7 @@ def test_llm_reduce_with_special_characters(integration_setup, model_config):
                        {'model_name': '"""
         + test_model_name
         + """'},
-                    {'prompt': 'Summarize these international text samples', 'context_columns': [{'data': text}]}
+                    {'prompt': 'Describe in 3 words', 'context_columns': [{'data': text}]}
         ) AS summary
             FROM international_content; \
             """
@@ -454,7 +468,7 @@ def test_llm_reduce_with_structured_output(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE structured_data (
@@ -519,7 +533,7 @@ def _test_llm_reduce_performance_large_dataset(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE large_dataset AS
@@ -538,7 +552,7 @@ def _test_llm_reduce_performance_large_dataset(integration_setup, model_config):
                        {'model_name': '"""
         + test_model_name
         + """', 'batch_size': 10},
-                    {'prompt': 'Create a comprehensive summary of all items in this category', 'context_columns': [{'data': content}]}
+                    {'prompt': 'Summarize in 3 words', 'context_columns': [{'data': content}]}
         ) AS category_summary
             FROM large_dataset
             GROUP BY category
@@ -555,16 +569,16 @@ def _test_llm_reduce_performance_large_dataset(integration_setup, model_config):
     assert "category" in result.stdout.lower()
 
 
-def test_llm_reduce_with_image_integration(integration_setup, model_config):
+def test_llm_reduce_with_image_integration(integration_setup, model_config_image):
     """Test llm_reduce with image data integration."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     test_model_name = f"test-image-reduce-model_{model_name}"
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE animal_images (
@@ -605,7 +619,7 @@ def test_llm_reduce_with_image_integration(integration_setup, model_config):
         + test_model_name
         + """'},
             {
-                'prompt': 'Summarize the next data in json do not miss any data',
+                'prompt': 'List animal names only',
                 'context_columns': [
                     {'data': name},
                     {'data': image, 'type': 'image'}
@@ -623,16 +637,16 @@ def test_llm_reduce_with_image_integration(integration_setup, model_config):
     assert len(result.stdout.strip().split("\n")) >= 2
 
 
-def test_llm_reduce_image_with_group_by(integration_setup, model_config):
+def test_llm_reduce_image_with_group_by(integration_setup, model_config_image):
     """Test llm_reduce with images and GROUP BY clause."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     test_model_name = f"test-image-group-reduce_{model_name}"
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE product_images (
@@ -685,7 +699,7 @@ def test_llm_reduce_image_with_group_by(integration_setup, model_config):
         + test_model_name
         + """'},
             {
-                'prompt': 'Analyze these product images in this category and provide a summary of their design characteristics and market positioning.',
+                'prompt': 'List product names in 5 words max',
                 'context_columns': [
                     {'data': product_name},
                     {'data': image_url, 'type': 'image'},
@@ -708,16 +722,16 @@ def test_llm_reduce_image_with_group_by(integration_setup, model_config):
     assert "category_analysis" in result.stdout.lower()
 
 
-def test_llm_reduce_image_batch_processing(integration_setup, model_config):
+def test_llm_reduce_image_batch_processing(integration_setup, model_config_image):
     """Test llm_reduce with multiple images in batch processing."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     test_model_name = f"test-image-batch-reduce_{model_name}"
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE landscape_photos (
@@ -768,7 +782,7 @@ def test_llm_reduce_image_batch_processing(integration_setup, model_config):
         + test_model_name
         + """', 'batch_size': 3},
             {
-                'prompt': 'Analyze these landscape photographs and create a comprehensive summary of the natural environments, weather conditions, and seasonal characteristics shown.',
+                'prompt': 'List locations in 5 words max',
                 'context_columns': [
                     {'data': location},
                     {'data': image_url, 'type': 'image'},
@@ -785,3 +799,134 @@ def test_llm_reduce_image_batch_processing(integration_setup, model_config):
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     assert "landscape_summary" in result.stdout.lower()
     assert len(result.stdout.strip().split("\n")) >= 2
+
+
+def test_llm_reduce_with_audio_transcription(integration_setup, model_config):
+    """Test llm_reduce with audio transcription using OpenAI.
+
+    The audio content says: 'Flock transforms DuckDB into a hybrid database and a semantic AI engine'
+    This test verifies that the audio is correctly transcribed and reduced into a summary.
+    """
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    if provider != "openai":
+        pytest.skip("Audio transcription is only supported for OpenAI provider")
+
+    test_model_name = f"test-audio-reduce_{model_name}"
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'gpt-4o-mini', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
+
+    transcription_model_name = f"test-transcription-reduce_{model_name}"
+    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
+    run_cli(
+        duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False
+    )
+
+    # Get audio file path
+    audio_path = get_audio_file_path()
+
+    # Create table with different topics and the same Flock audio
+    create_table_query = """
+    CREATE OR REPLACE TABLE audio_content (
+        id INTEGER,
+        topic VARCHAR,
+        audio_path VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    insert_data_query = f"""
+    INSERT INTO audio_content
+    VALUES 
+        (1, 'Technology Overview', '{audio_path}'),
+        (2, 'Product Demo', '{audio_path}');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = (
+        """
+        SELECT llm_reduce(
+            {'model_name': '"""
+        + test_model_name
+        + """'},
+            {
+                'prompt': 'What product is discussed? Answer in 5 words max.',
+                'context_columns': [
+                    {'data': topic, 'type': 'text'},
+                    {
+                        'data': audio_path,
+                        'type': 'audio',
+                        'transcription_model': '"""
+        + transcription_model_name
+        + """'
+                    }
+                ]
+            }
+        ) AS audio_summary
+        FROM audio_content;
+        """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+    # The summary should mention Flock, DuckDB, database, or related terms from the audio
+    result_lower = result.stdout.lower()
+    assert any(kw in result_lower for kw in AUDIO_EXPECTED_KEYWORDS), (
+        f"Expected summary to contain keywords from audio content {AUDIO_EXPECTED_KEYWORDS}. Got: {result.stdout}"
+    )
+
+
+def test_llm_reduce_audio_ollama_error(integration_setup):
+    """Test that Ollama provider throws error for audio transcription in llm_reduce."""
+    duckdb_cli_path, db_path = integration_setup
+
+    test_model_name = "test-ollama-reduce-audio"
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'gemma3:1b', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
+
+    transcription_model_name = "test-ollama-reduce-transcription"
+    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gemma3:1b', 'ollama');"
+    run_cli(
+        duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False
+    )
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE test_audio (
+        id INTEGER,
+        audio_url VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    insert_data_query = """
+    INSERT INTO test_audio VALUES 
+        (1, 'https://example.com/audio1.mp3'),
+        (2, 'https://example.com/audio2.mp3');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = """
+        SELECT llm_reduce(
+            {'model_name': '""" + test_model_name + """'},
+            {
+                'prompt': 'Summarize this audio',
+                'context_columns': [
+                    {
+                        'data': audio_url,
+                        'type': 'audio',
+                        'transcription_model': '""" + transcription_model_name + """'
+                    }
+                ]
+            }
+        ) AS result
+        FROM test_audio;
+        """
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode != 0
+    assert (
+        "ollama" in result.stderr.lower()
+        or "transcription" in result.stderr.lower()
+        or "not supported" in result.stderr.lower()
+    )

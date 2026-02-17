@@ -4,7 +4,6 @@ namespace flock {
 
 nlohmann::json ScalarFunctionBase::Complete(nlohmann::json& columns, const std::string& user_prompt,
                                             ScalarFunctionType function_type, Model& model) {
-    nlohmann::json data;
     const auto [prompt, media_data] = PromptManager::Render(user_prompt, columns, function_type, model.GetModelDetails().tuple_format);
     OutputType output_type = OutputType::STRING;
     if (function_type == ScalarFunctionType::FILTER) {

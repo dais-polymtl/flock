@@ -1,10 +1,27 @@
 import pytest
-from integration.conftest import run_cli, get_image_data_for_provider
+import json
+import csv
+from io import StringIO
+from integration.conftest import (
+    run_cli,
+    get_image_data_for_provider,
+    get_audio_file_path,
+)
+
+# Expected keywords that should appear when audio is transcribed
+# Audio content: "Flock transforms DuckDB into a hybrid database and a semantic AI engine"
+AUDIO_EXPECTED_KEYWORDS = ["flock", "duckdb", "database", "semantic", "ai", "hybrid"]
 
 
-@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:1b", "ollama")])
 def model_config(request):
-    """Fixture to test with different models."""
+    """Fixture to test with different models for text-only tests."""
+    return request.param
+
+
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:4b", "ollama")])
+def model_config_image(request):
+    """Fixture to test with different models for image tests."""
     return request.param
 
 
@@ -17,7 +34,7 @@ def test_llm_last_basic_functionality(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE products (
@@ -65,7 +82,7 @@ def test_llm_last_with_group_by(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE restaurant_reviews (
@@ -121,7 +138,7 @@ def test_llm_last_with_batch_processing(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE service_providers (
@@ -172,7 +189,7 @@ def test_llm_last_with_model_parameters(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE movie_reviews (
@@ -224,7 +241,7 @@ def test_llm_last_multiple_criteria(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE housing_options (
@@ -275,7 +292,7 @@ def test_llm_last_empty_table(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE empty_products (
@@ -347,7 +364,7 @@ def test_llm_last_error_handling_empty_prompt(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE test_data (
@@ -388,7 +405,7 @@ def test_llm_last_error_handling_missing_arguments(integration_setup, model_conf
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Test with only 1 argument (should fail since llm_last requires 2)
     query = (
@@ -414,7 +431,7 @@ def test_llm_last_with_special_characters(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE travel_destinations (
@@ -462,7 +479,7 @@ def _test_llm_last_performance_large_dataset(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE large_product_pool AS
@@ -499,15 +516,15 @@ def _test_llm_last_performance_large_dataset(integration_setup, model_config):
     assert "category" in result.stdout.lower()
 
 
-def test_llm_last_with_image_integration(integration_setup, model_config):
+def test_llm_last_with_image_integration(integration_setup, model_config_image):
     """Test llm_last with image data integration."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     create_model_query = (
         f"CREATE MODEL('test-image-last-model', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE flower_images (
@@ -564,15 +581,15 @@ def test_llm_last_with_image_integration(integration_setup, model_config):
     assert len(result.stdout.strip().split("\n")) >= 2
 
 
-def test_llm_last_image_with_group_by(integration_setup, model_config):
+def test_llm_last_image_with_group_by(integration_setup, model_config_image):
     """Test llm_last with images and GROUP BY clause."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     create_model_query = (
         f"CREATE MODEL('test-image-group-last', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE car_images (
@@ -639,15 +656,15 @@ def test_llm_last_image_with_group_by(integration_setup, model_config):
     assert "oldest_car" in result.stdout.lower()
 
 
-def test_llm_last_image_batch_processing(integration_setup, model_config):
+def test_llm_last_image_batch_processing(integration_setup, model_config_image):
     """Test llm_last with multiple images in batch processing."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     create_model_query = (
         f"CREATE MODEL('test-image-batch-last', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE restaurant_images (
@@ -713,3 +730,143 @@ def test_llm_last_image_batch_processing(integration_setup, model_config):
         f"Expected at least 4 lines (header + 3 cuisines), got {len(lines)}"
     )
     assert "lowest_rated_restaurant" in result.stdout.lower()
+
+
+def test_llm_last_with_audio_transcription(integration_setup, model_config):
+    """Test llm_last with audio transcription using OpenAI.
+
+    The audio content says: 'Flock transforms DuckDB into a hybrid database and a semantic AI engine'
+    This test verifies that the audio is correctly transcribed and the LLM can reason about the content.
+    """
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    if provider != "openai":
+        pytest.skip("Audio transcription is only supported for OpenAI provider")
+
+    test_model_name = f"test-audio-last_{model_name}"
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'gpt-4o-mini', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
+
+    transcription_model_name = f"test-transcription-last_{model_name}"
+    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
+
+    # Get audio file path
+    audio_path = get_audio_file_path()
+
+    # Create table with topics - one about Flock/DuckDB (audio content), one unrelated
+    create_table_query = """
+    CREATE OR REPLACE TABLE audio_topics (
+        id INTEGER,
+        topic VARCHAR,
+        audio_path VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    # Row 1 has no real audio (empty), Row 2 has the actual Flock audio
+    insert_data_query = f"""
+    INSERT INTO audio_topics
+    VALUES 
+        (1, 'Weather Forecast', '{audio_path}'),
+        (2, 'Database Technology', '{audio_path}');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    # Ask which topic is about databases based on the audio
+    query = (
+        """
+        SELECT llm_last(
+            {'model_name': '"""
+        + test_model_name
+        + """'},
+            {
+                'prompt': 'Based on the topic and audio content (if available), which entry is about databases or Flock? Return the topic name.',
+                'context_columns': [
+                    {'data': topic, 'type': 'text'},
+                    {
+                        'data': audio_path,
+                        'type': 'audio',
+                        'transcription_model': '"""
+        + transcription_model_name
+        + """'
+                    }
+                ]
+            }
+        ) AS selected_topic
+        FROM audio_topics;
+        """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+
+    # Parse the JSON output to verify the returned tuple
+    lines = result.stdout.strip().split("\n")
+    assert len(lines) >= 2, "Expected at least header and one result row"
+
+    # Parse CSV output to get the JSON result
+    reader = csv.DictReader(StringIO(result.stdout))
+    row = next(reader, None)
+    assert row is not None and "selected_topic" in row
+
+    # Parse the JSON result which contains the tuple data
+    result_json = json.loads(row["selected_topic"])
+    assert isinstance(result_json, list), (
+        f"Expected list of tuples, got: {type(result_json)}"
+    )
+    assert len(result_json) > 0, "Expected at least one tuple in result"
+
+
+def test_llm_last_audio_ollama_error(integration_setup):
+    """Test that Ollama provider throws error for audio transcription in llm_last."""
+    duckdb_cli_path, db_path = integration_setup
+
+    test_model_name = "test-ollama-last-audio"
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'gemma3:1b', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
+
+    transcription_model_name = "test-ollama-last-transcription"
+    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gemma3:1b', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE test_audio (
+        id INTEGER,
+        audio_url VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    insert_data_query = """
+    INSERT INTO test_audio VALUES 
+        (1, 'https://example.com/audio1.mp3'),
+        (2, 'https://example.com/audio2.mp3');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = """
+        SELECT llm_last(
+            {'model_name': '""" + test_model_name + """'},
+            {
+                'prompt': 'Select the worst audio. Return ID only.',
+                'context_columns': [
+                    {
+                        'data': audio_url,
+                        'type': 'audio',
+                        'transcription_model': '""" + transcription_model_name + """'
+                    }
+                ]
+            }
+        ) AS result
+        FROM test_audio;
+        """
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode != 0
+    assert (
+        "ollama" in result.stderr.lower()
+        or "transcription" in result.stderr.lower()
+        or "not supported" in result.stderr.lower()
+    )

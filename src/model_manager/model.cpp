@@ -106,12 +106,20 @@ void Model::AddEmbeddingRequest(const std::vector<std::string>& inputs) {
     provider_->AddEmbeddingRequest(inputs);
 }
 
+void Model::AddTranscriptionRequest(const nlohmann::json& audio_files) {
+    provider_->AddTranscriptionRequest(audio_files);
+}
+
 std::vector<nlohmann::json> Model::CollectCompletions(const std::string& contentType) {
     return provider_->CollectCompletions(contentType);
 }
 
 std::vector<nlohmann::json> Model::CollectEmbeddings(const std::string& contentType) {
     return provider_->CollectEmbeddings(contentType);
+}
+
+std::vector<nlohmann::json> Model::CollectTranscriptions(const std::string& contentType) {
+    return provider_->CollectTranscriptions(contentType);
 }
 
 }// namespace flock

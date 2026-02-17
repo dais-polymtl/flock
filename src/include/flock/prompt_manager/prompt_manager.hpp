@@ -4,6 +4,7 @@
 
 #include "flock/core/common.hpp"
 #include "flock/core/config.hpp"
+#include "flock/model_manager/model.hpp"
 #include "flock/prompt_manager/repository.hpp"
 #include <nlohmann/json.hpp>
 
@@ -45,18 +46,39 @@ public:
 
     static std::string ConstructInputTuples(const nlohmann::json& columns, const std::string& tuple_format = "XML");
 
+    // Helper function to transcribe audio column and create transcription text column
+    static nlohmann::json TranscribeAudioColumn(const nlohmann::json& audio_column);
+
+public:
     template<typename FunctionType>
     static std::tuple<std::string, nlohmann::json> Render(const std::string& user_prompt, const nlohmann::json& columns, FunctionType option,
                                                           const std::string& tuple_format = "XML") {
-        auto media_data = nlohmann::json::array();
+        auto image_data = nlohmann::json::array();
         auto tabular_data = nlohmann::json::array();
+
         for (auto i = 0; i < static_cast<int>(columns.size()); i++) {
-            if (columns[i].contains("type") && columns[i]["type"] == "image") {
-                media_data.push_back(columns[i]);
+            if (columns[i].contains("type")) {
+                auto column_type = columns[i]["type"].get<std::string>();
+                if (column_type == "image") {
+                    image_data.push_back(columns[i]);
+                } else if (column_type == "audio") {
+                    // Transcribe audio and merge as tabular text data
+                    if (columns[i].contains("transcription_model")) {
+                        auto transcription_column = TranscribeAudioColumn(columns[i]);
+                        tabular_data.push_back(transcription_column);
+                    }
+                } else {
+                    tabular_data.push_back(columns[i]);
+                }
             } else {
                 tabular_data.push_back(columns[i]);
             }
         }
+
+        // Create media_data as an object with only image array (audio is now in tabular_data)
+        nlohmann::json media_data;
+        media_data["image"] = image_data;
+        media_data["audio"] = nlohmann::json::array();// Empty - audio is now in tabular_data
 
         auto prompt = PromptManager::GetTemplate(option);
         prompt = PromptManager::ReplaceSection(prompt, PromptSection::USER_PROMPT, user_prompt);

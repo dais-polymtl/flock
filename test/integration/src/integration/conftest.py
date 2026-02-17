@@ -3,11 +3,31 @@ import subprocess
 import pytest
 from pathlib import Path
 from dotenv import load_dotenv
-import base64
-import requests
 from integration.setup_test_db import setup_test_db
 
 load_dotenv()
+
+TEST_AUDIO_FILE_PATH = Path(__file__).parent / "tests" / "flock_test_audio.mp3"
+
+
+def get_audio_file_path():
+    return str(TEST_AUDIO_FILE_PATH.resolve())
+
+
+def get_secrets_setup_sql():
+    openai_key = os.getenv("OPENAI_API_KEY", "")
+    ollama_url = os.getenv("API_URL", "http://localhost:11434")
+
+    secrets_sql = []
+
+    if openai_key:
+        secrets_sql.append(f"CREATE SECRET (TYPE OPENAI, API_KEY '{openai_key}');")
+
+    if ollama_url:
+        secrets_sql.append(f"CREATE SECRET (TYPE OLLAMA, API_URL '{ollama_url}');")
+
+    return " ".join(secrets_sql)
+
 
 @pytest.fixture(scope="session")
 def integration_setup(tmp_path_factory):
@@ -25,33 +45,49 @@ def integration_setup(tmp_path_factory):
             if os.path.exists(test_db_path):
                 os.remove(test_db_path)
 
-def run_cli(duckdb_cli_path, db_path, query):
-    return subprocess.run(
+
+def run_cli(duckdb_cli_path, db_path, query, with_secrets=True):
+    if with_secrets:
+        secrets_sql = get_secrets_setup_sql()
+        if secrets_sql:
+            query = f"{secrets_sql} {query}"
+
+    result = subprocess.run(
         [duckdb_cli_path, db_path, "-csv", "-c", query],
         capture_output=True,
         text=True,
         check=False,
     )
 
+    # Filter out the secret creation output (Success, true lines) from stdout
+    if with_secrets and result.stdout:
+        lines = result.stdout.split("\n")
+        # Remove lines that are just "Success" or "true" from secret creation
+        filtered_lines = []
+        skip_count = 0
+        for line in lines:
+            stripped = line.strip()
+            if skip_count > 0 and stripped in ("true", "false"):
+                skip_count -= 1
+                continue
+            if stripped == "Success":
+                skip_count = 1  # Skip the next line (true/false)
+                continue
+            filtered_lines.append(line)
+        result = subprocess.CompletedProcess(
+            args=result.args,
+            returncode=result.returncode,
+            stdout="\n".join(filtered_lines),
+            stderr=result.stderr,
+        )
+
+    return result
+
+
 def get_image_data_for_provider(image_url, provider):
     """
     Get image data in the appropriate format based on the provider.
-    OpenAI uses URLs directly, Ollama uses base64 encoding.
+    Now all providers support URLs directly - the C++ code handles
+    downloading and converting to base64 for providers that need it (Ollama).
     """
-    if provider == "openai":
-        return image_url
-    elif provider == "ollama":
-        # Fetch the image and convert to base64
-        try:
-            response = requests.get(image_url, timeout=10)
-            response.raise_for_status()
-            image_base64 = base64.b64encode(response.content).decode("utf-8")
-            return image_base64
-        except Exception as e:
-            # Fallback to URL if fetching fails
-            print(
-                f"Warning: Failed to fetch image {image_url}: {e}. Using URL instead."
-            )
-            return image_url
-    else:
-        return image_url
+    return image_url

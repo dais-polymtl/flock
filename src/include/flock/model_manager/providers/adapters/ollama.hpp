@@ -13,6 +13,7 @@ public:
 
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) override;
     void AddEmbeddingRequest(const std::vector<std::string>& inputs) override;
+    void AddTranscriptionRequest(const nlohmann::json& audio_files) override;
 };
 
 }// namespace flock

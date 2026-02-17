@@ -101,7 +101,7 @@ TEST(ModelProvidersTest, AzureProviderTest) {
 TEST(ModelProvidersTest, OllamaProviderTest) {
     ModelDetails model_details;
     model_details.model_name = "test_model";
-    model_details.model = "llama3";
+    model_details.model = "gemma3:4b";
     model_details.provider_name = "ollama";
     model_details.model_parameters = {{"temperature", 0.7}};
     model_details.secret = {{"api_url", "http://localhost:11434"}};
@@ -137,6 +137,69 @@ TEST(ModelProvidersTest, OllamaProviderTest) {
     auto embedding_results = mock_provider.CollectEmbeddings("application/json");
     ASSERT_EQ(embedding_results.size(), 1);
     EXPECT_EQ(embedding_results[0], expected_embedding_response);
+
+    // Set up mock behavior for AddTranscriptionRequest and CollectTranscriptions
+    const json audio_files = json::array({"https://example.com/audio.mp3"});
+    const json expected_transcription_response = {{"text", "This is a test transcription"}};
+
+    EXPECT_CALL(mock_provider, AddTranscriptionRequest(audio_files))
+            .Times(1);
+    EXPECT_CALL(mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription_response}));
+
+    // Test the mocked transcription methods
+    mock_provider.AddTranscriptionRequest(audio_files);
+    auto transcription_results = mock_provider.CollectTranscriptions("multipart/form-data");
+    ASSERT_EQ(transcription_results.size(), 1);
+    EXPECT_EQ(transcription_results[0], expected_transcription_response);
+}
+
+// Test Ollama provider transcription error
+TEST(ModelProvidersTest, OllamaProviderTranscriptionError) {
+    ModelDetails model_details;
+    model_details.model_name = "test_model";
+    model_details.model = "gemma3:4b";
+    model_details.provider_name = "ollama";
+    model_details.model_parameters = {{"temperature", 0.7}};
+    model_details.secret = {{"api_url", "http://localhost:11434"}};
+
+    OllamaProvider provider(model_details);
+    const json audio_files = json::array({"https://example.com/audio.mp3"});
+
+    // Ollama should throw an error when transcription is requested
+    EXPECT_THROW(provider.AddTranscriptionRequest(audio_files), std::runtime_error);
+}
+
+// Test transcription with multiple audio files
+TEST(ModelProvidersTest, TranscriptionWithMultipleFiles) {
+    ModelDetails model_details;
+    model_details.model_name = "test_model";
+    model_details.model = "gpt-4o-transcribe";
+    model_details.provider_name = "openai";
+    model_details.model_parameters = {};
+    model_details.secret = {{"api_key", "test_api_key"}};
+
+    MockProvider mock_provider(model_details);
+
+    const json audio_files = json::array({"https://example.com/audio1.mp3",
+                                          "https://example.com/audio2.mp3",
+                                          "https://example.com/audio3.mp3"});
+    const std::vector<nlohmann::json> expected_transcription_responses = {
+            {{"text", "First transcription"}},
+            {{"text", "Second transcription"}},
+            {{"text", "Third transcription"}}};
+
+    EXPECT_CALL(mock_provider, AddTranscriptionRequest(audio_files))
+            .Times(1);
+    EXPECT_CALL(mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(expected_transcription_responses));
+
+    mock_provider.AddTranscriptionRequest(audio_files);
+    auto transcription_results = mock_provider.CollectTranscriptions("multipart/form-data");
+    ASSERT_EQ(transcription_results.size(), 3);
+    EXPECT_EQ(transcription_results[0], expected_transcription_responses[0]);
+    EXPECT_EQ(transcription_results[1], expected_transcription_responses[1]);
+    EXPECT_EQ(transcription_results[2], expected_transcription_responses[2]);
 }
 
 }// namespace flock

@@ -5,13 +5,11 @@ namespace flock {
 
 class LLMFirstTest : public LLMAggregateTestBase<LlmFirstOrLast> {
 protected:
-    // The LLM response (for mocking)
     static constexpr const char* LLM_RESPONSE = R"({"items":[0]})";
-    // The expected function output (selected data)
-    static constexpr const char* EXPECTED_RESPONSE = R"([{"data":["High-performance running shoes with advanced cushioning"]}])";
+    static constexpr const char* EXPECTED_RESPONSE_SINGLE = R"([{"data":["High-performance running shoes with advanced cushioning"]}])";
 
     std::string GetExpectedResponse() const override {
-        return EXPECTED_RESPONSE;
+        return EXPECTED_RESPONSE_SINGLE;
     }
 
     nlohmann::json GetExpectedJsonResponse() const override {
@@ -39,8 +37,30 @@ protected:
     }
 };
 
-// Test llm_first with SQL queries without GROUP BY - new API
-TEST_F(LLMFirstTest, LLMFirstWithoutGroupBy) {
+// Test 1-tuple case: no LLM call needed, returns the single tuple directly
+TEST_F(LLMFirstTest, SingleTupleNoLLMCall) {
+    // No mock expectations - LLM should NOT be called for single tuple
+    auto con = Config::GetConnection();
+
+    const auto results = con.Query(
+            "SELECT llm_first("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Select the first product', 'context_columns': [{'data': description}]}"
+            ") AS first_product FROM VALUES "
+            "('High-performance running shoes with advanced cushioning') AS products(description);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+
+    nlohmann::json parsed = nlohmann::json::parse(results->GetValue(0, 0).GetValue<std::string>());
+    EXPECT_EQ(parsed.size(), 1);
+    EXPECT_TRUE(parsed[0].contains("data"));
+    EXPECT_EQ(parsed[0]["data"].size(), 1);
+    EXPECT_EQ(parsed[0]["data"][0], "High-performance running shoes with advanced cushioning");
+}
+
+// Test multiple tuples without GROUP BY: LLM is called once
+TEST_F(LLMFirstTest, MultipleTuplesWithoutGroupBy) {
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
@@ -49,43 +69,72 @@ TEST_F(LLMFirstTest, LLMFirstWithoutGroupBy) {
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
-            "SELECT " + GetFunctionName() + "("
-                                            "{'model_name': 'gpt-4o'}, "
-                                            "{'prompt': 'What is the most relevant detail for these products, based on their names and descriptions?', 'context_columns': [{'data': description}]}"
-                                            ") AS first_product_feature FROM VALUES "
-                                            "('High-performance running shoes with advanced cushioning'), "
-                                            "('Wireless noise-cancelling headphones for immersive audio'), "
-                                            "('Smart fitness tracker with heart rate monitoring') AS products(description);");
+            "SELECT llm_first("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'What is the most relevant product?', 'context_columns': [{'data': description}]}"
+            ") AS first_product FROM VALUES "
+            "('High-performance running shoes with advanced cushioning'), "
+            "('Wireless noise-cancelling headphones for immersive audio'), "
+            "('Smart fitness tracker with heart rate monitoring') AS products(description);");
 
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 1);
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), GetExpectedResponse());
 }
 
-// Test llm_first with SQL queries with GROUP BY - new API
-TEST_F(LLMFirstTest, LLMFirstWithGroupBy) {
+// Test GROUP BY with multiple tuples per group: LLM is called for each group
+TEST_F(LLMFirstTest, GroupByWithMultipleTuplesPerGroup) {
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-            .Times(3);
+            .Times(2);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-            .Times(3)
+            .Times(2)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
     auto con = Config::GetConnection();
 
     const auto results = con.Query(
-            "SELECT category, " + GetFunctionName() + "("
-                                                      "{'model_name': 'gpt-4o'}, "
-                                                      "{'prompt': 'What is the most relevant detail for these products, based on their names and descriptions?', 'context_columns': [{'data': description}]}"
-                                                      ") AS first_feature FROM VALUES "
-                                                      "('electronics', 'High-performance running shoes with advanced cushioning'), "
-                                                      "('audio', 'Wireless noise-cancelling headphones for immersive audio'), "
-                                                      "('fitness', 'Smart fitness tracker with heart rate monitoring') "
-                                                      "AS products(category, description) GROUP BY category;");
+            "SELECT category, llm_first("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Select the most relevant product', 'context_columns': [{'data': description}]}"
+            ") AS first_product FROM VALUES "
+            "('footwear', 'Running shoes with cushioning'), "
+            "('footwear', 'Business shoes for professionals'), "
+            "('electronics', 'Wireless headphones'), "
+            "('electronics', 'Smart fitness tracker') "
+            "AS products(category, description) GROUP BY category;");
 
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 2);
+    for (idx_t i = 0; i < results->RowCount(); i++) {
+        EXPECT_NO_THROW({
+            nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
+            EXPECT_TRUE(parsed[0].contains("data"));
+        });
+    }
+}
+
+// Test GROUP BY with single tuple per group: no LLM calls needed
+TEST_F(LLMFirstTest, GroupByWithSingleTuplePerGroup) {
+    // No mock expectations - LLM should NOT be called when each group has only 1 tuple
+    auto con = Config::GetConnection();
+
+    const auto results = con.Query(
+            "SELECT category, llm_first("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Select the most relevant product', 'context_columns': [{'data': description}]}"
+            ") AS first_product FROM VALUES "
+            "('footwear', 'Running shoes with cushioning'), "
+            "('electronics', 'Wireless headphones'), "
+            "('fitness', 'Smart fitness tracker') "
+            "AS products(category, description) GROUP BY category;");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 3);
     for (idx_t i = 0; i < results->RowCount(); i++) {
         EXPECT_NO_THROW({
             nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
             EXPECT_TRUE(parsed[0].contains("data"));
+            EXPECT_EQ(parsed[0]["data"].size(), 1);
         });
     }
 }
@@ -96,68 +145,62 @@ TEST_F(LLMFirstTest, ValidateArguments) {
 }
 
 // Test operation with invalid arguments
-TEST_F(LLMFirstTest, Operation_InvalidArguments_ThrowsException) {
+TEST_F(LLMFirstTest, InvalidArguments) {
     TestOperationInvalidArguments();
 }
 
-// Test operation with multiple input scenarios - new API
-TEST_F(LLMFirstTest, Operation_MultipleInputs_ProcessesCorrectly) {
-    const nlohmann::json expected_response = GetExpectedJsonResponse();
+// Test with audio transcription
+TEST_F(LLMFirstTest, AudioTranscription) {
+    const nlohmann::json expected_transcription1 = nlohmann::json::parse(R"({"text": "First audio candidate"})");
+    const nlohmann::json expected_transcription2 = nlohmann::json::parse(R"({"text": "Second audio candidate"})");
+    const nlohmann::json expected_complete_response = GetExpectedJsonResponse();
+
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription1, expected_transcription2}));
 
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-            .Times(3);
+            .Times(1);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-            .Times(3)
-            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
 
     auto con = Config::GetConnection();
-
     const auto results = con.Query(
-            "SELECT category, " + GetFunctionName() + "("
-                                                      "{'model_name': 'gpt-4o'}, "
-                                                      "{'prompt': 'What is the most relevant product information?', 'context_columns': [{'data': description}]}"
-                                                      ") AS first_relevant_info FROM VALUES "
-                                                      "('electronics', 'High-performance running shoes with advanced cushioning'), "
-                                                      "('audio', 'Wireless noise-cancelling headphones for immersive audio'), "
-                                                      "('fitness', 'Smart fitness tracker with heart rate monitoring') "
-                                                      "AS products(category, description) GROUP BY category;");
+            "SELECT llm_first("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Select the best audio candidate', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'gpt-4o-transcribe'}"
+            "]}) AS result FROM VALUES "
+            "('https://example.com/audio1.mp3'), "
+            "('https://example.com/audio2.mp3') AS tbl(audio_url);");
 
-    ASSERT_EQ(results->RowCount(), 3);
-    for (idx_t i = 0; i < results->RowCount(); i++) {
-        EXPECT_NO_THROW({
-            nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
-            EXPECT_TRUE(parsed[0].contains("data"));
-        });
-    }
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
 }
 
-// Test large input set processing - new API
-TEST_F(LLMFirstTest, Operation_LargeInputSet_ProcessesCorrectly) {
-    constexpr size_t input_count = 100;
-    const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
-
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-            .Times(100);
-    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-            .Times(100)
-            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
-
+// Test audio transcription error handling for Ollama
+TEST_F(LLMFirstTest, AudioTranscriptionOllamaError) {
     auto con = Config::GetConnection();
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
 
     const auto results = con.Query(
-            "SELECT id, " + GetFunctionName() + "("
-                                                "{'model_name': 'gpt-4o'}, "
-                                                "{'prompt': 'Select the first relevant product based on relevance', 'context_columns': [{'data': 'Product description ' || id::TEXT}]}"
-                                                ") AS first_relevant FROM range(" +
-            std::to_string(input_count) + ") AS t(id) GROUP BY id;");
+            "SELECT llm_first("
+            "{'model_name': 'gemma3:4b'}, "
+            "{'prompt': 'Select the best audio', "
+            "'context_columns': ["
+            "{'data': audio_url, "
+            "'type': 'audio', "
+            "'transcription_model': 'gemma3:4b'}"
+            "]}) AS result FROM VALUES "
+            "('https://example.com/audio1.mp3'), "
+            "('https://example.com/audio2.mp3') AS tbl(audio_url);");
 
-    ASSERT_EQ(results->RowCount(), 100);
-    for (idx_t i = 0; i < results->RowCount(); i++) {
-        EXPECT_NO_THROW({
-            nlohmann::json parsed = nlohmann::json::parse(results->GetValue(1, i).GetValue<std::string>());
-            EXPECT_TRUE(parsed[0].contains("data"));
-        });
-    }
+    ASSERT_TRUE(results->HasError());
 }
 
 }// namespace flock

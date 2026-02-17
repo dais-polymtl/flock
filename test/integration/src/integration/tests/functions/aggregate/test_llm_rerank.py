@@ -1,10 +1,27 @@
 import pytest
-from integration.conftest import run_cli, get_image_data_for_provider
+import json
+import csv
+from io import StringIO
+from integration.conftest import (
+    run_cli,
+    get_image_data_for_provider,
+    get_audio_file_path,
+)
+
+# Expected keywords that should appear when audio is transcribed
+# Audio content: "Flock transforms DuckDB into a hybrid database and a semantic AI engine"
+AUDIO_EXPECTED_KEYWORDS = ["flock", "duckdb", "database", "semantic", "ai", "hybrid"]
 
 
-@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("llama3.2", "ollama")])
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:1b", "ollama")])
 def model_config(request):
-    """Fixture to test with different models."""
+    """Fixture to test with different models for text-only tests."""
+    return request.param
+
+
+@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:4b", "ollama")])
+def model_config_image(request):
+    """Fixture to test with different models for image tests."""
     return request.param
 
 
@@ -17,7 +34,7 @@ def test_llm_rerank_basic_functionality(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE search_results (
@@ -67,7 +84,7 @@ def test_llm_rerank_with_group_by(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE product_listings (
@@ -129,7 +146,7 @@ def test_llm_rerank_with_batch_processing(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE job_candidates (
@@ -182,7 +199,7 @@ def test_llm_rerank_with_model_parameters(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE restaurant_options (
@@ -232,7 +249,7 @@ def test_llm_rerank_multiple_criteria(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE investment_funds (
@@ -282,7 +299,7 @@ def test_llm_rerank_empty_table(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE empty_items (
@@ -356,7 +373,7 @@ def test_llm_rerank_error_handling_empty_prompt(integration_setup, model_config)
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE test_data (
@@ -397,7 +414,7 @@ def test_llm_rerank_error_handling_missing_arguments(integration_setup, model_co
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Test with only 2 arguments (should fail since llm_rerank requires 3)
     query = (
@@ -424,7 +441,7 @@ def test_llm_rerank_with_special_characters(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE international_dishes (
@@ -470,7 +487,7 @@ def _test_llm_rerank_performance_large_dataset(integration_setup, model_config):
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE large_search_results AS
@@ -508,16 +525,16 @@ def _test_llm_rerank_performance_large_dataset(integration_setup, model_config):
     assert "category" in result.stdout.lower()
 
 
-def test_llm_rerank_with_image_integration(integration_setup, model_config):
+def test_llm_rerank_with_image_integration(integration_setup, model_config_image):
     """Test llm_rerank with image data integration."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     test_model_name = f"test-image-rerank-model_{model_name}"
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE fashion_images (
@@ -583,16 +600,16 @@ def test_llm_rerank_with_image_integration(integration_setup, model_config):
     assert len(result.stdout.strip().split("\n")) >= 2
 
 
-def test_llm_rerank_image_with_group_by(integration_setup, model_config):
+def test_llm_rerank_image_with_group_by(integration_setup, model_config_image):
     """Test llm_rerank with images and GROUP BY clause."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     test_model_name = f"test-image-group-rerank_{model_name}"
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE interior_images (
@@ -665,16 +682,16 @@ def test_llm_rerank_image_with_group_by(integration_setup, model_config):
     assert "ranked_room_designs" in result.stdout.lower()
 
 
-def test_llm_rerank_image_batch_processing(integration_setup, model_config):
+def test_llm_rerank_image_batch_processing(integration_setup, model_config_image):
     """Test llm_rerank with multiple images in batch processing."""
     duckdb_cli_path, db_path = integration_setup
-    model_name, provider = model_config
+    model_name, provider = model_config_image
 
     test_model_name = f"test-image-batch-rerank_{model_name}"
     create_model_query = (
         f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     )
-    run_cli(duckdb_cli_path, db_path, create_model_query)
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE travel_destination_images (
@@ -744,3 +761,144 @@ def test_llm_rerank_image_batch_processing(integration_setup, model_config):
         f"Expected at least 4 lines (header + 3 countries), got {len(lines)}"
     )
     assert "ranked_destinations" in result.stdout.lower()
+
+
+def test_llm_rerank_with_audio_transcription(integration_setup, model_config):
+    """Test llm_rerank with audio transcription using OpenAI.
+
+    The audio content says: 'Flock transforms DuckDB into a hybrid database and a semantic AI engine'
+    This test verifies that the audio is correctly transcribed and used for reranking.
+    """
+    duckdb_cli_path, db_path = integration_setup
+    model_name, provider = model_config
+
+    if provider != "openai":
+        pytest.skip("Audio transcription is only supported for OpenAI provider")
+
+    test_model_name = f"test-audio-rerank_{model_name}"
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'gpt-4o-mini', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
+
+    transcription_model_name = f"test-transcription-rerank_{model_name}"
+    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
+
+    # Get audio file path
+    audio_path = get_audio_file_path()
+
+    # Create table with topics - mix database-related (with audio) and unrelated topics
+    create_table_query = """
+    CREATE OR REPLACE TABLE audio_topics (
+        id INTEGER,
+        topic VARCHAR,
+        audio_path VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    # Only the Database Technology row has the actual audio
+    insert_data_query = f"""
+    INSERT INTO audio_topics
+    VALUES 
+        (1, 'Weather Updates', '{audio_path}'),
+        (2, 'Database Technology', '{audio_path}'),
+        (3, 'Sports News', '{audio_path}');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    # Ask to rank by relevance to databases/Flock - the real audio should rank higher
+    query = (
+        """
+        SELECT llm_rerank(
+            {'model_name': '"""
+        + test_model_name
+        + """'},
+            {
+                'prompt': 'Rank these entries by relevance to database technology and Flock. Return results with the most relevant first.',
+                'context_columns': [
+                    {'data': topic, 'type': 'text'},
+                    {
+                        'data': audio_path,
+                        'type': 'audio',
+                        'transcription_model': '"""
+        + transcription_model_name
+        + """'
+                    }
+                ]
+            }
+        ) AS ranked_topics
+        FROM audio_topics;
+        """
+    )
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Query failed with error: {result.stderr}"
+
+    # Parse the JSON output to verify the returned tuples
+    lines = result.stdout.strip().split("\n")
+    assert len(lines) >= 2, "Expected at least header and one result row"
+
+    # Parse CSV output to get the JSON result
+    reader = csv.DictReader(StringIO(result.stdout))
+    row = next(reader, None)
+    assert row is not None and "ranked_topics" in row
+
+    # Parse the JSON result which contains the reranked tuples
+    result_json = json.loads(row["ranked_topics"])
+    assert isinstance(result_json, list), (
+        f"Expected list of tuples, got: {type(result_json)}"
+    )
+    assert len(result_json) > 0, "Expected at least one tuple in result"
+
+
+def test_llm_rerank_audio_ollama_error(integration_setup):
+    """Test that Ollama provider throws error for audio transcription in llm_rerank."""
+    duckdb_cli_path, db_path = integration_setup
+
+    test_model_name = "test-ollama-rerank-audio"
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'gemma3:1b', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
+
+    transcription_model_name = "test-ollama-rerank-transcription"
+    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gemma3:1b', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE test_audio (
+        id INTEGER,
+        audio_url VARCHAR
+    );
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    insert_data_query = """
+    INSERT INTO test_audio VALUES 
+        (1, 'https://example.com/audio1.mp3'),
+        (2, 'https://example.com/audio2.mp3');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = """
+        SELECT llm_rerank(
+            {'model_name': '""" + test_model_name + """'},
+            {
+                'prompt': 'Rank these audio files',
+                'context_columns': [
+                    {
+                        'data': audio_url,
+                        'type': 'audio',
+                        'transcription_model': '""" + transcription_model_name + """'
+                    }
+                ]
+            }
+        ) AS result
+        FROM test_audio;
+        """
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode != 0
+    assert (
+        "ollama" in result.stderr.lower()
+        or "transcription" in result.stderr.lower()
+        or "not supported" in result.stderr.lower()
+    )

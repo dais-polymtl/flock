@@ -1,6 +1,11 @@
+#include "../functions/mock_provider.hpp"
+#include "flock/core/config.hpp"
+#include "flock/model_manager/model.hpp"
 #include "flock/prompt_manager/prompt_manager.hpp"
 #include "nlohmann/json.hpp"
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <memory>
 #include <string>
 
 namespace flock {
@@ -245,6 +250,179 @@ TEST(PromptManager, CreatePromptDetailsOnlyPromptName) {
     EXPECT_EQ(prompt_name, "product_summary");
     EXPECT_EQ(prompt, "Generate a summary with a focus on technical specifications.");
     EXPECT_EQ(version, 6);
+}
+
+// Test fixture for TranscribeAudioColumn tests
+class TranscribeAudioColumnTest : public ::testing::Test {
+protected:
+    void SetUp() override {
+        auto con = Config::GetConnection();
+        con.Query(" CREATE SECRET ("
+                  "       TYPE OPENAI,"
+                  "    API_KEY 'your-api-key');");
+        con.Query("  CREATE SECRET ("
+                  "       TYPE OLLAMA,"
+                  "    API_URL '127.0.0.1:11434');");
+
+        mock_provider = std::make_shared<MockProvider>(ModelDetails{});
+        Model::SetMockProvider(mock_provider);
+    }
+
+    void TearDown() override {
+        Model::ResetMockProvider();
+        mock_provider = nullptr;
+    }
+
+    std::shared_ptr<MockProvider> mock_provider;
+};
+
+// Test TranscribeAudioColumn with named column
+TEST_F(TranscribeAudioColumnTest, TranscribeAudioColumnWithName) {
+    json audio_column = {
+            {"name", "audio_review"},
+            {"type", "audio"},
+            {"transcription_model", "gpt-4o-transcribe"},
+            {"data", {"https://example.com/audio1.mp3", "https://example.com/audio2.mp3"}}};
+
+    json expected_transcription1 = "{\"text\": \"This is the first transcription\"}";
+    json expected_transcription2 = "{\"text\": \"This is the second transcription\"}";
+
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription1, expected_transcription2}));
+
+    auto result = PromptManager::TranscribeAudioColumn(audio_column);
+
+    EXPECT_TRUE(result.contains("name"));
+    EXPECT_EQ(result["name"], "transcription_of_audio_review");
+    EXPECT_TRUE(result.contains("data"));
+    EXPECT_TRUE(result["data"].is_array());
+    EXPECT_EQ(result["data"].size(), 2);
+    EXPECT_EQ(result["data"][0], expected_transcription1);
+    EXPECT_EQ(result["data"][1], expected_transcription2);
+}
+
+// Test TranscribeAudioColumn without name
+TEST_F(TranscribeAudioColumnTest, TranscribeAudioColumnWithoutName) {
+    json audio_column = {
+            {"type", "audio"},
+            {"transcription_model", "gpt-4o-transcribe"},
+            {"data", {"https://example.com/audio.mp3"}}};
+
+    json expected_transcription = "{\"text\": \"Transcribed audio content\"}";
+
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription}));
+
+    auto result = PromptManager::TranscribeAudioColumn(audio_column);
+
+    EXPECT_TRUE(result.contains("name"));
+    EXPECT_EQ(result["name"], "transcription");
+    EXPECT_TRUE(result.contains("data"));
+    EXPECT_TRUE(result["data"].is_array());
+    EXPECT_EQ(result["data"].size(), 1);
+    EXPECT_EQ(result["data"][0], expected_transcription);
+}
+
+// Test TranscribeAudioColumn with empty name
+TEST_F(TranscribeAudioColumnTest, TranscribeAudioColumnWithEmptyName) {
+    json audio_column = {
+            {"name", ""},
+            {"type", "audio"},
+            {"transcription_model", "gpt-4o-transcribe"},
+            {"data", {"https://example.com/audio.mp3"}}};
+
+    json expected_transcription = "{\"text\": \"Transcribed content\"}";
+
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription}));
+
+    auto result = PromptManager::TranscribeAudioColumn(audio_column);
+
+    EXPECT_TRUE(result.contains("name"));
+    EXPECT_EQ(result["name"], "transcription");
+    EXPECT_TRUE(result.contains("data"));
+    EXPECT_EQ(result["data"].size(), 1);
+}
+
+// Test TranscribeAudioColumn with single audio file
+TEST_F(TranscribeAudioColumnTest, TranscribeAudioColumnSingleFile) {
+    json audio_column = {
+            {"name", "podcast"},
+            {"type", "audio"},
+            {"transcription_model", "gpt-4o-transcribe"},
+            {"data", {"https://example.com/podcast.mp3"}}};
+
+    json expected_transcription = "{\"text\": \"Podcast transcription\"}";
+
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription}));
+
+    auto result = PromptManager::TranscribeAudioColumn(audio_column);
+
+    EXPECT_EQ(result["name"], "transcription_of_podcast");
+    EXPECT_EQ(result["data"].size(), 1);
+    EXPECT_EQ(result["data"][0], expected_transcription);
+}
+
+// Test TranscribeAudioColumn with multiple audio files
+TEST_F(TranscribeAudioColumnTest, TranscribeAudioColumnMultipleFiles) {
+    json audio_column = {
+            {"name", "interviews"},
+            {"type", "audio"},
+            {"transcription_model", "gpt-4o-transcribe"},
+            {"data", {"https://example.com/interview1.mp3", "https://example.com/interview2.mp3", "https://example.com/interview3.mp3"}}};
+
+    json expected_transcription1 = "{\"text\": \"First interview\"}";
+    json expected_transcription2 = "{\"text\": \"Second interview\"}";
+    json expected_transcription3 = "{\"text\": \"Third interview\"}";
+
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription1, expected_transcription2, expected_transcription3}));
+
+    auto result = PromptManager::TranscribeAudioColumn(audio_column);
+
+    EXPECT_EQ(result["name"], "transcription_of_interviews");
+    EXPECT_EQ(result["data"].size(), 3);
+    EXPECT_EQ(result["data"][0], expected_transcription1);
+    EXPECT_EQ(result["data"][1], expected_transcription2);
+    EXPECT_EQ(result["data"][2], expected_transcription3);
+}
+
+// Test TranscribeAudioColumn output format (JSON array)
+TEST_F(TranscribeAudioColumnTest, TranscribeAudioColumnOutputFormat) {
+    json audio_column = {
+            {"name", "test_audio"},
+            {"type", "audio"},
+            {"transcription_model", "gpt-4o-transcribe"},
+            {"data", {"https://example.com/audio.mp3"}}};
+
+    json expected_transcription = "{\"text\": \"Test transcription\"}";
+
+    EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectTranscriptions("multipart/form-data"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_transcription}));
+
+    auto result = PromptManager::TranscribeAudioColumn(audio_column);
+
+    // Verify the result is a proper JSON object with name and data fields
+    EXPECT_TRUE(result.is_object());
+    EXPECT_TRUE(result.contains("name"));
+    EXPECT_TRUE(result.contains("data"));
+    EXPECT_TRUE(result["data"].is_array());
+
+    // Verify data contains the transcription results
+    EXPECT_EQ(result["data"][0], expected_transcription);
 }
 
 }// namespace flock

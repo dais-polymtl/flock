@@ -18,7 +18,11 @@ public:
     AzureModelManager& operator=(AzureModelManager&&) = delete;
 
 protected:
-    void checkProviderSpecificResponse(const nlohmann::json& response, bool is_completion) override {
+    void checkProviderSpecificResponse(const nlohmann::json& response, RequestType request_type) override {
+        if (request_type == RequestType::Transcription) {
+            return;// No specific checks needed for transcriptions
+        }
+        bool is_completion = (request_type == RequestType::Completion);
         if (is_completion) {
             if (response.contains("choices") && response["choices"].is_array() && !response["choices"].empty()) {
                 const auto& choice = response["choices"][0];
@@ -42,6 +46,10 @@ protected:
     std::string getEmbedUrl() const override {
         return "https://" + _resource_name + ".openai.azure.com/openai/deployments/" +
                _deployment_model_name + "/embeddings?api-version=" + _api_version;
+    }
+    std::string getTranscriptionUrl() const override {
+        return "https://" + _resource_name + ".openai.azure.com/openai/deployments/" +
+               _deployment_model_name + "/audio/transcriptions?api-version=" + _api_version;
     }
     void prepareSessionForRequest(const std::string& url) override {
         _session.setUrl(url);
@@ -79,6 +87,16 @@ protected:
         }
         return {input_tokens, output_tokens};
     }
+
+
+    nlohmann::json ExtractTranscriptionOutput(const nlohmann::json& response) const override {
+        // Transcription API returns JSON with "text" field when response_format=json
+        if (response.contains("text") && !response["text"].is_null()) {
+            return response["text"].get<std::string>();
+        }
+        return "";
+    }
+
 
     std::string _token;
     std::string _resource_name;
