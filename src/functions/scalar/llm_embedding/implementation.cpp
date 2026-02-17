@@ -1,18 +1,10 @@
-#include "duckdb/planner/expression/bound_function_expression.hpp"
 #include "flock/core/config.hpp"
 #include "flock/functions/scalar/llm_embedding.hpp"
 #include "flock/metrics/manager.hpp"
-#include "flock/model_manager/model.hpp"
+
+#include <chrono>
 
 namespace flock {
-
-duckdb::unique_ptr<duckdb::FunctionData> LlmEmbedding::Bind(
-        duckdb::ClientContext& context,
-        duckdb::ScalarFunction& bound_function,
-        duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments) {
-    return ScalarFunctionBase::ValidateAndInitializeBindData(context, arguments, "llm_embedding", true, false);
-}
-
 
 void LlmEmbedding::ValidateArguments(duckdb::DataChunk& args) {
     if (args.ColumnCount() < 2 || args.ColumnCount() > 2) {
@@ -26,7 +18,9 @@ void LlmEmbedding::ValidateArguments(duckdb::DataChunk& args) {
     }
 }
 
-std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataChunk& args, LlmFunctionBindData* bind_data) {
+std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataChunk& args) {
+    // LlmEmbedding::ValidateArguments(args);
+
     auto inputs = CastVectorOfStructsToJson(args.data[1], args.size());
     for (const auto& item: inputs.items()) {
         if (item.key() != "context_columns") {
@@ -39,8 +33,10 @@ std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataC
         }
     }
 
-    Model model = bind_data->CreateModel();
+    auto model_details_json = CastVectorOfStructsToJson(args.data[0], 1);
+    Model model(model_details_json);
 
+    // Set model name and provider in metrics (context is already set in Execute)
     auto model_details = model.GetModelDetails();
     MetricsManager::SetModelInfo(model_details.model_name, model_details.provider_name);
 
@@ -83,18 +79,17 @@ std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataC
 }
 
 void LlmEmbedding::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
+    // Get database instance and state ID for metrics
     auto& context = state.GetContext();
     auto* db = context.db.get();
-    const void* invocation_id = MetricsManager::GenerateUniqueId();
+    const void* state_id = static_cast<const void*>(&state);
 
-    MetricsManager::StartInvocation(db, invocation_id, FunctionType::LLM_EMBEDDING);
+    // Start metrics tracking
+    MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_EMBEDDING);
 
     auto exec_start = std::chrono::high_resolution_clock::now();
 
-    auto& func_expr = state.expr.Cast<duckdb::BoundFunctionExpression>();
-    auto* bind_data = &func_expr.bind_info->Cast<LlmFunctionBindData>();
-
-    auto results = LlmEmbedding::Operation(args, bind_data);
+    auto results = LlmEmbedding::Operation(args);
 
     auto index = 0;
     for (const auto& res: results) {
