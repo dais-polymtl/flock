@@ -2,9 +2,11 @@
 
 #include "flock/core/common.hpp"
 #include "flock/functions/input_parser.hpp"
+#include "flock/functions/llm_function_bind_data.hpp"
 #include "flock/metrics/manager.hpp"
 #include "flock/model_manager/model.hpp"
 #include <nlohmann/json.hpp>
+#include <optional>
 
 namespace flock {
 
@@ -12,10 +14,8 @@ class AggregateFunctionState {
 public:
     nlohmann::basic_json<>* value;
     bool initialized;
-    nlohmann::json model_details;
-    std::string user_query;
 
-    AggregateFunctionState() : value(nullptr), initialized(false), model_details(nlohmann::json::object()), user_query("") {}
+    AggregateFunctionState() : value(nullptr), initialized(false) {}
 
     ~AggregateFunctionState() {
         if (value) {
@@ -34,37 +34,58 @@ class AggregateFunctionBase {
 public:
     Model model;
     std::string user_query;
-    nlohmann::json model_details;
 
 public:
     explicit AggregateFunctionBase() = default;
 
+private:
+    struct PromptStructInfo {
+        bool has_context_columns;
+        std::optional<idx_t> prompt_field_index;
+        std::string prompt_field_name;
+    };
+
+    static void ValidateArgumentCount(const duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments,
+                                      const std::string& function_name);
+
+    static void ValidateArgumentTypes(const duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments,
+                                      const std::string& function_name);
+
+    static PromptStructInfo ExtractPromptStructInfo(const duckdb::LogicalType& prompt_type);
+
+    static void ValidatePromptStructFields(const PromptStructInfo& info, const std::string& function_name);
+
+    static void InitializeModelJson(duckdb::ClientContext& context,
+                                    const duckdb::unique_ptr<duckdb::Expression>& model_expr,
+                                    LlmFunctionBindData& bind_data);
+
+    static void InitializePrompt(duckdb::ClientContext& context,
+                                 const duckdb::unique_ptr<duckdb::Expression>& prompt_expr,
+                                 LlmFunctionBindData& bind_data);
+
 public:
-    static void ValidateArguments(duckdb::Vector inputs[], idx_t input_count);
-    static std::tuple<nlohmann::json, nlohmann::json, nlohmann::json>
+    static std::tuple<nlohmann::json, nlohmann::json>
     CastInputsToJson(duckdb::Vector inputs[], idx_t count);
 
+    static duckdb::unique_ptr<LlmFunctionBindData> ValidateAndInitializeBindData(
+            duckdb::ClientContext& context,
+            duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments,
+            const std::string& function_name);
+
     static bool IgnoreNull() { return true; };
+
 
     template<class Derived>
     static void Initialize(const duckdb::AggregateFunction&, duckdb::data_ptr_t state_p) {
         auto state = reinterpret_cast<AggregateFunctionState*>(state_p);
-
-        // Use placement new to properly construct the AggregateFunctionState object
-        // This handles memory allocation done by DuckDB
         new (state) AggregateFunctionState();
-
-        // Initialize the state (allocates JSON array, resets all fields)
         state->Initialize();
     }
 
     template<class Derived>
     static void Operation(duckdb::Vector inputs[], duckdb::AggregateInputData& aggr_input_data, idx_t input_count,
                           duckdb::Vector& states, idx_t count) {
-        // ValidateArguments(inputs, input_count);
-
-        auto [model_details_json, prompt_details, columns] = CastInputsToJson(inputs, count);
-        auto prompt_str = PromptManager::CreatePromptDetails(prompt_details).prompt;
+        auto [prompt_details, columns] = CastInputsToJson(inputs, count);
 
         auto state_map_p = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
 
@@ -85,11 +106,6 @@ public:
             }
 
             if (state) {
-                // Store model_details and user_query in the state (only set once, on first update)
-                if (state->model_details.empty()) {
-                    state->model_details = model_details_json;
-                    state->user_query = prompt_str;
-                }
                 state->Update(tuple);
             }
         }
@@ -98,17 +114,9 @@ public:
     template<class Derived>
     static void SimpleUpdate(duckdb::Vector inputs[], duckdb::AggregateInputData& aggr_input_data, idx_t input_count,
                              duckdb::data_ptr_t state_p, idx_t count) {
-        // ValidateArguments(inputs, input_count);
-
-        auto [model_details_json, prompt_details, tuples] = CastInputsToJson(inputs, count);
-        auto prompt_str = PromptManager::CreatePromptDetails(prompt_details).prompt;
+        auto [prompt_details, tuples] = CastInputsToJson(inputs, count);
 
         if (const auto state = reinterpret_cast<AggregateFunctionState*>(state_p)) {
-            // Store model_details and user_query in the state (only set once, on first update)
-            if (state->model_details.empty()) {
-                state->model_details = model_details_json;
-                state->user_query = prompt_str;
-            }
             state->Update(tuples);
         }
     }
