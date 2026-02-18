@@ -1,16 +1,23 @@
 #include "flock/core/config.hpp"
 #include "flock/functions/aggregate/llm_rerank.hpp"
+#include "flock/functions/llm_function_bind_data.hpp"
 #include "flock/metrics/manager.hpp"
 
 #include <chrono>
 #include <set>
-#include <vector>
 
 namespace flock {
 
+duckdb::unique_ptr<duckdb::FunctionData> LlmRerank::Bind(
+        duckdb::ClientContext& context,
+        duckdb::AggregateFunction& function,
+        duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments) {
+    return AggregateFunctionBase::ValidateAndInitializeBindData(context, arguments, "llm_rerank");
+}
+
 std::vector<int> LlmRerank::RerankBatch(const nlohmann::json& tuples) {
-    auto [prompt, media_data] =
-            PromptManager::Render(user_query, tuples, AggregateFunctionType::RERANK, model.GetModelDetails().tuple_format);
+    auto [prompt, media_data] = PromptManager::Render(
+            user_query, tuples, AggregateFunctionType::RERANK, model.GetModelDetails().tuple_format);
 
     int num_tuples = static_cast<int>(tuples[0]["data"].size());
 
@@ -74,10 +81,10 @@ std::vector<int> LlmRerank::RerankBatch(const nlohmann::json& tuples) {
     }
 
     return indices;
-};
+}
 
 nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
-    const auto num_tuples = static_cast<int>(tuples[0]["data"].size());
+    const int num_tuples = static_cast<int>(tuples[0]["data"].size());
 
     // If there's only 1 tuple, no need to call the LLM - just return it
     if (num_tuples <= 1) {
@@ -100,8 +107,7 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
 
     auto final_ranked_tuples = nlohmann::json::array();
     auto carry_forward_tuples = nlohmann::json::array();
-    auto start_index = 0;
-    model = Model(model_details);
+    int start_index = 0;
 
     auto batch_size = static_cast<int>(model.GetModelDetails().batch_size);
     if (batch_size == 2048) {
@@ -117,18 +123,21 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
 
         // Then add new tuples up to batch_size
         // Handle case where carry_forward_tuples is empty (first iteration)
-        auto remaining_space = window_tuples.empty() ? batch_size : (batch_size - static_cast<int>(window_tuples[0]["data"].size()));
-        auto end_index = std::min<int>(start_index + remaining_space, num_tuples);
+        int remaining_space = window_tuples.empty()
+                                      ? batch_size
+                                      : (batch_size - static_cast<int>(window_tuples[0]["data"].size()));
+        int end_index = std::min<int>(start_index + remaining_space, num_tuples);
+
         for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
             if (i >= static_cast<int>(window_tuples.size())) {
                 window_tuples.push_back(nlohmann::json::object());
             }
             for (const auto& item: tuples[i].items()) {
                 if (item.key() == "data") {
-                    for (auto j = start_index; j < end_index; j++) {
-                        if (j == 0) {
-                            window_tuples[i]["data"] = nlohmann::json::array();
-                        }
+                    if (!window_tuples[i].contains("data")) {
+                        window_tuples[i]["data"] = nlohmann::json::array();
+                    }
+                    for (int j = start_index; j < end_index; j++) {
                         window_tuples[i]["data"].push_back(item.value()[j]);
                     }
                 } else {
@@ -146,13 +155,10 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
         }
 
         try {
+            // Build indexed tuples with flock_row_id
             auto indexed_tuples = window_tuples;
-            indexed_tuples.push_back(nlohmann::json::object());
-            for (auto i = 0; i < static_cast<int>(window_tuples[0]["data"].size()); i++) {
-                if (i == 0) {
-                    indexed_tuples.back()["name"] = "flock_row_id";
-                    indexed_tuples.back()["data"] = nlohmann::json::array();
-                }
+            indexed_tuples.push_back({{"name", "flock_row_id"}, {"data", nlohmann::json::array()}});
+            for (int i = 0; i < static_cast<int>(window_tuples[0]["data"].size()); i++) {
                 indexed_tuples.back()["data"].push_back(std::to_string(i));
             }
 
@@ -160,7 +166,7 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
 
             // Initialize final_ranked_tuples structure if needed (first time adding results)
             if (final_ranked_tuples.empty() && !window_tuples.empty()) {
-                for (auto i = 0u; i < window_tuples.size(); i++) {
+                for (size_t i = 0; i < window_tuples.size(); i++) {
                     final_ranked_tuples.push_back(nlohmann::json::object());
                     // Copy metadata from window_tuples
                     for (const auto& item: window_tuples[i].items()) {
@@ -173,9 +179,9 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
             }
 
             // Add the bottom half to final results (they won't be re-ranked)
-            auto half_batch = static_cast<int>(ranked_indices.size()) / 2;
-            for (auto i = half_batch; i < static_cast<int>(ranked_indices.size()); i++) {
-                auto idx = 0u;
+            int half_batch = static_cast<int>(ranked_indices.size()) / 2;
+            for (int i = half_batch; i < static_cast<int>(ranked_indices.size()); i++) {
+                size_t idx = 0;
                 for (auto& column: window_tuples) {
                     final_ranked_tuples[idx]["data"].push_back(column["data"][ranked_indices[i]]);
                     idx++;
@@ -185,7 +191,7 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
             // Carry forward top half to next batch for re-ranking
             // Initialize carry_forward_tuples structure if needed
             if (carry_forward_tuples.empty() && !window_tuples.empty()) {
-                for (auto i = 0u; i < window_tuples.size(); i++) {
+                for (size_t i = 0; i < window_tuples.size(); i++) {
                     carry_forward_tuples.push_back(nlohmann::json::object());
                     // Copy metadata from window_tuples
                     for (const auto& item: window_tuples[i].items()) {
@@ -196,8 +202,8 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
                     carry_forward_tuples[i]["data"] = nlohmann::json::array();
                 }
             }
-            for (auto i = 0; i < half_batch; i++) {
-                auto idx = 0u;
+            for (int i = 0; i < half_batch; i++) {
+                size_t idx = 0;
                 for (auto& column: window_tuples) {
                     carry_forward_tuples[idx]["data"].push_back(column["data"][ranked_indices[i]]);
                     idx++;
@@ -208,10 +214,10 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
 
             // If we've processed all input tuples, add remaining carry forward to final results
             if (start_index >= num_tuples && !carry_forward_tuples.empty()) {
-                auto idx = 0u;
+                size_t idx = 0;
                 for (const auto& column: carry_forward_tuples) {
-                    for (const auto& i: column["data"]) {
-                        final_ranked_tuples[idx]["data"].push_back(i);
+                    for (const auto& data_item: column["data"]) {
+                        final_ranked_tuples[idx]["data"].push_back(data_item);
                     }
                     idx++;
                 }
@@ -230,63 +236,61 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
     return final_ranked_tuples;
 }
 
-void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data, duckdb::Vector& result,
-                         idx_t count, idx_t offset) {
-    const auto states_vector = reinterpret_cast<AggregateFunctionState**>(duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
+void LlmRerank::Finalize(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,
+                         duckdb::Vector& result, idx_t count, idx_t offset) {
+    const auto states_vector = reinterpret_cast<AggregateFunctionState**>(
+            duckdb::FlatVector::GetData<duckdb::data_ptr_t>(states));
+
+    // Get bind data - model_json and prompt are guaranteed to be initialized
+    auto& bind_data = aggr_input_data.bind_data->Cast<LlmFunctionBindData>();
+
+    // Get model details for metrics (create temp model just for details)
+    auto temp_model = bind_data.CreateModel();
+    auto model_details_obj = temp_model.GetModelDetails();
 
     auto db = Config::db;
     std::vector<const void*> processed_state_ids;
-    std::string merged_model_name;
-    std::string merged_provider;
 
     // Process each state individually
     for (idx_t i = 0; i < count; i++) {
         auto result_idx = i + offset;
         auto* state = states_vector[i];
 
-        if (state && state->value && !state->value->empty()) {
-            // Use model_details and user_query from the state (not static variables)
-            Model model(state->model_details);
-            auto model_details_obj = model.GetModelDetails();
-
-            // Get state ID for metrics
-            const void* state_id = static_cast<const void*>(state);
-            processed_state_ids.push_back(state_id);
-
-            // Start metrics tracking
-            MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_RERANK);
-            MetricsManager::SetModelInfo(model_details_obj.model_name, model_details_obj.provider_name);
-
-            // Store model info for merged metrics (use first non-empty)
-            if (merged_model_name.empty() && !model_details_obj.model_name.empty()) {
-                merged_model_name = model_details_obj.model_name;
-                merged_provider = model_details_obj.provider_name;
-            }
-
-            auto exec_start = std::chrono::high_resolution_clock::now();
-
-            auto tuples_with_ids = nlohmann::json::array();
-            for (auto j = 0; j < static_cast<int>(state->value->size()); j++) {
-                tuples_with_ids.push_back((*state->value)[j]);
-            }
-            LlmRerank function_instance;
-            function_instance.user_query = state->user_query;
-            function_instance.model_details = state->model_details;
-            auto reranked_tuples = function_instance.SlidingWindow(tuples_with_ids);
-
-            auto exec_end = std::chrono::high_resolution_clock::now();
-            double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
-            MetricsManager::AddExecutionTime(exec_duration_ms);
-
-            result.SetValue(result_idx, reranked_tuples.dump());
-        } else {
+        if (!state || !state->value || state->value->empty()) {
             result.SetValue(result_idx, nullptr);
+            continue;
         }
+
+        // Track metrics for this state
+        const void* state_id = static_cast<const void*>(state);
+        processed_state_ids.push_back(state_id);
+        MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_RERANK);
+        MetricsManager::SetModelInfo(model_details_obj.model_name, model_details_obj.provider_name);
+
+        auto exec_start = std::chrono::high_resolution_clock::now();
+
+        // Copy state value to avoid potential use-after-free issues
+        nlohmann::json tuples = *state->value;
+
+        // Create function instance with bind data
+        // IMPORTANT: Use CreateModel() for thread-safe Model instance
+        LlmRerank function_instance;
+        function_instance.user_query = bind_data.prompt;
+        function_instance.model = bind_data.CreateModel();
+        auto reranked_tuples = function_instance.SlidingWindow(tuples);
+
+        auto exec_end = std::chrono::high_resolution_clock::now();
+        double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
+        MetricsManager::AddExecutionTime(exec_duration_ms);
+
+        result.SetValue(result_idx, reranked_tuples.dump());
     }
 
-    // Merge all metrics from processed states into a single metrics entry
-    MetricsManager::MergeAggregateMetrics(db, processed_state_ids, FunctionType::LLM_RERANK,
-                                          merged_model_name, merged_provider);
+    // Merge all metrics from processed states
+    if (!processed_state_ids.empty()) {
+        MetricsManager::MergeAggregateMetrics(db, processed_state_ids, FunctionType::LLM_RERANK,
+                                              model_details_obj.model_name, model_details_obj.provider_name);
+    }
 }
 
 }// namespace flock
