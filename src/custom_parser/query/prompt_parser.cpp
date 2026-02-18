@@ -219,10 +219,13 @@ std::string PromptParser::ToSQL(const QueryStatement& statement) const {
             const auto& create_stmt = static_cast<const CreatePromptStatement&>(statement);
             query = ExecuteQueryWithStorage([&create_stmt](duckdb::Connection& con) {
                 auto result = con.Query(duckdb_fmt::format(" SELECT prompt_name "
-                                                           "   FROM {}flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
+                                                           "   FROM flock_storage.flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
+                                                           "  WHERE prompt_name = '{}'"
+                                                           " UNION ALL "
+                                                           " SELECT prompt_name "
+                                                           "   FROM flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE"
                                                            "  WHERE prompt_name = '{}';",
-                                                           create_stmt.catalog.empty() ? "flock_storage." : "",
-                                                           create_stmt.prompt_name));
+                                                           create_stmt.prompt_name, create_stmt.prompt_name));
 
                 auto& materialized_result = result->Cast<duckdb::MaterializedQueryResult>();
                 if (materialized_result.RowCount() != 0) {
