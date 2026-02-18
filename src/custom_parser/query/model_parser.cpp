@@ -305,16 +305,19 @@ std::string ModelParser::ToSQL(const QueryStatement& statement) const {
         case StatementType::CREATE_MODEL: {
             const auto& create_stmt = static_cast<const CreateModelStatement&>(statement);
             query = ExecuteQueryWithStorage([&create_stmt](duckdb::Connection& con) {
-                // Check if model already exists
                 auto result = con.Query(duckdb_fmt::format(
                         " SELECT model_name"
                         "  FROM flock_storage.flock_config.FLOCKMTL_MODEL_DEFAULT_INTERNAL_TABLE"
                         " WHERE model_name = '{}'"
                         " UNION ALL "
                         " SELECT model_name "
-                        "   FROM {}flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                        "   FROM flock_storage.flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
+                        "  WHERE model_name = '{}'"
+                        " UNION ALL "
+                        " SELECT model_name "
+                        "   FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE"
                         "  WHERE model_name = '{}';",
-                        create_stmt.model_name, create_stmt.catalog.empty() ? "flock_storage." : "", create_stmt.model_name));
+                        create_stmt.model_name, create_stmt.model_name, create_stmt.model_name));
 
                 auto& materialized_result = result->Cast<duckdb::MaterializedQueryResult>();
                 if (materialized_result.RowCount() != 0) {
