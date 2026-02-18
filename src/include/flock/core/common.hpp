@@ -7,8 +7,10 @@
 #include "duckdb/parser/parsed_data/create_scalar_function_info.hpp"
 
 // Common standard library includes
+#include <chrono>
 #include <iostream>
 #include <memory>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <tuple>

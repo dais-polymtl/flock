@@ -145,7 +145,7 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
     auto query = "SELECT " + GetFunctionName() +
                  "({'model_name': 'gpt-4o'}, " +
                  "{'prompt': 'Summarize the following text', " +
-                 " 'context_columns': [{'data': 'Input text ' || i::TEXT}]}) AS result " +
+                 " 'context_columns': [{'data': 'Input text ' || i::VARCHAR}]}) AS result " +
                  "FROM range(" + std::to_string(input_count) + ") AS t(i);";
 
     const auto results = con.Query(query);

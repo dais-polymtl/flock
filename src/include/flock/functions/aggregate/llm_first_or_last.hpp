@@ -1,6 +1,7 @@
 #pragma once
 
 #include "flock/functions/aggregate/aggregate.hpp"
+#include "flock/functions/llm_function_bind_data.hpp"
 
 namespace flock {
 
@@ -13,6 +14,9 @@ public:
 
     int GetFirstOrLastTupleId(nlohmann::json& tuples);
     nlohmann::json Evaluate(nlohmann::json& tuples);
+
+    static duckdb::unique_ptr<duckdb::FunctionData> Bind(duckdb::ClientContext& context, duckdb::AggregateFunction& function, duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments);
+
 
 public:
     static void Initialize(const duckdb::AggregateFunction& function, duckdb::data_ptr_t state_p) {

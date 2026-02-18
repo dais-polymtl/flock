@@ -90,4 +90,36 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
     return struct_json;
 }
 
+nlohmann::json CastValueToJson(const duckdb::Value& value) {
+    nlohmann::json result;
+
+    if (value.IsNull()) {
+        return result;
+    }
+
+    auto& value_type = value.type();
+    if (value_type.id() == duckdb::LogicalTypeId::STRUCT) {
+        auto& children = duckdb::StructValue::GetChildren(value);
+        auto child_count = duckdb::StructType::GetChildCount(value_type);
+
+        for (idx_t i = 0; i < child_count; i++) {
+            auto key = duckdb::StructType::GetChildName(value_type, i);
+            auto& child_value = children[i];
+
+            if (!child_value.IsNull()) {
+                // Recursively convert child values
+                if (child_value.type().id() == duckdb::LogicalTypeId::STRUCT) {
+                    result[key] = CastValueToJson(child_value);
+                } else if (child_value.type().id() == duckdb::LogicalTypeId::INTEGER) {
+                    result[key] = child_value.GetValue<int>();
+                } else {
+                    result[key] = child_value.ToString();
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
 }// namespace flock

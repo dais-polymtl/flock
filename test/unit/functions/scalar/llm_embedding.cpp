@@ -143,7 +143,7 @@ TEST_F(LLMEmbeddingTest, Operation_LargeInputSet_ProcessesCorrectly) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'text-embedding-3-small'}, {'context_columns': [{'data': content}]}) AS embedding FROM range(" + std::to_string(input_count) + ") AS t(i), unnest(['Document content number ' || i::TEXT]) as tbl(content);");
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'text-embedding-3-small'}, {'context_columns': [{'data': content}]}) AS embedding FROM range(" + std::to_string(input_count) + ") AS t(i), unnest(['Document content number ' || i::VARCHAR]) as tbl(content);");
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), input_count);
 

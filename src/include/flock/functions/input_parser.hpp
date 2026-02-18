@@ -7,5 +7,6 @@
 namespace flock {
 
 nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, int size);
+nlohmann::json CastValueToJson(const duckdb::Value& value);
 
 }// namespace flock
