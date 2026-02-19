@@ -39,4 +39,3 @@ jobs:
       ci_tools_version: v1.4.4
       extension_name: flock
       format_checks: 'format;tidy'
-      exclude_archs: 'wasm_mvp;wasm_threads;wasm_eh'
