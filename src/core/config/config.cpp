@@ -43,7 +43,7 @@ void Config::SetupGlobalStorageLocation(duckdb::DatabaseInstance* db_instance) {
         return;
     }
 #ifdef __EMSCRIPTEN__
-    // WASM: Client is responsible for OPFS directory/file registration
+    // WASM: Client registers OPFS files before loading extension
     return;
 #endif
     auto& fs = duckdb::FileSystem::GetFileSystem(*db_instance);
@@ -68,7 +68,7 @@ void Config::ConfigSchema(duckdb::Connection& con, std::string& schema_name) {
 
 void Config::ConfigureGlobal(duckdb::DatabaseInstance* db_instance) {
 #ifdef __EMSCRIPTEN__
-    // WASM: Client pre-attaches flock_storage before loading extension
+    // WASM: flock_storage was attached by ConfigureLocal
     if (db_instance) {
         auto con = Config::GetConnection(db_instance);
         auto use_result = con.Query("USE flock_storage;");
