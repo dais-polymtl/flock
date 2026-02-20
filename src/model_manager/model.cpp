@@ -146,6 +146,9 @@ void Model::ConstructProvider() {
         case FLOCKMTL_OLLAMA:
             provider_ = std::make_shared<OllamaProvider>(model_details_);
             break;
+        case FLOCKMTL_ANTHROPIC:
+            provider_ = std::make_shared<AnthropicProvider>(model_details_);
+            break;
         default:
             throw std::invalid_argument(duckdb_fmt::format("Unsupported provider: {}", model_details_.provider_name));
     }

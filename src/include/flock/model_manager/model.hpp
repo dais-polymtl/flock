@@ -7,6 +7,7 @@
 #include "duckdb/main/connection.hpp"
 #include "flock/core/common.hpp"
 #include "flock/core/config.hpp"
+#include "flock/model_manager/providers/adapters/anthropic.hpp"
 #include "flock/model_manager/providers/adapters/azure.hpp"
 #include "flock/model_manager/providers/adapters/ollama.hpp"
 #include "flock/model_manager/providers/adapters/openai.hpp"
