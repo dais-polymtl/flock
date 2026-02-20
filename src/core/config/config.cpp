@@ -89,16 +89,13 @@ void Config::ConfigureGlobal(duckdb::DatabaseInstance* db_instance) {
 void Config::ConfigureLocal(duckdb::DatabaseInstance& db) {
     auto con = Config::GetConnection(&db);
     ConfigureTables(con, ConfigType::LOCAL);
-#ifndef __EMSCRIPTEN__
-    // Native only: Attach global storage database
+
     const std::string global_path = get_global_storage_path();
     auto result = con.Query(
             duckdb_fmt::format("ATTACH DATABASE '{}' AS flock_storage;", global_path));
     if (result->HasError()) {
         std::cerr << "Failed to attach flock_storage: " << result->GetError() << std::endl;
     }
-#endif
-    // WASM: Client pre-attaches flock_storage before loading extension
 }
 
 void Config::ConfigureTables(duckdb::Connection& con, const ConfigType type) {
@@ -117,12 +114,14 @@ void Config::Configure(duckdb::ExtensionLoader& loader) {
     const auto db_path = db.config.options.database_path;
     const std::string& global_path = get_global_storage_path();
 
-    // If the main database is already at the global storage path, no need to attach
+    // If the main database is already at the global storage path, still attach for WASM :memory: case
     if (db_path == global_path) {
-        // Main database IS the global storage - just configure tables
         auto con = GetConnection(&db);
         ConfigureTables(con, ConfigType::LOCAL);
         ConfigureTables(con, ConfigType::GLOBAL);
+#ifdef __EMSCRIPTEN__
+        ConfigureLocal(db);
+#endif
         return;
     }
 
