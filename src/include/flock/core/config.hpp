@@ -15,7 +15,7 @@ public:
     static duckdb::DatabaseInstance* db;
     static duckdb::DatabaseInstance* global_db;
     static duckdb::Connection GetConnection(duckdb::DatabaseInstance* db = nullptr);
-    static duckdb::Connection GetGlobalConnection();
+    
     static void Configure(duckdb::ExtensionLoader& loader);
     static void ConfigureGlobal(duckdb::DatabaseInstance* db_instance);
     static void ConfigureTables(duckdb::Connection& con, ConfigType type);

@@ -30,12 +30,6 @@ duckdb::Connection Config::GetConnection(duckdb::DatabaseInstance* db) {
     return con;
 }
 
-duckdb::Connection Config::GetGlobalConnection() {
-    // Meyers' Singleton"
-    static duckdb::DuckDB global_db(Config::get_global_storage_path().string());
-    duckdb::Connection con(*global_db.instance);
-    return con;
-}
 
 void Config::SetupGlobalStorageLocation(duckdb::DatabaseInstance* db_instance) {
     if (!db_instance) {
@@ -61,23 +55,18 @@ void Config::ConfigSchema(duckdb::Connection& con, std::string& schema_name) {
 }
 
 void Config::ConfigureGlobal(duckdb::DatabaseInstance* db_instance) {
-#ifdef __EMSCRIPTEN__
-    // WASM: flock_storage was attached by ConfigureLocal
-    if (db_instance) {
-        auto con = Config::GetConnection(db_instance);
-        auto use_result = con.Query("USE flock_storage;");
-        if (use_result->HasError()) {
-            std::cerr << "Failed to USE flock_storage: " << use_result->GetError() << std::endl;
-            return;
-        }
-        ConfigureTables(con, ConfigType::GLOBAL);
-        con.Query("USE memory;");
+    if (!db_instance) {
+        return;
     }
-#else
-    (void) db_instance;// unused on non-WASM
-    auto con = Config::GetGlobalConnection();
+    // Use the already-attached flock_storage database
+    auto con = Config::GetConnection(db_instance);
+    auto use_result = con.Query("USE flock_storage;");
+    if (use_result->HasError()) {
+        std::cerr << "Failed to USE flock_storage: " << use_result->GetError() << std::endl;
+        return;
+    }
     ConfigureTables(con, ConfigType::GLOBAL);
-#endif
+    con.Query("USE memory;");
 }
 
 void Config::ConfigureLocal(duckdb::DatabaseInstance& db) {
@@ -121,11 +110,7 @@ void Config::Configure(duckdb::ExtensionLoader& loader) {
 
     SetupGlobalStorageLocation(&db);
     ConfigureLocal(db);
-#ifndef __EMSCRIPTEN__
-    ConfigureGlobal(nullptr);
-#else
     ConfigureGlobal(&db);
-#endif
 }
 
 void Config::DetachFromGlobalStorage(duckdb::Connection& con) {
