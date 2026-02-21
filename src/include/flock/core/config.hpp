@@ -1,8 +1,8 @@
 #pragma once
 
-#include "filesystem.hpp"
 #include "flock/core/common.hpp"
 #include "flock/registry/registry.hpp"
+#include <filesystem>
 #include <fmt/format.h>
 
 namespace flock {
@@ -15,9 +15,9 @@ public:
     static duckdb::DatabaseInstance* db;
     static duckdb::DatabaseInstance* global_db;
     static duckdb::Connection GetConnection(duckdb::DatabaseInstance* db = nullptr);
-    static duckdb::Connection GetGlobalConnection();
+    
     static void Configure(duckdb::ExtensionLoader& loader);
-    static void ConfigureGlobal();
+    static void ConfigureGlobal(duckdb::DatabaseInstance* db_instance);
     static void ConfigureTables(duckdb::Connection& con, ConfigType type);
     static void ConfigureLocal(duckdb::DatabaseInstance& db);
 
@@ -51,7 +51,7 @@ public:
     };
 
 private:
-    static void SetupGlobalStorageLocation();
+    static void SetupGlobalStorageLocation(duckdb::DatabaseInstance* db_instance);
     static void ConfigSchema(duckdb::Connection& con, std::string& schema_name);
     static void ConfigPromptTable(duckdb::Connection& con, std::string& schema_name, ConfigType type);
     static void ConfigModelTable(duckdb::Connection& con, std::string& schema_name, ConfigType type);
