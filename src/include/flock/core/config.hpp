@@ -2,6 +2,7 @@
 
 #include "flock/core/common.hpp"
 #include "flock/registry/registry.hpp"
+#include <filesystem>
 #include <fmt/format.h>
 
 namespace flock {
@@ -21,7 +22,7 @@ public:
     static void ConfigureLocal(duckdb::DatabaseInstance& db);
 
     static std::string get_schema_name();
-    static std::string get_global_storage_path();
+    static std::filesystem::path get_global_storage_path();
     static std::string get_default_models_table_name();
     static std::string get_user_defined_models_table_name();
     static std::string get_prompts_table_name();

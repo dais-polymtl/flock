@@ -70,6 +70,7 @@ protected:
 #ifdef __EMSCRIPTEN__
         // WASM: Process requests sequentially using emscripten fetch
         std::vector<nlohmann::json> results(jsons.size());
+        bool is_completion = (request_type == RequestType::Completion);
         auto url = is_completion ? getCompletionUrl() : getEmbedUrl();
 
         for (size_t i = 0; i < jsons.size(); ++i) {
@@ -80,7 +81,7 @@ protected:
             if (!response.is_error && !response.text.empty() && isJson(response.text)) {
                 try {
                     nlohmann::json parsed = nlohmann::json::parse(response.text);
-                    checkResponse(parsed, is_completion);
+                    checkResponse(parsed, request_type);
                     if (is_completion) {
                         results[i] = ExtractCompletionOutput(parsed);
                     } else {
