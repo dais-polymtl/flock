@@ -87,4 +87,9 @@ void AnthropicProvider::AddEmbeddingRequest(const std::vector<std::string>& inpu
     throw std::runtime_error("Anthropic does not support embeddings. Use OpenAI or Ollama.");
 }
 
+void AnthropicProvider::AddTranscriptionRequest(const nlohmann::json& audio_files) {
+    (void)audio_files;
+    throw std::runtime_error("Anthropic does not support audio transcription. Use OpenAI or Azure.");
+}
+
 }// namespace flock

@@ -24,14 +24,14 @@ public:
         _request_types.push_back(type);
     }
 
-    std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json") {
+    std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json") override {
         std::vector<nlohmann::json> completions;
         if (!_request_batch.empty()) completions = ExecuteBatch(_request_batch, true, contentType, RequestType::Completion);
         _request_batch.clear();
         return completions;
     }
 
-    std::vector<nlohmann::json> CollectEmbeddings(const std::string& contentType = "application/json") {
+    std::vector<nlohmann::json> CollectEmbeddings(const std::string& contentType = "application/json") override {
         std::vector<nlohmann::json> embeddings;
         if (!_request_batch.empty()) embeddings = ExecuteBatch(_request_batch, true, contentType, RequestType::Embedding);
         _request_batch.clear();
@@ -285,7 +285,7 @@ protected:
 
     bool isJson(const std::string& data) {
         try {
-            nlohmann::json::parse(data);
+            (void)nlohmann::json::parse(data);
         } catch (...) {
             return false;
         }
