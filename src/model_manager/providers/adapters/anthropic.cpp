@@ -61,11 +61,15 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
     }
 
     nlohmann::json request_payload = {{"model", model_details_.model},
-                                      {"max_tokens", 1024},
                                       {"messages", {{{"role", "user"}, {"content", message_content}}}}};
 
     if (!model_details_.model_parameters.empty()) {
         request_payload.update(model_details_.model_parameters);
+    }
+
+    // Anthropic API requires max_tokens; use fallback when not specified
+    if (!request_payload.contains("max_tokens")) {
+        request_payload["max_tokens"] = 4096;
     }
 
     // Build the schema for structured output
