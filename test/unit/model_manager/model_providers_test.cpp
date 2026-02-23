@@ -1,4 +1,5 @@
 #include "../functions/mock_provider.hpp"
+#include "flock/model_manager/providers/adapters/anthropic.hpp"
 #include "flock/model_manager/providers/adapters/azure.hpp"
 #include "flock/model_manager/providers/adapters/ollama.hpp"
 #include "flock/model_manager/providers/adapters/openai.hpp"
@@ -200,6 +201,63 @@ TEST(ModelProvidersTest, TranscriptionWithMultipleFiles) {
     EXPECT_EQ(transcription_results[0], expected_transcription_responses[0]);
     EXPECT_EQ(transcription_results[1], expected_transcription_responses[1]);
     EXPECT_EQ(transcription_results[2], expected_transcription_responses[2]);
+}
+
+// Test Anthropic provider behavior
+TEST(ModelProvidersTest, AnthropicProviderTest) {
+    ModelDetails model_details;
+    model_details.model_name = "test_model";
+    model_details.model = "claude-3-haiku-20240307";
+    model_details.provider_name = "anthropic";
+    model_details.model_parameters = {{"temperature", 0.7}, {"max_tokens", 1024}};
+    model_details.secret = {{"api_key", "test_api_key"}, {"api_version", ANTHROPIC_DEFAULT_API_VERSION}};
+
+    // Create a mock provider
+    MockProvider mock_provider(model_details);
+
+    // Set up mock behavior for AddCompletionRequest and CollectCompletions
+    const std::string test_prompt = "Test prompt for Anthropic completion";
+    const json expected_complete_response = {{"response", "This is a test response from Claude"}};
+
+    EXPECT_CALL(mock_provider, AddCompletionRequest(test_prompt, 1, OutputType::STRING, nlohmann::json::array()))
+            .Times(1);
+    EXPECT_CALL(mock_provider, CollectCompletions("application/json"))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
+
+    // Test the mocked methods for completion
+    mock_provider.AddCompletionRequest(test_prompt, 1, OutputType::STRING, nlohmann::json::array());
+    auto complete_results = mock_provider.CollectCompletions("application/json");
+    ASSERT_EQ(complete_results.size(), 1);
+    EXPECT_EQ(complete_results[0], expected_complete_response);
+}
+
+// Test Anthropic provider embedding error
+TEST(ModelProvidersTest, AnthropicProviderEmbeddingErrorTest) {
+    ModelDetails model_details;
+    model_details.model_name = "test_model";
+    model_details.model = "claude-3-haiku-20240307";
+    model_details.provider_name = "anthropic";
+    model_details.model_parameters = {{"temperature", 0.7}, {"max_tokens", 1024}};
+    model_details.secret = {{"api_key", "test_api_key"}, {"api_version", ANTHROPIC_DEFAULT_API_VERSION}};
+
+    // Create actual provider (not mock) to test embedding error
+    AnthropicProvider provider(model_details);
+
+    const std::vector<std::string> test_inputs = {"Test input for embedding"};
+
+    // Should throw when trying to use embeddings
+    EXPECT_THROW(provider.AddEmbeddingRequest(test_inputs), std::runtime_error);
+}
+
+// Test Anthropic provider type registration
+TEST(ModelProvidersTest, AnthropicProviderTypeTest) {
+    // Test that GetProviderType correctly identifies Anthropic
+    EXPECT_EQ(GetProviderType("anthropic"), FLOCKMTL_ANTHROPIC);
+    EXPECT_EQ(GetProviderType("ANTHROPIC"), FLOCKMTL_ANTHROPIC);
+    EXPECT_EQ(GetProviderType("Anthropic"), FLOCKMTL_ANTHROPIC);
+
+    // Test that GetProviderName returns correct string
+    EXPECT_EQ(GetProviderName(FLOCKMTL_ANTHROPIC), "anthropic");
 }
 
 }// namespace flock
