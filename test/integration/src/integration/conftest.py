@@ -17,6 +17,7 @@ def get_audio_file_path():
 def get_secrets_setup_sql():
     openai_key = os.getenv("OPENAI_API_KEY", "")
     ollama_url = os.getenv("API_URL", "http://localhost:11434")
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
 
     secrets_sql = []
 
@@ -25,6 +26,9 @@ def get_secrets_setup_sql():
 
     if ollama_url:
         secrets_sql.append(f"CREATE SECRET (TYPE OLLAMA, API_URL '{ollama_url}');")
+
+    if anthropic_key:
+        secrets_sql.append(f"CREATE SECRET (TYPE ANTHROPIC, API_KEY '{anthropic_key}');")
 
     return " ".join(secrets_sql)
 

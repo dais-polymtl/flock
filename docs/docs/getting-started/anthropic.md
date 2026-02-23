@@ -17,20 +17,12 @@ import TOCInline from '@theme/TOCInline';
 
 To use the Anthropic provider, you need to get your API key from the [Anthropic Console](https://console.anthropic.com/). Only two steps are required:
 
-- First, create a secret with your Anthropic API key. Optionally, you can specify an API version (defaults to `2023-06-01`):
+- First, create a secret with your Anthropic API key:
 
 ```sql
--- Minimal: API key only (uses default API version)
 CREATE SECRET (
     TYPE ANTHROPIC,
     API_KEY 'your-api-key'
-);
-
--- With custom API version (optional)
-CREATE SECRET (
-    TYPE ANTHROPIC,
-    API_KEY 'your-api-key',
-    API_VERSION '2024-01-01'
 );
 ```
 
@@ -92,7 +84,7 @@ CREATE MODEL(
 Flock supports all parameters provided by the [Anthropic Messages API](https://docs.anthropic.com/en/api/messages). Common examples include:
 
 - `temperature` - Controls randomness (0.0 to 1.0)
-- `max_tokens` - Maximum response length (required by Anthropic, default: 4096)
+- `max_tokens` - Maximum response length (required by Anthropic, default: 1024)
 - `system` - System prompt for context and instructions
 - `top_p` - Nucleus sampling threshold
 - `top_k` - Limits token selection to top K options
@@ -117,11 +109,7 @@ CREATE MODEL(
 
 ## Image Support
 
-Claude models support image analysis. Images can be provided as:
-
-- **URLs** – `http://` or `https://` URLs are downloaded and converted to base64 automatically
-- **File paths** – Local files are read and converted to base64
-- **Base64-encoded data** – Used directly
+Claude models support image analysis. Images must be provided as base64-encoded data:
 
 ```sql
 SELECT llm_complete(
@@ -136,7 +124,7 @@ SELECT llm_complete(
 FROM images_table;
 ```
 
-URLs and file paths are resolved the same way as with OpenAI and Ollama.
+Note: URL-based images are not directly supported. Images must be base64-encoded before use.
 
 ## Structured Output
 
@@ -195,4 +183,4 @@ Anthropic has rate limits based on your plan tier. Monitor your usage in the [An
 
 ## API Version
 
-The default API version is `2023-06-01`. You can override this when creating a secret by passing the optional `API_VERSION` parameter. The adapter automatically includes the required `anthropic-version` header with all requests.
+The default API version is `2023-06-01`. The adapter automatically includes the required `anthropic-version` header with all requests.

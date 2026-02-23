@@ -1,5 +1,4 @@
 #include "flock/model_manager/providers/adapters/anthropic.hpp"
-#include "flock/model_manager/providers/handlers/url_handler.hpp"
 #include <fmt/format.h>
 
 namespace flock {
@@ -20,9 +19,8 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
     auto message_content = nlohmann::json::array();
     message_content.push_back({{"type", "text"}, {"text", prompt}});
 
-    // Process image columns - supports URLs, file paths, and base64
-    if (media_data.contains("image") && !media_data["image"].empty() && media_data["image"].is_array()) {
-        for (const auto& column : media_data["image"]) {
+    if (!media_data.empty()) {
+        for (const auto& column : media_data) {
             auto image_type = column.contains("type") ? column["type"].get<std::string>() : "image/png";
             auto media_type = std::string("image/");
             if (size_t pos = image_type.find("/"); pos != std::string::npos) {
@@ -31,29 +29,15 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
                 media_type += std::string("png");
             }
 
-            if (column.contains("data") && column["data"].is_array()) {
+            if (column.contains("data")) {
                 for (const auto& image : column["data"]) {
-                    if (image.is_null()) {
-                        continue;
+                    auto image_str = image.get<std::string>();
+                    if (!is_base64(image_str)) {
+                        throw std::runtime_error("Anthropic requires base64-encoded images, not URLs.");
                     }
-                    std::string image_str;
-                    if (image.is_string()) {
-                        image_str = image.get<std::string>();
-                    } else {
-                        image_str = image.dump();
-                    }
-
-                    std::string base64_data;
-                    if (URLHandler::IsUrl(image_str) || !is_base64(image_str)) {
-                        auto base64_result = URLHandler::ResolveFileToBase64(image_str);
-                        base64_data = base64_result.base64_content;
-                    } else {
-                        base64_data = image_str;
-                    }
-
                     message_content.push_back({
                         {"type", "image"},
-                        {"source", {{"type", "base64"}, {"media_type", media_type}, {"data", base64_data}}}
+                        {"source", {{"type", "base64"}, {"media_type", media_type}, {"data", image_str}}}
                     });
                 }
             }
@@ -61,15 +45,11 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
     }
 
     nlohmann::json request_payload = {{"model", model_details_.model},
+                                      {"max_tokens", 1024},
                                       {"messages", {{{"role", "user"}, {"content", message_content}}}}};
 
     if (!model_details_.model_parameters.empty()) {
         request_payload.update(model_details_.model_parameters);
-    }
-
-    // Anthropic API requires max_tokens; use fallback when not specified
-    if (!request_payload.contains("max_tokens")) {
-        request_payload["max_tokens"] = 4096;
     }
 
     // Build the schema for structured output
@@ -105,11 +85,6 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
 
 void AnthropicProvider::AddEmbeddingRequest(const std::vector<std::string>& inputs) {
     throw std::runtime_error("Anthropic does not support embeddings. Use OpenAI or Ollama.");
-}
-
-void AnthropicProvider::AddTranscriptionRequest(const nlohmann::json& audio_files) {
-    (void)audio_files;
-    throw std::runtime_error("Anthropic does not support audio transcription. Use OpenAI or Azure.");
 }
 
 }// namespace flock
