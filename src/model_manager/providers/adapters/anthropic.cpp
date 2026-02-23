@@ -1,4 +1,5 @@
 #include "flock/model_manager/providers/adapters/anthropic.hpp"
+#include "flock/model_manager/providers/handlers/url_handler.hpp"
 #include <fmt/format.h>
 
 namespace flock {
@@ -19,8 +20,9 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
     auto message_content = nlohmann::json::array();
     message_content.push_back({{"type", "text"}, {"text", prompt}});
 
-    if (!media_data.empty()) {
-        for (const auto& column : media_data) {
+    // Process image columns - supports URLs, file paths, and base64
+    if (media_data.contains("image") && !media_data["image"].empty() && media_data["image"].is_array()) {
+        for (const auto& column : media_data["image"]) {
             auto image_type = column.contains("type") ? column["type"].get<std::string>() : "image/png";
             auto media_type = std::string("image/");
             if (size_t pos = image_type.find("/"); pos != std::string::npos) {
@@ -29,15 +31,29 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
                 media_type += std::string("png");
             }
 
-            if (column.contains("data")) {
+            if (column.contains("data") && column["data"].is_array()) {
                 for (const auto& image : column["data"]) {
-                    auto image_str = image.get<std::string>();
-                    if (!is_base64(image_str)) {
-                        throw std::runtime_error("Anthropic requires base64-encoded images, not URLs.");
+                    if (image.is_null()) {
+                        continue;
                     }
+                    std::string image_str;
+                    if (image.is_string()) {
+                        image_str = image.get<std::string>();
+                    } else {
+                        image_str = image.dump();
+                    }
+
+                    std::string base64_data;
+                    if (URLHandler::IsUrl(image_str) || !is_base64(image_str)) {
+                        auto base64_result = URLHandler::ResolveFileToBase64(image_str);
+                        base64_data = base64_result.base64_content;
+                    } else {
+                        base64_data = image_str;
+                    }
+
                     message_content.push_back({
                         {"type", "image"},
-                        {"source", {{"type", "base64"}, {"media_type", media_type}, {"data", image_str}}}
+                        {"source", {{"type", "base64"}, {"media_type", media_type}, {"data", base64_data}}}
                     });
                 }
             }
