@@ -38,6 +38,36 @@ def test_create_ollama_secret(integration_setup):
     assert result.returncode == 0
 
 
+def test_create_anthropic_secret(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    secret_name = "test_anthropic_secret"
+    create_query = (
+        f"CREATE SECRET {secret_name} (TYPE ANTHROPIC, API_KEY 'test-anthropic-key');"
+    )
+    result = run_cli(duckdb_cli_path, db_path, create_query, with_secrets=False)
+    assert result.returncode == 0
+
+
+def test_create_anthropic_secret_with_api_version(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    secret_name = "test_anthropic_secret_with_version"
+    create_query = (
+        f"CREATE SECRET {secret_name} (TYPE ANTHROPIC, API_KEY 'test-anthropic-key', API_VERSION '2024-01-01');"
+    )
+    result = run_cli(duckdb_cli_path, db_path, create_query, with_secrets=False)
+    assert result.returncode == 0
+
+
+def test_create_anthropic_secret_missing_required_field(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    secret_name = "test_anthropic_invalid"
+    create_query = (
+        f"CREATE SECRET {secret_name} (TYPE ANTHROPIC, API_VERSION '2024-01-01');"
+    )
+    result = run_cli(duckdb_cli_path, db_path, create_query, with_secrets=False)
+    assert result.returncode != 0
+
+
 def test_create_openai_secret_missing_required_field(integration_setup):
     duckdb_cli_path, db_path = integration_setup
     secret_name = "test_openai_invalid"
@@ -115,6 +145,11 @@ def test_multiple_secrets_different_types(integration_setup):
     result = run_cli(duckdb_cli_path, db_path, create_ollama, with_secrets=False)
     assert result.returncode == 0
     secrets.append(ollama_secret)
+    anthropic_secret = "test_multi_anthropic"
+    create_anthropic = f"CREATE SECRET {anthropic_secret} (TYPE ANTHROPIC, API_KEY 'anthropic-key');"
+    result = run_cli(duckdb_cli_path, db_path, create_anthropic, with_secrets=False)
+    assert result.returncode == 0
+    secrets.append(anthropic_secret)
 
 
 def test_secret_scope_handling(integration_setup):
@@ -138,6 +173,11 @@ def test_secret_scope_handling(integration_setup):
             },
         ),
         ("OLLAMA", {"API_URL": "http://localhost:11434"}),
+        ("ANTHROPIC", {"API_KEY": "test-key"}),
+        (
+            "ANTHROPIC",
+            {"API_KEY": "test-key", "API_VERSION": "2024-01-01"},
+        ),
     ],
 )
 def test_create_secrets_parametrized(integration_setup, provider_type, required_fields):

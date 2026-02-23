@@ -39,10 +39,11 @@ TEST(SecretManager, OllamaDetails) {
 
 TEST(SecretManager, DetailsList) {
     auto details_list = get_secret_details_list();
-    EXPECT_EQ(details_list.size(), 3);
+    EXPECT_EQ(details_list.size(), 4);
     EXPECT_EQ(details_list[0].type, "openai");
     EXPECT_EQ(details_list[1].type, "azure_llm");
     EXPECT_EQ(details_list[2].type, "ollama");
+    EXPECT_EQ(details_list[3].type, "anthropic");
 }
 
 // Test the provider-related functions

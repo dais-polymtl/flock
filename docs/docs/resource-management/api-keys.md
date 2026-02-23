@@ -20,6 +20,7 @@ Supported secret types for Flock:
 - **OpenAI**
 - **Ollama**
 - **Azure**
+- **Anthropic**
 
 ## 2. Creating a Secret
 
@@ -61,6 +62,25 @@ CREATE SECRET (
 
 This creates a secret named `__default_azure`.
 
+### 2.4 Anthropic API Key
+
+```sql
+-- API key only (uses default API version 2023-06-01)
+CREATE SECRET (
+    TYPE ANTHROPIC,
+    API_KEY 'your-api-key'
+);
+
+-- With optional custom API version
+CREATE SECRET (
+    TYPE ANTHROPIC,
+    API_KEY 'your-api-key',
+    API_VERSION '2024-01-01'
+);
+```
+
+This creates a secret named `__default_anthropic`. The `API_VERSION` parameter is optional.
+
 ## 3. Persistent Secrets
 
 To persist secrets across DuckDB sessions, use `CREATE PERSISTENT SECRET`:
@@ -94,6 +114,17 @@ CREATE PERSISTENT SECRET (
 );
 ```
 
+### 3.4 Example for Anthropic (Persistent):
+
+```sql
+CREATE PERSISTENT SECRET (
+    TYPE ANTHROPIC,
+    API_KEY 'your-api-key'
+);
+```
+
+Optionally add `API_VERSION '2024-01-01'` to use a custom API version.
+
 ## 4. Deleting Secrets
 
 To delete a secret, use the `DROP SECRET` command. For default provider secrets, the name will follow the pattern
@@ -108,7 +139,7 @@ DROP TEMPORARY SECRET your_secret_name;
 ```
 
 For default provider secrets, the name will be in the format `__default_<provider_name>`, e.g., `__default_openai`,
-`__default_ollama`, or `__default_azure`.
+`__default_ollama`, `__default_azure`, or `__default_anthropic`.
 
 Example for deleting a default temporary OpenAI secret:
 
@@ -125,7 +156,7 @@ DROP PERSISTENT SECRET your_secret_name;
 ```
 
 For default provider secrets, the name will be in the format `__default_<provider_name>`, e.g., `__default_openai`,
-`__default_ollama`, or `__default_azure`.
+`__default_ollama`, `__default_azure`, or `__default_anthropic`.
 
 Example for deleting a default persistent OpenAI secret:
 
