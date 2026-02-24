@@ -41,6 +41,10 @@ protected:
         throw std::runtime_error("Anthropic does not support embeddings.");
     }
 
+    std::string getTranscriptionUrl() const override {
+        throw std::runtime_error("Anthropic does not support audio transcription.");
+    }
+
     void prepareSessionForRequest(const std::string& url) override {
         _session.setUrl(url);
     }
@@ -63,9 +67,9 @@ protected:
         };
     }
 
-    void checkProviderSpecificResponse(const nlohmann::json& response, bool is_completion) override {
-        if (!is_completion) {
-            throw std::runtime_error("Anthropic does not support embeddings.");
+    void checkProviderSpecificResponse(const nlohmann::json& response, RequestType request_type) override {
+        if (request_type != RequestType::Completion) {
+            throw std::runtime_error("Anthropic does not support embeddings or transcriptions.");
         }
         if (response.contains("type") && response["type"] == "error") {
             std::string error_msg = "Anthropic API error";
@@ -122,6 +126,26 @@ protected:
 
     nlohmann::json ExtractEmbeddingVector(const nlohmann::json& response) const override {
         throw std::runtime_error("Anthropic does not support embeddings.");
+    }
+
+    nlohmann::json ExtractTranscriptionOutput(const nlohmann::json& response) const override {
+        (void)response;
+        throw std::runtime_error("Anthropic does not support audio transcription.");
+    }
+
+    std::pair<int64_t, int64_t> ExtractTokenUsage(const nlohmann::json& response) const override {
+        int64_t input_tokens = 0;
+        int64_t output_tokens = 0;
+        if (response.contains("usage") && response["usage"].is_object()) {
+            const auto& usage = response["usage"];
+            if (usage.contains("input_tokens") && usage["input_tokens"].is_number()) {
+                input_tokens = usage["input_tokens"].get<int64_t>();
+            }
+            if (usage.contains("output_tokens") && usage["output_tokens"].is_number()) {
+                output_tokens = usage["output_tokens"].get<int64_t>();
+            }
+        }
+        return {input_tokens, output_tokens};
     }
 };
 
