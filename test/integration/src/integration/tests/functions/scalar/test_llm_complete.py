@@ -20,10 +20,34 @@ def model_config(request):
     return request.param
 
 
-@pytest.fixture(params=[("gpt-4o-mini", "openai"), ("gemma3:4b", "ollama")])
+@pytest.fixture(params=[
+    ("gpt-4o-mini", "openai"),
+    ("gemma3:4b", "ollama"),
+    ("claude-3-haiku-20240307", "anthropic"),
+])
 def model_config_image(request):
     """Fixture to test with different models for image tests."""
     return request.param
+
+
+def test_llm_complete_ollama_basic(integration_setup):
+    """Dedicated Ollama test - ensures Ollama is always exercised (local/free provider)."""
+    duckdb_cli_path, db_path = integration_setup
+
+    test_model_name = "test-ollama-basic"
+    create_model_query = "CREATE MODEL('test-ollama-basic', 'gemma3:1b', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
+
+    query = """
+    SELECT llm_complete(
+        {'model_name': 'test-ollama-basic'},
+        {'prompt': 'What is 2+2? Reply with just the number.'}
+    ) AS result;
+    """
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Ollama test failed: {result.stderr}"
+    assert "result" in result.stdout.lower()
 
 
 def test_llm_complete_basic_functionality(integration_setup, model_config):
@@ -476,6 +500,43 @@ def _llm_complete_performance_large_dataset(integration_setup, model_config):
     assert len(lines) >= 6, (
         f"Expected at least 6 lines (header + 5 data), got {len(lines)}"
     )
+
+
+def test_llm_complete_ollama_image(integration_setup):
+    """Dedicated Ollama image test - ensures Ollama image support is always exercised."""
+    duckdb_cli_path, db_path = integration_setup
+
+    test_model_name = "test-ollama-image"
+    create_model_query = "CREATE MODEL('test-ollama-image', 'gemma3:4b', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
+
+    create_table_query = """
+    CREATE OR REPLACE TABLE ollama_test_images (id INTEGER, name VARCHAR, image VARCHAR);
+    """
+    run_cli(duckdb_cli_path, db_path, create_table_query)
+
+    image_url = "https://images.unsplash.com/photo-1549366021-9f761d450615?w=100"
+    image_data = get_image_data_for_provider(image_url, "ollama")
+
+    insert_data_query = f"""
+    INSERT INTO ollama_test_images VALUES (1, 'Lion', '{image_data}');
+    """
+    run_cli(duckdb_cli_path, db_path, insert_data_query)
+
+    query = """
+    SELECT llm_complete(
+        {'model_name': 'test-ollama-image'},
+        {
+            'prompt': 'What animal is in this image? Reply with one word.',
+            'context_columns': [{'data': name}, {'data': image, 'type': 'image'}]
+        }
+    ) AS result
+    FROM ollama_test_images WHERE id = 1;
+    """
+    result = run_cli(duckdb_cli_path, db_path, query)
+
+    assert result.returncode == 0, f"Ollama image test failed: {result.stderr}"
+    assert "result" in result.stdout.lower()
 
 
 def test_llm_complete_with_image_integration(integration_setup, model_config_image):
