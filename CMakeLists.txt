@@ -16,7 +16,9 @@ include_directories(src/include)
 add_subdirectory(src)
 
 # Find dependencies
-find_package(CURL REQUIRED)
+if(NOT EMSCRIPTEN)
+    find_package(CURL REQUIRED)
+endif()
 find_package(nlohmann_json CONFIG REQUIRED)
 
 # Build the DuckDB static and loadable extensions
@@ -43,12 +45,18 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 # Link libraries for the static extension
-target_link_libraries(${EXTENSION_NAME} CURL::libcurl
-                      nlohmann_json::nlohmann_json)
+if(NOT EMSCRIPTEN)
+    target_link_libraries(${EXTENSION_NAME} CURL::libcurl)
+endif()
+target_link_libraries(${EXTENSION_NAME} nlohmann_json::nlohmann_json)
 
 # Link libraries for the loadable extension
-target_link_libraries(${LOADABLE_EXTENSION_NAME} CURL::libcurl
-                      nlohmann_json::nlohmann_json)
+if(NOT EMSCRIPTEN)
+    target_link_libraries(${LOADABLE_EXTENSION_NAME} CURL::libcurl)
+endif()
+target_link_libraries(${LOADABLE_EXTENSION_NAME} nlohmann_json::nlohmann_json)
+
+# WASM builds use EM_JS with synchronous XMLHttpRequest for HTTP
 
 # Install the extension
 install(
@@ -63,6 +71,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Coverage")
   add_link_options(-fprofile-instr-generate -fcoverage-mapping)
 endif()
 
-# Add the test directory
-enable_testing()
-add_subdirectory(test/unit)
+if(NOT EMSCRIPTEN)
+    # Add the test directory if not on WASM
+    enable_testing()
+    add_subdirectory(test/unit)
+endif()
