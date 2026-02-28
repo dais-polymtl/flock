@@ -6,5 +6,6 @@ set(EXTENSION_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/providers/adapters/azure.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/providers/adapters/openai.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/providers/adapters/ollama.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/providers/handlers/wasm_http.cpp
     ${EXTENSION_SOURCES}
     PARENT_SCOPE)
