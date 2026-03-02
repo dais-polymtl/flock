@@ -2,6 +2,7 @@
 #include "duckdb/common/file_system.hpp"
 #include "flock/secret_manager/secret_manager.hpp"
 #include <chrono>
+#include <thread>
 #include <fmt/format.h>
 
 namespace flock {
@@ -144,11 +145,7 @@ bool Config::StorageAttachmentGuard::TryDetach() {
 }
 
 void Config::StorageAttachmentGuard::Wait(int milliseconds) {
-    auto start = std::chrono::steady_clock::now();
-    auto duration = std::chrono::milliseconds(milliseconds);
-    while (std::chrono::steady_clock::now() - start < duration) {
-        // Busy-wait until the specified duration has elapsed
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }
 
 Config::StorageAttachmentGuard::StorageAttachmentGuard(duckdb::Connection& con, bool read_only)
@@ -201,11 +198,7 @@ bool Config::StorageAttachmentGuard::TryDetach() {
 }
 
 void Config::StorageAttachmentGuard::Wait(int milliseconds) {
-    auto start = std::chrono::steady_clock::now();
-    auto duration = std::chrono::milliseconds(milliseconds);
-    while (std::chrono::steady_clock::now() - start < duration) {
-        // Busy-wait until the specified duration has elapsed
-    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
 }
 
 Config::StorageAttachmentGuard::StorageAttachmentGuard(duckdb::Connection& con, bool read_only)
