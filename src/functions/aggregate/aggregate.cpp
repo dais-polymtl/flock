@@ -130,8 +130,6 @@ AggregateFunctionBase::CastInputsToJson(duckdb::Vector inputs[], idx_t count) {
     if (prompt_context_json.contains("context_columns")) {
         context_columns = prompt_context_json["context_columns"];
         prompt_context_json.erase("context_columns");
-    } else {
-        throw std::runtime_error("Missing 'context_columns' in second argument. The prompt struct must include context_columns.");
     }
 
     return std::make_tuple(prompt_context_json, context_columns);
