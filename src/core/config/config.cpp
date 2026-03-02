@@ -173,4 +173,61 @@ Config::StorageAttachmentGuard::~StorageAttachmentGuard() {
     }
 }
 
+void Config::AttachToGlobalStorage(duckdb::Connection& con, bool read_only) {
+    con.Query(duckdb_fmt::format("ATTACH DATABASE '{}' AS flock_storage {};",
+                                 Config::get_global_storage_path().string(), read_only ? "(READ_ONLY)" : ""));
+}
+
+void Config::DetachFromGlobalStorage(duckdb::Connection& con) {
+    con.Query("DETACH DATABASE flock_storage;");
+}
+
+bool Config::StorageAttachmentGuard::TryAttach(bool read_only) {
+    try {
+        Config::AttachToGlobalStorage(connection, read_only);
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+bool Config::StorageAttachmentGuard::TryDetach() {
+    try {
+        Config::DetachFromGlobalStorage(connection);
+        return true;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+
+void Config::StorageAttachmentGuard::Wait(int milliseconds) {
+    auto start = std::chrono::steady_clock::now();
+    auto duration = std::chrono::milliseconds(milliseconds);
+    while (std::chrono::steady_clock::now() - start < duration) {
+        // Busy-wait until the specified duration has elapsed
+    }
+}
+
+Config::StorageAttachmentGuard::StorageAttachmentGuard(duckdb::Connection& con, bool read_only)
+    : connection(con), attached(false) {
+    for (int attempt = 0; attempt < MAX_RETRIES; ++attempt) {
+        if (TryAttach(read_only)) {
+            attached = true;
+            return;
+        }
+        Wait(RETRY_DELAY_MS);
+    }
+    Config::AttachToGlobalStorage(connection, read_only);
+    attached = true;
+}
+
+Config::StorageAttachmentGuard::~StorageAttachmentGuard() {
+    if (attached) {
+        try {
+            Config::DetachFromGlobalStorage(connection);
+        } catch (...) {
+        }
+    }
+}
+
 }// namespace flock
