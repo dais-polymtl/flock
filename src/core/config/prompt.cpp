@@ -17,7 +17,7 @@ void Config::ConfigPromptTable(duckdb::Connection& con, std::string& schema_name
                                  " ); ",
                                  schema_name, table_name));
     if (type == ConfigType::GLOBAL) {
-        con.Query(duckdb_fmt::format(" INSERT INTO {}.{} (prompt_name, prompt) "
+        con.Query(duckdb_fmt::format(" INSERT OR IGNORE INTO {}.{} (prompt_name, prompt) "
                                      " VALUES ('hello-world', 'Tell me hello world'); ",
                                      schema_name, table_name));
     }
