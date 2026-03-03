@@ -90,8 +90,8 @@ protected:
             for (const auto& embedding: embeddings) {
                 results.push_back(embedding["embedding"]);
             }
-            return results;
         }
+        return results;
     }
 
     std::pair<int64_t, int64_t> ExtractTokenUsage(const nlohmann::json& response) const override {
