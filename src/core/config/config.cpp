@@ -155,7 +155,9 @@ Config::StorageAttachmentGuard::StorageAttachmentGuard(duckdb::Connection& con, 
             attached = true;
             return;
         }
-        Wait(RETRY_DELAY_MS);
+        if (attempt < MAX_RETRIES - 1) {
+            Wait(RETRY_DELAY_MS);
+        }
     }
     Config::AttachToGlobalStorage(connection, read_only);
     attached = true;
