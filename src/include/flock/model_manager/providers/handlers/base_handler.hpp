@@ -218,9 +218,12 @@ protected:
                 std::remove(requests[i].temp_file_path.c_str());
             }
 
-            curl_easy_getinfo(requests[i].easy, CURLINFO_RESPONSE_CODE, NULL);
+            long http_code = 0;
+            curl_easy_getinfo(requests[i].easy, CURLINFO_RESPONSE_CODE, &http_code);
 
-            if (isJson(requests[i].response)) {
+            if (requests[i].response.empty()) {
+                trigger_error("Empty response from provider (HTTP " + std::to_string(http_code) + ", URL: " + url + ")");
+            } else if (isJson(requests[i].response)) {
                 try {
                     nlohmann::json parsed = nlohmann::json::parse(requests[i].response);
                     checkResponse(parsed, request_type);
@@ -236,13 +239,21 @@ protected:
                     try {
                         results[i] = ExtractOutput(parsed, request_type);
                     } catch (const std::exception& e) {
-                        trigger_error(std::string("Output extraction error: ") + e.what());
+                        std::string msg = e.what();
+                        if (msg.rfind("[ModelProvider]", 0) == 0) {
+                            throw;
+                        }
+                        trigger_error(std::string("Output extraction error: ") + msg);
                     }
                 } catch (const std::exception& e) {
-                    trigger_error(std::string("Response processing error: ") + e.what());
+                    std::string msg = e.what();
+                    if (msg.rfind("[ModelProvider]", 0) == 0) {
+                        throw;
+                    }
+                    trigger_error(std::string("Response processing error: ") + msg);
                 }
             } else {
-                trigger_error("Invalid JSON response: " + requests[i].response);
+                trigger_error("Invalid JSON response (HTTP " + std::to_string(http_code) + ", URL: " + url + "): " + requests[i].response);
             }
 
             // Clean up mime form for transcriptions
@@ -297,17 +308,39 @@ protected:
     virtual std::pair<int64_t, int64_t> ExtractTokenUsage(const nlohmann::json& response) const = 0;
 
     void trigger_error(const std::string& msg) {
-        if (_throw_exception) {
-            throw std::runtime_error("[ModelProvider] error. Reason: " + msg);
+        const std::string prefix = "[ModelProvider] ";
+        std::string full_message;
+        if (msg.rfind(prefix, 0) == 0) {
+            full_message = msg;
         } else {
-            std::cerr << "[ModelProvider] error. Reason: " << msg << '\n';
+            full_message = prefix + msg;
+        }
+
+        if (_throw_exception) {
+            throw std::runtime_error(full_message);
+        } else {
+            std::cerr << full_message << '\n';
         }
     }
 
     void checkResponse(const nlohmann::json& json, RequestType request_type) {
         if (json.contains("error")) {
-            auto reason = json["error"].dump();
-            trigger_error(reason);
+            const auto& err = json["error"];
+            std::string reason;
+
+            if (err.is_object()) {
+                if (err.contains("message") && err["message"].is_string()) {
+                    reason = err["message"].get<std::string>();
+                } else {
+                    reason = err.dump();
+                }
+            } else if (err.is_string()) {
+                reason = err.get<std::string>();
+            } else {
+                reason = err.dump();
+            }
+
+            trigger_error("Provider error: " + reason);
             std::cerr << ">> response error :\n"
                       << json.dump(2) << "\n";
         }
