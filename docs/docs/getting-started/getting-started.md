@@ -87,7 +87,7 @@ Refer to the following sections for detailed instructions on setting up API keys
 import DocCard from '@site/src/components/global/DocCard';
 import { RiOpenaiFill } from "react-icons/ri";
 import { VscAzure } from "react-icons/vsc";
-import { SiOllama } from "react-icons/si";
+import { SiOllama, SiAnthropic } from "react-icons/si";
 
 <DocCard
 Icon={VscAzure}
@@ -105,6 +105,7 @@ title="OpenAI"
 link="/flock/docs/getting-started/openai"
 />
 <DocCard
+Icon={SiAnthropic}
 title="Anthropic / Claude"
 link="/flock/docs/getting-started/anthropic"
 />
