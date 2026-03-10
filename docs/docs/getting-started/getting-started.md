@@ -47,7 +47,7 @@ If you want to build Flock from source or contribute to the project, you can use
    git clone --recursive https://github.com/dais-polymtl/flock.git
    cd flock
    ```
-   
+
    Or if you've already cloned without submodules:
    ```bash
    git submodule update --init --recursive
