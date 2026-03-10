@@ -89,7 +89,7 @@ Each image context column can have the following properties:
 - **`data`** _(required)_: The SQL column containing image data (URL, path, or base64)
 - **`name`** _(optional)_: Custom name to reference this image in your prompt
 - **`type`** _(optional)_: Set to `'image'` (default is `'tabular'` if omitted)
-- **`detail`** _(optional)**:** Image detail level for OpenAI models – `'low'`, `'medium'`, or `'high'` (default is
+- **`detail`** _(optional)_: Image detail level for OpenAI models – `'low'`, `'medium'`, or `'high'` (default is
   `'low'`)
 
 ### Image Detail Parameter (OpenAI Only)
