@@ -1,8 +1,6 @@
 ---
 title: Structured Output
-sidebar_position: 8
----title: Structured Output
-sidebar_position: 6
+sidebar_position: 10
 ---
 
 # Structured Output in Flock
@@ -22,6 +20,13 @@ Instead of receiving free-form text, you can specify a JSON schema that the mode
 
 **Compatibility**: Works with all Flock LLM functions - `llm_complete`, `llm_filter`, `llm_reduce`, `llm_rerank`,
 `llm_first`, `llm_last`
+
+**Provider Support**:
+
+- **OpenAI** – native `response_format` with JSON schemas.
+- **Ollama** – `format` field with object schemas.
+- **Anthropic/Claude** – hybrid support via `output_format` (Claude 4.x) and `tool_use` (Claude 3.x). See the
+  [Anthropic guide](/docs/getting-started/anthropic) for details.
 
 :::note Prerequisites
 To extract values from structured JSON responses using dot notation (e.g., `response.category`), you need to load the

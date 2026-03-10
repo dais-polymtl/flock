@@ -7,11 +7,25 @@ sidebar_position: 1
 ## Overview
 
 **Flock** enhances DuckDB by integrating semantic functions and robust resource management capabilities, enabling
-advanced analytics and language model operations directly within SQL queries.
+advanced analytics and language model operations directly within SQL queries. It is distributed as a DuckDB extension
+that runs on native platforms and in the browser via DuckDB-WASM.
 
 import TOCInline from '@theme/TOCInline';
 
 <TOCInline toc={toc} />
+
+## Key Highlights (v0.4.0 and later)
+
+- **Four LLM Providers**: OpenAI, Azure, Ollama, and Anthropic/Claude, all integrated through a unified SQL API.
+- **Multimodal Support**: Text, image, and audio inputs (via transcription) using the same `context_columns` abstraction.
+- **LLM Metrics Tracking**: Built-in functions such as `flock_get_metrics()` expose token counts, latency, and call-level
+  metrics for all Flock LLM functions.
+- **Browser & WASM Support**: Flock can be compiled as a DuckDB-WASM loadable extension to run directly in the browser.
+- **Upgraded DuckDB Engine**: Based on DuckDB v1.4.4 for improved performance and stability.
+- **Architecture Improvements**: Centralized bind data, RAII-based storage guards, and performance fixes across scalar and
+  aggregate functions.
+- **Developer Experience**: Interactive build scripts and Copilot agent instructions streamline local development and CI
+  for the extension.
 
 ## Semantic Functions
 
@@ -67,7 +81,7 @@ to produce the best-fit results, and even create end-to-end RAG pipelines.
 
 Flock provides [**structured output**](/docs/structured-output) capabilities that allow users to obtain predictable,
 schema-compliant JSON responses from Large Language Models. This feature works with all Flock LLM functions and supports
-both OpenAI and Ollama providers, ensuring consistent data formats for downstream processing.
+OpenAI, Ollama, and Anthropic/Claude providers, ensuring consistent data formats for downstream processing.
 
 ## Resource Management
 
@@ -81,11 +95,12 @@ Flock is supported by the different operating systems and platforms, such as:
 - Linux
 - macOS
 - Windows
+- Modern browsers via DuckDB-WASM
 
 And to ensure stable and reliable performance, it is important to meet only two requirements:
 
-- **DuckDB Setup**: Version 1.1.1 or later. Flock is compatible with the latest stable release of DuckDB, which can be
-  installed from the
-  official [DuckDB installation guide](https://duckdb.org/docs/installation/index?version=stable&environment=cli&platform=linux&download_method=direct&architecture=x86_64).
-- **Provider API Key**: Flock supports multiple providers such as **OpenAI**, **Azure**, and **Ollama**. Configure the
-  provider of your choice to get started.
+- **DuckDB Setup**: Version **1.4.4 or later**. Flock is compatible with the latest stable release of DuckDB, which can
+  be installed from the official
+  [DuckDB installation guide](https://duckdb.org/docs/installation/index?version=stable&environment=cli&platform=linux&download_method=direct&architecture=x86_64).
+- **Provider API Key**: Flock supports multiple providers such as **OpenAI**, **Azure**, **Ollama**, and
+  **Anthropic/Claude**. Configure the provider of your choice to get started.

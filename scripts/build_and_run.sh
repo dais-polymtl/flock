@@ -266,12 +266,25 @@ if [ $CONFIGURE_RESULT -ne 0 ]; then
     exit 1
 fi
 
-# Build
+# Determine parallel build jobs
+NUM_CORES=4
+if command_exists nproc; then
+    NUM_CORES=$(nproc)
+elif command_exists sysctl; then
+    CORES=$(sysctl -n hw.ncpu 2>/dev/null || echo "")
+    if [ -n "$CORES" ]; then
+        NUM_CORES="$CORES"
+    fi
+fi
+
+print_info "Using up to $NUM_CORES parallel build jobs"
+
+# Build (multi-processing enabled via -j)
 if [ "$BUILD_TYPE" = "debug" ]; then
-    cmake --build build/debug --config Debug
+    cmake --build build/debug --config Debug -- -j"$NUM_CORES"
     BUILD_RESULT=$?
 else
-    cmake --build build/release --config Release
+    cmake --build build/release --config Release -- -j"$NUM_CORES"
     BUILD_RESULT=$?
 fi
 

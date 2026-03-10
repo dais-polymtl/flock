@@ -19,9 +19,11 @@ Flock's image support allows you to:
 
 - Analyze and describe image content
 - Filter records based on visual criteria
-- Generate embeddings for image similarity search
+- Generate embeddings for text derived from images
 - Combine image and text data in a single query
-- Process images from URLs or file paths
+- Process images from URLs, file paths, or inline (base64) data
+
+For audio-specific workflows, see the [Audio Transcription](/docs/audio-support) page.
 
 ## Supported Image Formats
 
@@ -44,7 +46,7 @@ Images can be provided in different formats depending on your model provider:
 
 - **Base64 encoded strings** (for inline image data)
 
-### Model-Specific Examples
+### Image Model-Specific Examples
 
 **OpenAI with URL:**
 
@@ -82,12 +84,12 @@ To use images in Flock functions, specify the column type as `'image'` in the `c
 
 ### Basic Structure
 
-Each context column can have three properties:
+Each image context column can have the following properties:
 
 - **`data`** _(required)_: The SQL column containing image data (URL, path, or base64)
 - **`name`** _(optional)_: Custom name to reference this image in your prompt
-- **`type`** _(optional)_: Set to `'image'` for image data (default is `'tabular'`)
-- **`detail`** _(optional)_: Image detail level for OpenAI models - `'low'`, `'medium'`, or `'high'` (default is
+- **`type`** _(optional)_: Set to `'image'` (default is `'tabular'` if omitted)
+- **`detail`** _(optional)**:** Image detail level for OpenAI models – `'low'`, `'medium'`, or `'high'` (default is
   `'low'`)
 
 ### Image Detail Parameter (OpenAI Only)
@@ -109,7 +111,7 @@ For OpenAI models, you can control the level of detail in image processing using
 
 **Note**: The `detail` parameter only works with OpenAI vision models and is ignored by other providers.
 
-### Provider-Specific Examples
+### Provider-Specific Examples (Images)
 
 **OpenAI Model with URL:**
 
