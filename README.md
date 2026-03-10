@@ -174,6 +174,9 @@ SELECT llm_complete(
 
 Explore more usage examples in the [documentation](https://dais-polymtl.github.io/flock/docs/what-is-flock).
 
+If you are a contributor or want to work on Flock itself, see the dedicated
+[Developer Guide](https://dais-polymtl.github.io/flock/docs/developer-guide) for build, testing, and contribution details.
+
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
 ## 🛣️ Roadmap

@@ -220,15 +220,14 @@ SELECT * FROM audio_embeddings;
 
 Audio transcription is available in the following functions (via `type: 'audio'` + `transcription_model`):
 
-| Function       | Audio Support | Description                                   |
-|----------------|--------------|-----------------------------------------------|
-| `llm_complete` | ✅ Full       | Transcribe and optionally transform content   |
-| `llm_filter`   | ✅ Full       | Filter rows based on audio-derived semantics  |
-| `llm_reduce`   | ✅ Full       | Summarize or aggregate transcripts            |
-| `llm_rerank`   | ✅ Via text   | Rerank based on derived text features         |
-| `llm_first`    | ✅ Via text   | Pick top row based on transcript criteria     |
-| `llm_last`     | ✅ Via text   | Pick bottom row based on transcript criteria  |
-| `llm_embedding`| ✅ Via text   | Embeddings over transcripts (not raw audio)   |
+| Function        | Audio Support | Description                                  |
+| --------------- | ------------- | -------------------------------------------- |
+| `llm_complete`  | ✅ Full       | Transcribe and optionally transform content  |
+| `llm_filter`    | ✅ Full       | Filter rows based on audio-derived semantics |
+| `llm_reduce`    | ✅ Full       | Summarize or aggregate transcripts           |
+| `llm_rerank`    | ✅ Via text   | Rerank based on derived text features        |
+| `llm_first`     | ✅ Via text   | Pick top row based on transcript criteria    |
+| `llm_last`      | ✅ Via text   | Pick bottom row based on transcript criteria |
+| `llm_embedding` | ✅ Via text   | Embeddings over transcripts (not raw audio)  |
 
 For image-specific workflows, see the [Image Support](/docs/image-support) page.
-
