@@ -66,9 +66,22 @@ To cite the project:
 ## 🔥 Features
 
 - **Declarative SQL Interface**: Perform text generation, classification, summarization, filtering, and embedding generation using SQL queries.
-- **Multi-Provider Support**: Easily integrate with OpenAI, Azure, and Ollama for your AI needs.
+- **Multi-Provider Support**: Easily integrate with **OpenAI**, **Azure**, **Ollama**, and **Anthropic/Claude** for your AI needs.
 - **End-to-End RAG Pipelines**: Enable retrieval and augmentation workflows for enhanced analytics.
 - **Map and Reduce Functions**: Intuitive APIs for combining semantic tasks and data analytics directly in DuckDB.
+- **Multimodal Analytics**: First-class support for text, images, and audio (via transcription) directly in SQL.
+- **LLM Observability**: Built-in metrics tracking for tokens, latency, and call counts across Flock LLM functions.
+- **Browser & WASM Support**: Run Flock-powered DuckDB workloads in the browser via DuckDB-WASM.
+
+## ✨ Key Highlights (v0.4.0 and later)
+
+- **Anthropic/Claude Provider**: Use Claude models as a **fourth provider**, alongside OpenAI, Azure, and Ollama, with full support for structured output and image analysis.
+- **WASM Support**: Compile Flock as a DuckDB-WASM loadable extension to run in the browser, enabling client-side analytics and demos without server infrastructure.
+- **LLM Metrics Tracking**: Track token usage, API latency, and execution time through dedicated functions like `flock_get_metrics()` for better cost and performance monitoring.
+- **Audio Transcription**: Send audio inputs to OpenAI or Azure and obtain text transcripts using the same `context_columns` abstraction (with `type: 'audio'`).
+- **DuckDB v1.4.4**: Upgraded to DuckDB **1.4.4**, inheriting the latest performance and stability improvements.
+- **Architecture Improvements**: Centralized bind data and RAII-based storage guards reduce duplication and improve robustness across scalar and aggregate functions.
+- **Developer Experience**: Interactive build scripts, improved extension CI tooling, and GitHub Copilot agent instructions streamline local development and contributions.
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
@@ -76,11 +89,12 @@ To cite the project:
 
 ### 📝 Prerequisites
 
-1. **DuckDB**: Version 1.1.1 or later. Install it from the official [DuckDB installation guide](https://duckdb.org/docs/installation/).
+1. **DuckDB**: Version **1.4.4 or later**. Install it from the official [DuckDB installation guide](https://duckdb.org/docs/installation/).
 2. **Supported Providers**: Ensure you have credentials or API keys for at least one of the supported providers:
    - OpenAI
    - Azure
    - Ollama
+   - Anthropic/Claude
 3. **Supported OS**:
    - Linux
    - macOS
