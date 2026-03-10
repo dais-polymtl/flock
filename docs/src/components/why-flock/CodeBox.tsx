@@ -22,29 +22,42 @@ const CodeBox = () => {
                     <div>9</div>
                     <div>10</div>
                     <div>11</div>
+                    <div>12</div>
+                    <div>13</div>
+                    <div>14</div>
+                    <div>15</div>
+                    <div>16</div>
+                    <div>17</div>
                 </div>
                 <div>
-                <pre className="p-2 md:p-4 text-white text-xs md:text-sm font-mono bg-transparent m-auto">
-                    <code>
-                        <span className="text-green-400">&gt;</span>{" "}
-                        <span className="text-blue-400 font-bold">SELECT</span><br />
-                        {"    "}<span className="text-yellow-300">paper_id</span>,<br />
-                        {"    "}<span className="text-yellow-300">paper_title</span>,<br />
-                        {"    "}<span className="text-blue-400 font-bold">llm_complete</span>(<br />
-                        {"        "}<span className="text-green-300">{"{"}</span><span className="text-yellow-300">'model_name'</span>: <span className="test-white-100">'gpt-4o'</span><span className="text-green-300">{"}"}</span>,<br />
-                            {"        "}<span className="text-green-300">{"{"}</span><span className="text-yellow-300">'prompt'</span>: <span className="test-white-100">'Extract the top 3 <br />keywords from the abstract.'</span><span className="text-green-300">{"}"}</span>,<br />
-                        {"        "}<span className="text-green-300">{"{"}</span><span className="text-yellow-300">'abstract'</span>: <span className="test-white-100">abstract</span><span className="text-green-300">{"}"}</span><br />
-                        {"    "}) <span className="text-green-300">AS</span> <span className="text-yellow-300">extracted_keywords</span><br />
-                        {"  "}<span className="text-blue-400 font-bold">FROM</span> <span className="text-yellow-300">research_papers</span><br />
-                        {"  "}<span className="text-blue-400 font-bold">WHERE</span> <span className="text-yellow-300">publication_year</span> <span className="text-green-300">&gt;</span> <span className="text-yellow-300">2018</span><br />
-                        {"  "}<span className="text-blue-400 font-bold">LIMIT</span> <span className="text-yellow-300">5</span>
-                        {"  "}<span className="text-gray-500">;</span>
-                    </code>
-                </pre>
+                    <pre className="p-2 md:p-4 text-white text-xs md:text-sm font-mono bg-transparent m-auto">
+                        <code>
+                            <span className="text-gray-500">-- 1) Create a model</span><br />
+                            <span className="text-blue-400 font-bold">CREATE MODEL</span>(<br />
+                            {"  "}<span className="text-yellow-300">'product_summarizer'</span>,<br />
+                            {"  "}<span className="text-yellow-300">'gpt-4o'</span>,<br />
+                            {"  "}<span className="text-yellow-300">'openai'</span><br />
+                            );<br />
+                            <br />
+                            <span className="text-gray-500">-- 2) Call it from SQL</span><br />
+                            <span className="text-blue-400 font-bold">SELECT</span><br />
+                            {"  "}<span className="text-yellow-300">product_id</span>,<br />
+                            {"  "}<span className="text-yellow-300">name</span>,<br />
+                            {"  "}<span className="text-blue-400 font-bold">llm_complete</span>(<br />
+                            {"    "}<span className="text-green-300">{"{"}</span><span className="text-yellow-300">'model_name'</span>: <span className="text-white">'product_summarizer'</span><span className="text-green-300">{"}"}</span>,<br />
+                            {"    "}<span className="text-green-300">{"{"}</span>
+                            <span className="text-yellow-300">'prompt'</span>: <span className="text-white">'Summarize this product in one sentence.'</span>,<br />
+                            {"      "}<span className="text-yellow-300">'context_columns'</span>: [<span className="text-green-300">{"{"}</span><span className="text-yellow-300">'data'</span>: name<span className="text-green-300">{"}"}</span>]
+                            <span className="text-green-300">{"}"}</span><br />
+                            {"  "}) <span className="text-green-300">AS</span> <span className="text-yellow-300">short_description</span><br />
+                            <span className="text-blue-400 font-bold">FROM</span> <span className="text-yellow-300">products</span><br />
+                            <span className="text-blue-400 font-bold">LIMIT</span> <span className="text-yellow-300">3</span><span className="text-gray-500">;</span>
+                        </code>
+                    </pre>
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default CodeBox
+export default CodeBox;

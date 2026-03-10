@@ -1,6 +1,6 @@
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import styles from "@site/src/css/style";
-import {Navbar, Hero, Features, WhyFlock, GettingStarted, CTA, Footer, Team} from "@site/src/components";
+import {Navbar, Hero, Features, WhyFlock, GettingStarted, CTA, Footer} from "@site/src/components";
 
 const Home: React.FC = () => {
     return (
@@ -23,7 +23,6 @@ const Home: React.FC = () => {
                             <Features/>
                             <WhyFlock/>
                             <GettingStarted/>
-                            <Team/>
                             <CTA/>
                             <Footer/>
                         </div>

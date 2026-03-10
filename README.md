@@ -48,6 +48,7 @@
 Flock is an advanced **DuckDB** extension that seamlessly integrates analytics with semantic analysis through declarative SQL queries. Designed for modern data analysis needs, Flock empowers users to work with structured and unstructured data, combining OLAP workflows with the capabilities of **LLMs** (Large Language Models) and **RAG** (Retrieval-Augmented Generation) pipelines.
 
 To cite the project:
+
 ```
 @article{10.14778/3750601.3750685,
   author  = {Dorbani, Anas and Yasser, Sunny and Lin, Jimmy and Mhedhbi, Amine},
@@ -124,17 +125,20 @@ Flock is a **Community Extension** available directly from DuckDB's community ca
 If you want to build Flock from source or contribute to the project, you can use our automated build script:
 
 1. Clone the repository with submodules:
+
    ```bash
    git clone --recursive https://github.com/dais-polymtl/flock.git
    cd flock
    ```
-   
+
    Or if you've already cloned without submodules:
+
    ```bash
    git submodule update --init --recursive
    ```
 
 2. Run the build and run script:
+
    ```bash
    ./scripts/build_and_run.sh
    ```
@@ -150,6 +154,7 @@ If you want to build Flock from source or contribute to the project, you can use
 3. The script will launch DuckDB with Flock extension ready to use. Make sure to check the [documentation](https://dais-polymtl.github.io/flock/docs/what-is-flock) for usage examples.
 
 **Requirements for building from source:**
+
 - CMake (3.5 or later)
 - C++ compiler (GCC, Clang, or MSVC)
 - Build system (Ninja or Make)
@@ -204,6 +209,6 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## ✨ Team
 
-This project is under active development by the [**Data & AI Systems Laboratory (DAIS Lab)**](https://github.com/dais-polymtl) at [**Polytechnique Montréal**](https://www.polymtl.ca/).
+This project is under active development by the [**Data & AI Systems Laboratory (DAIS Lab)**](https://github.com/dais-polymtl) at **Polytechnique Montréal**.
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
