@@ -23,7 +23,7 @@ the [DuckDB CLI Overview](https://duckdb.org/docs/stable/clients/cli/overview.ht
 
 ## Install Flock Extension
 
-At this stage you should have a running DuckDB instance. Flock can be installed in two ways:
+At this stage you should have a running DuckDB instance (DuckDB **v1.4.4 or later**). Flock can be installed in two ways:
 
 ### Option 1: Install from Community Extension (Recommended)
 
@@ -80,7 +80,7 @@ If you want to build Flock from source or contribute to the project, you can use
 ## Set Up API Keys for Providers
 
 To use Flock functions, you need to set up API keys for the providers you plan to use. Flock supports multiple providers
-such as **OpenAI**, **Azure**, and **Ollama**.
+such as **OpenAI**, **Azure**, **Ollama**, and **Anthropic/Claude**.
 
 Refer to the following sections for detailed instructions on setting up API keys for each provider.
 
@@ -103,4 +103,8 @@ link="/flock/docs/getting-started/ollama"
 Icon={RiOpenaiFill}
 title="OpenAI"
 link="/flock/docs/getting-started/openai"
+/>
+<DocCard
+title="Anthropic / Claude"
+link="/flock/docs/getting-started/anthropic"
 />
