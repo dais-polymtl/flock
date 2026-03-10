@@ -49,15 +49,15 @@ export const features = [
 export const whyFlock = [
     {
         id: "why-flock-1",
-        content: "Declarative LLM integration within SQL",
+        content: "Create reusable models and prompts once, then call them from simple SQL.",
     },
     {
         id: "why-flock-2",
-        content: "Transparently adds lower-level optimizations, e.g., batching and caching",
+        content: "Run LLM workloads next to your data without custom services or glue code.",
     },
     {
         id: "why-flock-3",
-        content: "Add tabular understanding capabilities to your relational databases",
+        content: "Keep results in tables you can join, filter, and visualize with regular DuckDB queries.",
     }
 ];
 
