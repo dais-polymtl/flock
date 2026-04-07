@@ -15,11 +15,11 @@ namespace duckdb {
 static void LoadInternal(ExtensionLoader& loader) {
     flock::Config::Configure(loader);
 
-    // Register the custom parser
+    // Register parser and binder hooks using extension registration APIs.
     auto& config = DBConfig::GetConfig(loader.GetDatabaseInstance());
     DuckParserExtension duck_parser;
-    config.parser_extensions.push_back(duck_parser);
-    config.operator_extensions.push_back(make_uniq<DuckOperatorExtension>());
+    ParserExtension::Register(config, duck_parser);
+    OperatorExtension::Register(config, make_shared_ptr<DuckOperatorExtension>());
 }
 
 ParserExtensionParseResult duck_parse(ParserExtensionInfo*, const std::string& query) {
