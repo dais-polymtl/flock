@@ -80,7 +80,7 @@ To cite the project:
 - **WASM Support**: Compile Flock as a DuckDB-WASM loadable extension to run in the browser, enabling client-side analytics and demos without server infrastructure.
 - **LLM Metrics Tracking**: Track token usage, API latency, and execution time through dedicated functions like `flock_get_metrics()` for better cost and performance monitoring.
 - **Audio Transcription**: Send audio inputs to OpenAI or Azure and obtain text transcripts using the same `context_columns` abstraction (with `type: 'audio'`).
-- **DuckDB v1.4.4**: Upgraded to DuckDB **1.4.4**, inheriting the latest performance and stability improvements.
+- **DuckDB v1.5.0**: Upgraded to DuckDB **1.5.0**, inheriting the latest performance and stability improvements.
 - **Architecture Improvements**: Centralized bind data and RAII-based storage guards reduce duplication and improve robustness across scalar and aggregate functions.
 - **Developer Experience**: Interactive build scripts, improved extension CI tooling, and GitHub Copilot agent instructions streamline local development and contributions.
 
@@ -90,7 +90,7 @@ To cite the project:
 
 ### 📝 Prerequisites
 
-1. **DuckDB**: Version **1.4.4 or later**. Install it from the official [DuckDB installation guide](https://duckdb.org/docs/installation/).
+1. **DuckDB**: Version **1.5.0 or later**. Install it from the official [DuckDB installation guide](https://duckdb.org/docs/installation/).
 2. **Supported Providers**: Ensure you have credentials or API keys for at least one of the supported providers:
    - OpenAI
    - Azure
