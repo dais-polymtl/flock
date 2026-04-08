@@ -1,6 +1,8 @@
 #pragma once
 
 #include "flock/core/common.hpp"
+#include "duckdb/parser/parser_extension.hpp"
+#include "duckdb/planner/operator_extension.hpp"
 
 namespace duckdb {
 

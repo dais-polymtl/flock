@@ -84,11 +84,16 @@ void LlmFilter::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state,
     auto& func_expr = state.expr.Cast<duckdb::BoundFunctionExpression>();
     auto* bind_data = &func_expr.bind_info->Cast<LlmFunctionBindData>();
 
-    const auto results = LlmFilter::Operation(args, bind_data);
-
-    auto index = 0;
-    for (const auto& res: results) {
-        result.SetValue(index++, duckdb::Value(res));
+    if (const auto results = LlmFilter::Operation(args, bind_data); static_cast<int>(results.size()) == 1) {
+        auto empty_vec = duckdb::Vector(std::string());
+        duckdb::UnaryExecutor::Execute<duckdb::string_t, duckdb::string_t>(
+                empty_vec, result, args.size(),
+                [&](duckdb::string_t name) { return duckdb::StringVector::AddString(result, results[0]); });
+    } else {
+        auto index = 0;
+        for (const auto& res: results) {
+            result.SetValue(index++, duckdb::Value(res));
+        }
     }
 
     auto exec_end = std::chrono::high_resolution_clock::now();
