@@ -21,6 +21,13 @@ if(NOT EMSCRIPTEN)
 endif()
 find_package(nlohmann_json CONFIG REQUIRED)
 
+# Coverage instrumentation (must be before targets are built)
+if(CMAKE_BUILD_TYPE STREQUAL "Coverage")
+    message(STATUS "Enabling code coverage")
+    add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
+    add_link_options(-fprofile-instr-generate -fcoverage-mapping)
+endif()
+
 # Build the DuckDB static and loadable extensions
 build_static_extension(${TARGET_NAME} ${EXTENSION_SOURCES})
 build_loadable_extension(${TARGET_NAME} " " ${EXTENSION_SOURCES})
@@ -43,20 +50,12 @@ if(NOT EMSCRIPTEN)
 endif()
 target_link_libraries(${LOADABLE_EXTENSION_NAME} nlohmann_json::nlohmann_json)
 
-# WASM builds use EM_JS with synchronous XMLHttpRequest for HTTP
-
 # Install the extension
 install(
   TARGETS ${EXTENSION_NAME}
   EXPORT "${DUCKDB_EXPORT_SET}"
   LIBRARY DESTINATION "${INSTALL_LIB_DIR}"
   ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")
-
-if(CMAKE_BUILD_TYPE STREQUAL "Coverage")
-  message(STATUS "Enabling code coverage for Debug build")
-  add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
-  add_link_options(-fprofile-instr-generate -fcoverage-mapping)
-endif()
 
 if(NOT EMSCRIPTEN)
     # Add the test directory if not on WASM
