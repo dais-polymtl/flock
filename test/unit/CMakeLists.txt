@@ -17,6 +17,7 @@ target_link_libraries(${PROJECT_NAME}_tests PRIVATE
     core_functions_extension
     json_extension
     parquet_extension
+    $<$<CXX_COMPILER_ID:GNU>:jemalloc_extension>
     duckdb_static
     $<$<CXX_COMPILER_ID:GNU>:-Wl,--end-group>)
 
