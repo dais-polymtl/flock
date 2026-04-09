@@ -30,5 +30,12 @@ jobs:
       duckdb_version: v1.5.0
       ci_tools_version: v1.5.0
       extension_name: flock
-      # Exclude everything except windows_amd64_mingw for testing
-      exclude_archs: 'linux_amd64;linux_amd64_gcc4;linux_arm64;osx_amd64;osx_arm64;windows_amd64;wasm_mvp;wasm_eh;wasm_threads'
+
+  code-quality-check:
+    name: Code Quality Check
+    uses: duckdb/extension-ci-tools/.github/workflows/_extension_code_quality.yml@v1.5.0
+    with:
+      duckdb_version: v1.5.0
+      ci_tools_version: v1.5.0
+      extension_name: flock
+      format_checks: "format;tidy"
