@@ -7,18 +7,18 @@ file(COPY unit_test.db DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(${PROJECT_NAME}_tests test_main.cpp ${TEST_SOURCES})
 
-# GNU ld needs --start-group/--end-group for circular deps; macOS ld handles it automatically
+# GNU ld needs --start-group/--end-group for circular deps; macOS/Windows ld handles it automatically
 target_link_libraries(${PROJECT_NAME}_tests PRIVATE
     GTest::gtest
     GTest::gmock
-    $<$<CXX_COMPILER_ID:GNU>:-Wl,--start-group>
+    $<$<PLATFORM_ID:Linux>:-Wl,--start-group>
     ${PROJECT_NAME}_extension
     duckdb_generated_extension_loader
     core_functions_extension
     json_extension
     parquet_extension
-    $<$<CXX_COMPILER_ID:GNU>:jemalloc_extension>
+    $<$<PLATFORM_ID:Linux>:jemalloc_extension>
     duckdb_static
-    $<$<CXX_COMPILER_ID:GNU>:-Wl,--end-group>)
+    $<$<PLATFORM_ID:Linux>:-Wl,--end-group>)
 
 add_test(AllTestsInMain ${PROJECT_NAME}_tests)

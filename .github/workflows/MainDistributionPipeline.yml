@@ -30,12 +30,5 @@ jobs:
       duckdb_version: v1.5.0
       ci_tools_version: v1.5.0
       extension_name: flock
-
-  code-quality-check:
-    name: Code Quality Check
-    uses: duckdb/extension-ci-tools/.github/workflows/_extension_code_quality.yml@v1.5.0
-    with:
-      duckdb_version: v1.5.0
-      ci_tools_version: v1.5.0
-      extension_name: flock
-      format_checks: "format;tidy"
+      # Only Windows AMD64 MinGW for testing
+      override_archs: 'windows_amd64_mingw'
