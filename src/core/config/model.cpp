@@ -9,7 +9,6 @@ std::string Config::get_user_defined_models_table_name() { return "FLOCKMTL_MODE
 
 void Config::SetupDefaultModelsConfig(duckdb::Connection& con, std::string& schema_name) {
     const std::string table_name = Config::get_default_models_table_name();
-    con.Query("INSTALL JSON; LOAD JSON;");
     con.Query(duckdb_fmt::format(" CREATE TABLE IF NOT EXISTS {}.{} ( "
                                  " model_name VARCHAR NOT NULL PRIMARY KEY, "
                                  " model VARCHAR NOT NULL, "
@@ -33,7 +32,6 @@ void Config::SetupDefaultModelsConfig(duckdb::Connection& con, std::string& sche
 
 void Config::SetupUserDefinedModelsConfig(duckdb::Connection& con, std::string& schema_name) {
     const std::string table_name = Config::get_user_defined_models_table_name();
-    con.Query("INSTALL JSON; LOAD JSON;");
     con.Query(duckdb_fmt::format(" CREATE TABLE IF NOT EXISTS {}.{} ( "
                                  " model_name VARCHAR NOT NULL PRIMARY KEY, "
                                  " model VARCHAR NOT NULL, "

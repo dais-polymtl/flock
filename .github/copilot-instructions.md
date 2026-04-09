@@ -8,7 +8,7 @@
 - **Build system**: CMake (3.5+) with DuckDB's extension CI tools (`extension-ci-tools/`)
 - **Dependency manager**: vcpkg (managed via `vcpkg.json`)
 - **Key dependencies**: `nlohmann-json`, `curl`, `gtest` (see `vcpkg.json`)
-- **DuckDB version targeted**: v1.4.4 (see `MainDistributionPipeline.yml`)
+- **DuckDB version targeted**: v1.5.0 (see `MainDistributionPipeline.yml`)
 
 ## Repository Layout
 
@@ -112,7 +112,7 @@ Always run `clang-format` on modified C++ files before committing. The CI pipeli
 
 Defined in `.github/workflows/MainDistributionPipeline.yml`:
 
-- **duckdb-stable-build**: Builds extension binaries for all platforms using DuckDB v1.4.4 CI tools.
+- **duckdb-stable-build**: Builds extension binaries for all platforms using DuckDB v1.5.0 CI tools.
 - **code-quality-check**: Runs `clang-format` and `clang-tidy` checks.
 
 Triggered on push to `main`/`dev` when `src/`, `test/`, `CMakeLists.txt`, or workflow files change, and on `workflow_dispatch`.
