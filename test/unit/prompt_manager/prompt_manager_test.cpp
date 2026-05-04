@@ -11,6 +11,21 @@
 namespace flock {
 using json = nlohmann::json;
 
+void SeedProductSummaryPrompts() {
+    auto con = Config::GetConnection();
+    Config::ConfigureTables(con, ConfigType::LOCAL);
+    con.Query(" DELETE FROM flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+              "  WHERE prompt_name = 'product_summary';");
+    con.Query(" INSERT INTO flock_config.FLOCKMTL_PROMPT_INTERNAL_TABLE "
+              "        (prompt_name, prompt, version) "
+              " VALUES ('product_summary', "
+              "         'Summarize the product with a persuasive tone suitable for a sales page.', "
+              "         4), "
+              "        ('product_summary', "
+              "         'Generate a summary with a focus on technical specifications.', "
+              "         6);");
+}
+
 // Test cases for PromptManager::ToString<PromptSection>
 TEST(PromptManager, ToString) {
     EXPECT_EQ(PromptManager::ToString(PromptSection::USER_PROMPT), "{{USER_PROMPT}}");
@@ -191,6 +206,7 @@ TEST(PromptManager, CreatePromptDetailsEmptyJson) {
 
 // Test with prompt_name and a specific version
 TEST(PromptManager, CreatePromptDetailsWithExplicitVersion) {
+    SeedProductSummaryPrompts();
     const json prompt_json = {
             {"prompt_name", "product_summary"},
             {"version", "4"}};
@@ -209,6 +225,7 @@ TEST(PromptManager, CreatePromptDetailsNonExistentPrompt) {
 
 // Test with a non-existent version of existing prompt
 TEST(PromptManager, CreatePromptDetailsNonExistentVersion) {
+    SeedProductSummaryPrompts();
     const json prompt_json = {
             {"prompt_name", "product_summary"},
             {"version", "999"}};
@@ -245,6 +262,7 @@ TEST(PromptManager, CreatePromptDetailsMultipleFieldsPromptOnly) {
 }
 
 TEST(PromptManager, CreatePromptDetailsOnlyPromptName) {
+    SeedProductSummaryPrompts();
     const json prompt_json = {{"prompt_name", "product_summary"}};
     const auto [prompt_name, prompt, version] = PromptManager::CreatePromptDetails(prompt_json);
     EXPECT_EQ(prompt_name, "product_summary");

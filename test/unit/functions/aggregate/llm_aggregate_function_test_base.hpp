@@ -24,12 +24,18 @@ protected:
 
     void SetUp() override {
         auto con = Config::GetConnection();
+        Config::ConfigureTables(con, ConfigType::LOCAL);
         con.Query(" CREATE SECRET ("
                   "       TYPE OPENAI,"
                   "    API_KEY 'your-api-key');");
         con.Query("  CREATE SECRET ("
                   "       TYPE OLLAMA,"
                   "    API_URL '127.0.0.1:11434');");
+        con.Query(" DELETE FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                  "  WHERE model_name = 'gemma3:4b';");
+        con.Query(" INSERT INTO flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                  "        (model_name, model, provider_name, model_args) "
+                  " VALUES ('gemma3:4b', 'gemma3:4b', 'ollama', '{}');");
 
         // Create a shared mock provider for expectations
         mock_provider = std::make_shared<MockProvider>(ModelDetails{});

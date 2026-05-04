@@ -11,6 +11,7 @@ class ModelManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
         auto con = Config::GetConnection();
+        Config::ConfigureTables(con, ConfigType::LOCAL);
         con.Query(" CREATE SECRET ("
                   "       TYPE OPENAI,"
                   "    API_KEY 'your-api-key');");
@@ -22,6 +23,13 @@ protected:
         con.Query("  CREATE SECRET ("
                   "       TYPE OLLAMA,"
                   "    API_URL '127.0.0.1:11434');");
+        con.Query(" DELETE FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                  "  WHERE model_name IN ('gpt-4o-test', 'azure-gpt-4o-mini', 'gemma3:4b');");
+        con.Query(" INSERT INTO flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
+                  "        (model_name, model, provider_name, model_args) "
+                  " VALUES ('gpt-4o-test', 'gpt-4o', 'openai', '{}'), "
+                  "        ('azure-gpt-4o-mini', 'gpt-4o-mini', 'azure', '{}'), "
+                  "        ('gemma3:4b', 'gemma3:4b', 'ollama', '{}');");
     }
 
     void TearDown() override {

@@ -26,19 +26,31 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     }
 
     bool has_resolved_details = model_json.contains("model") &&
-                                model_json.contains("provider") &&
-                                model_json.contains("secret") &&
-                                model_json.contains("tuple_format") &&
-                                model_json.contains("batch_size");
+                                model_json.contains("provider");
 
     nlohmann::json db_model_args;
 
     if (has_resolved_details) {
         model_details_.model = model_json.at("model").get<std::string>();
         model_details_.provider_name = model_json.at("provider").get<std::string>();
-        model_details_.secret = model_json["secret"].get<std::unordered_map<std::string, std::string>>();
-        model_details_.tuple_format = model_json.at("tuple_format").get<std::string>();
-        model_details_.batch_size = model_json.at("batch_size").get<int>();
+        if (model_json.contains("secret")) {
+            model_details_.secret = model_json["secret"].get<std::unordered_map<std::string, std::string>>();
+        } else {
+            auto secret_name = "__default_" + model_details_.provider_name;
+            if (model_details_.provider_name == AZURE) {
+                secret_name += "_llm";
+            }
+            if (model_json.contains("secret_name")) {
+                secret_name = model_json["secret_name"].get<std::string>();
+            }
+            model_details_.secret = SecretManager::GetSecret(secret_name);
+        }
+        model_details_.tuple_format = model_json.contains("tuple_format")
+                                      ? model_json.at("tuple_format").get<std::string>()
+                                      : "XML";
+        model_details_.batch_size = model_json.contains("batch_size")
+                                    ? model_json.at("batch_size").get<int>()
+                                    : 2048;
 
         if (model_json.contains("model_parameters")) {
             auto& mp = model_json.at("model_parameters");
