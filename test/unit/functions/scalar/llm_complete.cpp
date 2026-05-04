@@ -1,4 +1,5 @@
 #include "flock/functions/scalar/llm_complete.hpp"
+#include "../../ollama_test_utils.hpp"
 #include "llm_function_test_base.hpp"
 
 namespace flock {
@@ -227,6 +228,7 @@ TEST_F(LLMCompleteTest, LLMCompleteWithAudioAndText) {
 // Test audio transcription error handling
 TEST_F(LLMCompleteTest, LLMCompleteAudioTranscriptionError) {
     auto con = Config::GetConnection();
+    const auto ollama_model = GetOllamaTestModelName();
     // Mock transcription model to throw error (simulating Ollama behavior)
     EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
             .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
@@ -234,12 +236,14 @@ TEST_F(LLMCompleteTest, LLMCompleteAudioTranscriptionError) {
     // Test with Ollama which doesn't support transcription
     const auto results = con.Query(
             "SELECT llm_complete("
-            "{'model_name': 'gemma3:4b'}, "
+            "{'model_name': '" +
+            ollama_model + "'}, "
             "{'prompt': 'Summarize this audio', "
             "'context_columns': ["
             "{'data': audio_url, "
             "'type': 'audio', "
-            "'transcription_model': 'gemma3:4b'}"
+            "'transcription_model': '" +
+            ollama_model + "'}"
             "]}) AS result FROM VALUES ('https://example.com/audio.mp3') AS tbl(audio_url);");
 
     // Should fail because Ollama doesn't support transcription

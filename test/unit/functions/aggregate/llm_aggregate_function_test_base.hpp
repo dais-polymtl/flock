@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../mock_provider.hpp"
+#include "../../ollama_test_utils.hpp"
 #include "flock/core/config.hpp"
 #include "flock/functions/aggregate/aggregate.hpp"
 #include "flock/model_manager/model.hpp"
@@ -31,11 +32,7 @@ protected:
         con.Query("  CREATE SECRET ("
                   "       TYPE OLLAMA,"
                   "    API_URL '127.0.0.1:11434');");
-        con.Query(" DELETE FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                  "  WHERE model_name = 'gemma3:4b';");
-        con.Query(" INSERT INTO flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                  "        (model_name, model, provider_name, model_args) "
-                  " VALUES ('gemma3:4b', 'gemma3:4b', 'ollama', '{}');");
+        SeedOllamaTestModel(con);
 
         // Create a shared mock provider for expectations
         mock_provider = std::make_shared<MockProvider>(ModelDetails{});

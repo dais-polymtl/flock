@@ -1,6 +1,7 @@
 #include "flock/functions/scalar/llm_complete.hpp"
 #include "flock/functions/scalar/llm_embedding.hpp"
 #include "flock/functions/scalar/llm_filter.hpp"
+#include "../../ollama_test_utils.hpp"
 #include "llm_function_test_base.hpp"
 
 namespace flock {
@@ -16,11 +17,7 @@ void LLMFunctionTestBase<FunctionClass>::SetUp() {
     con.Query("  CREATE SECRET ("
               "       TYPE OLLAMA,"
               "    API_URL '127.0.0.1:11434');");
-    con.Query(" DELETE FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-              "  WHERE model_name = 'gemma3:4b';");
-    con.Query(" INSERT INTO flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-              "        (model_name, model, provider_name, model_args) "
-              " VALUES ('gemma3:4b', 'gemma3:4b', 'ollama', '{}');");
+    SeedOllamaTestModel(con);
 
     mock_provider = std::make_shared<MockProvider>(ModelDetails{});
     Model::SetMockProvider(mock_provider);

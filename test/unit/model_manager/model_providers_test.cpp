@@ -1,4 +1,5 @@
 #include "../functions/mock_provider.hpp"
+#include "../ollama_test_utils.hpp"
 #include "flock/model_manager/providers/adapters/anthropic.hpp"
 #include "flock/model_manager/providers/adapters/azure.hpp"
 #include "flock/model_manager/providers/adapters/ollama.hpp"
@@ -102,7 +103,7 @@ TEST(ModelProvidersTest, AzureProviderTest) {
 TEST(ModelProvidersTest, OllamaProviderTest) {
     ModelDetails model_details;
     model_details.model_name = "test_model";
-    model_details.model = "gemma3:4b";
+    model_details.model = GetOllamaTestModelName();
     model_details.provider_name = "ollama";
     model_details.model_parameters = {{"temperature", 0.7}};
     model_details.secret = {{"api_url", "http://localhost:11434"}};
@@ -159,7 +160,7 @@ TEST(ModelProvidersTest, OllamaProviderTest) {
 TEST(ModelProvidersTest, OllamaProviderTranscriptionError) {
     ModelDetails model_details;
     model_details.model_name = "test_model";
-    model_details.model = "gemma3:4b";
+    model_details.model = GetOllamaTestModelName();
     model_details.provider_name = "ollama";
     model_details.model_parameters = {{"temperature", 0.7}};
     model_details.secret = {{"api_url", "http://localhost:11434"}};

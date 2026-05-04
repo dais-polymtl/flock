@@ -1,4 +1,5 @@
 #include "flock/functions/aggregate/llm_rerank.hpp"
+#include "../../ollama_test_utils.hpp"
 #include "llm_aggregate_function_test_base.hpp"
 #include <numeric>
 
@@ -196,17 +197,20 @@ TEST_F(LLMRerankTest, AudioTranscription) {
 // Test audio transcription error handling for Ollama
 TEST_F(LLMRerankTest, AudioTranscriptionOllamaError) {
     auto con = Config::GetConnection();
+    const auto ollama_model = GetOllamaTestModelName();
     EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
             .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
 
     const auto results = con.Query(
             "SELECT llm_rerank("
-            "{'model_name': 'gemma3:4b'}, "
+            "{'model_name': '" +
+            ollama_model + "'}, "
             "{'prompt': 'Rank these audio files', "
             "'context_columns': ["
             "{'data': audio_url, "
             "'type': 'audio', "
-            "'transcription_model': 'gemma3:4b'}"
+            "'transcription_model': '" +
+            ollama_model + "'}"
             "]}) AS result FROM VALUES "
             "('https://example.com/audio1.mp3'), "
             "('https://example.com/audio2.mp3') AS tbl(audio_url);");

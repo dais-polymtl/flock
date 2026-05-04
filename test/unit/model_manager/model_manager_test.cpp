@@ -1,4 +1,5 @@
 #include "flock/model_manager/model.hpp"
+#include "../ollama_test_utils.hpp"
 #include "nlohmann/json.hpp"
 #include <gtest/gtest.h>
 #include <memory>
@@ -24,12 +25,12 @@ protected:
                   "       TYPE OLLAMA,"
                   "    API_URL '127.0.0.1:11434');");
         con.Query(" DELETE FROM flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
-                  "  WHERE model_name IN ('gpt-4o-test', 'azure-gpt-4o-mini', 'gemma3:4b');");
+                  "  WHERE model_name IN ('gpt-4o-test', 'azure-gpt-4o-mini');");
         con.Query(" INSERT INTO flock_config.FLOCKMTL_MODEL_USER_DEFINED_INTERNAL_TABLE "
                   "        (model_name, model, provider_name, model_args) "
                   " VALUES ('gpt-4o-test', 'gpt-4o', 'openai', '{}'), "
-                  "        ('azure-gpt-4o-mini', 'gpt-4o-mini', 'azure', '{}'), "
-                  "        ('gemma3:4b', 'gemma3:4b', 'ollama', '{}');");
+                  "        ('azure-gpt-4o-mini', 'gpt-4o-mini', 'azure', '{}');");
+        SeedOllamaTestModel(con);
     }
 
     void TearDown() override {
@@ -107,7 +108,7 @@ TEST_F(ModelManagerTest, ProviderSelection) {
     });
     // Test Ollama provider
     json ollama_config = {
-            {"model_name", "gemma3:4b"}};
+            {"model_name", GetOllamaTestModelName()}};
     EXPECT_NO_THROW({
         Model ollama_model(ollama_config);
         EXPECT_EQ(ollama_model.GetModelDetails().provider_name, "ollama");
