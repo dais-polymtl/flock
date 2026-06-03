@@ -87,7 +87,7 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         } else if (db_model_args.contains("batch_size")) {
             model_details_.batch_size = db_model_args.at("batch_size").get<int>();
         } else {
-            model_details_.batch_size = 2048;
+            model_details_.batch_size = DEFAULT_BATCH_SIZE;
         }
     }
 }

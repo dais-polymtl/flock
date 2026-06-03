@@ -63,6 +63,7 @@ TEST_F(ModelManagerTest, ModelInitializationMinimal) {
         EXPECT_EQ(details.model_name, "gpt-4o-test");
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
+        EXPECT_EQ(details.batch_size, DEFAULT_BATCH_SIZE);
     });
 }
 
