@@ -1,6 +1,9 @@
 #include "flock/core/config.hpp"
 #include "flock/metrics/manager.hpp"
 #include <gtest/gtest.h>
+#include <cstdint>
+#include <thread>
+#include <vector>
 
 namespace flock {
 
@@ -540,6 +543,46 @@ TEST_F(MetricsTest, EmbeddingMetricsTracking) {
         }
     }
     EXPECT_TRUE(found);
+}
+
+TEST_F(MetricsTest, ConcurrentUpdatesAreMergedSafely) {
+    auto* db = GetDatabase();
+    constexpr int thread_count = 8;
+    constexpr int iterations = 100;
+
+    std::vector<std::thread> threads;
+    threads.reserve(thread_count);
+
+    for (int thread_index = 0; thread_index < thread_count; thread_index++) {
+        threads.emplace_back([db, thread_index]() {
+            const void* state_id = reinterpret_cast<const void*>(
+                    static_cast<uintptr_t>(0x10000 + thread_index));
+
+            MetricsManager::StartInvocation(db, state_id, FunctionType::LLM_RERANK);
+            MetricsManager::SetModelInfo("gpt-4o", "openai");
+
+            for (int i = 0; i < iterations; i++) {
+                MetricsManager::UpdateTokens(1, 2);
+                MetricsManager::IncrementApiCalls();
+            }
+        });
+    }
+
+    for (auto& thread: threads) {
+        thread.join();
+    }
+
+    auto& manager = GetMetricsManager();
+    auto metrics = manager.GetMetrics();
+
+    ASSERT_TRUE(metrics.contains("llm_rerank_1"));
+    const auto& rerank_metrics = metrics["llm_rerank_1"];
+    EXPECT_EQ(rerank_metrics["input_tokens"].get<int64_t>(), thread_count * iterations);
+    EXPECT_EQ(rerank_metrics["output_tokens"].get<int64_t>(), thread_count * iterations * 2);
+    EXPECT_EQ(rerank_metrics["total_tokens"].get<int64_t>(), thread_count * iterations * 3);
+    EXPECT_EQ(rerank_metrics["api_calls"].get<int64_t>(), thread_count * iterations);
+    EXPECT_EQ(rerank_metrics["model_name"].get<std::string>(), "gpt-4o");
+    EXPECT_EQ(rerank_metrics["provider"].get<std::string>(), "openai");
 }
 
 }// namespace flock

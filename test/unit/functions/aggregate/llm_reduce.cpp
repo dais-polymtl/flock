@@ -46,7 +46,7 @@ TEST_F(LLMReduceTest, SingleTupleWithLLMCall) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_reduce("
@@ -67,7 +67,7 @@ TEST_F(LLMReduceTest, MultipleTuplesWithoutGroupBy) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_reduce("
@@ -83,6 +83,31 @@ TEST_F(LLMReduceTest, MultipleTuplesWithoutGroupBy) {
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), GetExpectedResponse());
 }
 
+TEST_F(LLMReduceTest, DefaultBatchSizeSplitsLargeInput) {
+    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+    const nlohmann::json first_batch_response = {{"items", {"Partial summary"}}};
+
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(2);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{first_batch_response}))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
+
+    auto con = GetConnection();
+
+    const auto results = con.Query(
+            "SELECT llm_reduce("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Summarize the following product descriptions', 'context_columns': [{'data': description}]}"
+            ") AS product_summary FROM range(" +
+            std::to_string(input_count) + ") AS t(i), "
+                                          "unnest(['Product description ' || i::VARCHAR]) AS products(description);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), GetExpectedResponse());
+}
+
 // Test GROUP BY with multiple tuples per group: LLM is called for each group
 TEST_F(LLMReduceTest, GroupByWithMultipleTuplesPerGroup) {
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
@@ -91,7 +116,7 @@ TEST_F(LLMReduceTest, GroupByWithMultipleTuplesPerGroup) {
             .Times(2)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_reduce("
@@ -118,7 +143,7 @@ TEST_F(LLMReduceTest, GroupByWithSingleTuplePerGroup) {
             .Times(3)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_reduce("
@@ -161,7 +186,7 @@ TEST_F(LLMReduceTest, AudioTranscription) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     const auto results = con.Query(
             "SELECT llm_reduce("
             "{'model_name': 'gpt-4o'}, "
@@ -190,7 +215,7 @@ TEST_F(LLMReduceTest, AudioAndTextColumns) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     const auto results = con.Query(
             "SELECT llm_reduce("
             "{'model_name': 'gpt-4o'}, "
@@ -208,7 +233,7 @@ TEST_F(LLMReduceTest, AudioAndTextColumns) {
 
 // Test audio transcription error handling for Ollama
 TEST_F(LLMReduceTest, AudioTranscriptionOllamaError) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
             .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
 

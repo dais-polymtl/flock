@@ -47,7 +47,7 @@ TEST_F(LLMReduceJsonTest, LLMReduceJsonWithoutGroupBy) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
@@ -71,7 +71,7 @@ TEST_F(LLMReduceJsonTest, LLMReduceJsonWithGroupBy) {
             .Times(3)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, " + GetFunctionName() + "("
@@ -110,7 +110,7 @@ TEST_F(LLMReduceJsonTest, Operation_MultipleInputs_ProcessesCorrectly) {
             .Times(3)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT name, " + GetFunctionName() + "("
@@ -140,7 +140,7 @@ TEST_F(LLMReduceJsonTest, Operation_LargeInputSet_ProcessesCorrectly) {
             .Times(100)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT id, " + GetFunctionName() + "("
@@ -165,7 +165,7 @@ TEST_F(LLMReduceJsonTest, Operation_ValidJsonOutput_ParsesCorrectly) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
@@ -207,7 +207,7 @@ TEST_F(LLMReduceJsonTest, Operation_ComplexJsonStructure_HandlesCorrectly) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{complex_response}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("

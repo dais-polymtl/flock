@@ -8,6 +8,8 @@
 
 namespace flock {
 
+inline constexpr int DEFAULT_BATCH_SIZE = 16;
+
 struct ModelDetails {
     std::string provider_name;
     std::string model_name;

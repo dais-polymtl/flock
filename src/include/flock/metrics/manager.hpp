@@ -6,6 +6,7 @@
 #include "flock/metrics/types.hpp"
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <unordered_map>
 
 namespace flock {
@@ -19,8 +20,10 @@ public:
             throw std::runtime_error("Database instance is null");
         }
 
+        static std::mutex registry_mutex;
         static std::unordered_map<duckdb::DatabaseInstance*, std::unique_ptr<MetricsManager>> db_managers;
 
+        std::lock_guard<std::mutex> lock(registry_mutex);
         auto it = db_managers.find(db);
         if (it == db_managers.end()) {
             auto manager = std::make_unique<MetricsManager>();

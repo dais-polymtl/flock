@@ -22,8 +22,14 @@ protected:
 
     std::shared_ptr<MockProvider> mock_provider;
 
-    void SetUp() override {
+    duckdb::Connection GetConnection() {
         auto con = Config::GetConnection();
+        con.Query("SET threads = 1;");
+        return con;
+    }
+
+    void SetUp() override {
+        auto con = GetConnection();
         con.Query(" CREATE SECRET ("
                   "       TYPE OPENAI,"
                   "    API_KEY 'your-api-key');");
@@ -34,11 +40,9 @@ protected:
         // Create a shared mock provider for expectations
         mock_provider = std::make_shared<MockProvider>(ModelDetails{});
 
-        // Use factory pattern so each Model gets a fresh mock instance
-        // This is thread-safe for parallel GROUP BY processing
+        // Aggregate unit tests share this mock so expectations can be verified.
+        // Test connections run single-threaded to avoid concurrent gMock calls.
         Model::SetMockProviderFactory([this]() {
-            // Return the same mock for expectation purposes, but each Model
-            // instance calls this factory, so we can track expectations
             return mock_provider;
         });
     }
@@ -51,14 +55,14 @@ protected:
     // Common test methods that can be used by derived classes if needed
     void TestValidateArguments() {
         // Test with invalid SQL syntax - missing required arguments (new API expects 2 arguments)
-        auto con = Config::GetConnection();
+        auto con = GetConnection();
         const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}) AS result FROM VALUES ('test') AS tbl(data);");
         ASSERT_TRUE(results->HasError()) << "Expected error for missing arguments, but query succeeded";
     }
 
     void TestOperationInvalidArguments() {
         // Test with invalid arguments using SQL API (new API)
-        auto con = Config::GetConnection();
+        auto con = GetConnection();
         const auto results = con.Query("SELECT " + GetFunctionName() + "('invalid_arg') AS result FROM VALUES ('test') AS tbl(data);");
         ASSERT_TRUE(results->HasError()) << "Expected error for invalid arguments, but query succeeded";
     }
