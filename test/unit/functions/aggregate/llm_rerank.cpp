@@ -37,6 +37,12 @@ protected:
         return nlohmann::json{{"items", ranking_indices}};
     }
 
+    nlohmann::json PrepareSequentialRanking(size_t input_count) const {
+        std::vector<int> ranking_indices(input_count);
+        std::iota(ranking_indices.begin(), ranking_indices.end(), 0);
+        return nlohmann::json{{"items", ranking_indices}};
+    }
+
     std::string FormatExpectedResult(const nlohmann::json& response) const override {
         return response.dump();
     }
@@ -89,6 +95,38 @@ TEST_F(LLMRerankTest, MultipleTuplesWithoutGroupBy) {
         EXPECT_TRUE(parsed[0].contains("data"));
         EXPECT_EQ(parsed[0]["data"].size(), 3);
     });
+}
+
+TEST_F(LLMRerankTest, DefaultBatchSizeSplitsLargeInput) {
+    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+
+    {
+        ::testing::InSequence sequence;
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, DEFAULT_BATCH_SIZE, ::testing::_, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(DEFAULT_BATCH_SIZE)}));
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 9, ::testing::_, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(9)}));
+    }
+
+    auto con = Config::GetConnection();
+
+    const auto results = con.Query(
+            "SELECT llm_rerank("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Rank these products by relevance', 'context_columns': [{'data': description}]}"
+            ") AS reranked_products FROM range(" +
+            std::to_string(input_count) + ") AS t(i), "
+                                          "unnest(['Product description ' || i::VARCHAR]) AS products(description);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    nlohmann::json parsed = nlohmann::json::parse(results->GetValue(0, 0).GetValue<std::string>());
+    ASSERT_EQ(parsed.size(), 1);
+    EXPECT_EQ(parsed[0]["data"].size(), input_count);
 }
 
 // Test GROUP BY with multiple tuples per group: LLM is called for each group

@@ -130,6 +130,41 @@ TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
     }
 }
 
+TEST_F(LLMFilterTest, Operation_DefaultBatchSizeSplitsLargeInput) {
+    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+
+    nlohmann::json first_batch_response = {{"items", {}}};
+    for (size_t i = 0; i < DEFAULT_BATCH_SIZE; i++) {
+        first_batch_response["items"].push_back(i % 2 == 0);
+    }
+    nlohmann::json second_batch_response = {{"items", {false}}};
+
+    {
+        ::testing::InSequence sequence;
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, DEFAULT_BATCH_SIZE, ::testing::_, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{first_batch_response}));
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{second_batch_response}));
+    }
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() + "("
+                                        "{'model_name': 'gpt-4o'}, "
+                                        "{'prompt': 'Is this content relevant?', 'context_columns': [{'data': content}]}"
+                                        ") AS result FROM range(" +
+            std::to_string(input_count) + ") AS t(i), unnest(['Content item ' || i::VARCHAR]) AS tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), input_count);
+    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
+    EXPECT_EQ(results->GetValue(0, DEFAULT_BATCH_SIZE).GetValue<std::string>(), "false");
+}
+
 // Test llm_filter with audio transcription
 TEST_F(LLMFilterTest, LLMFilterWithAudioTranscription) {
     const nlohmann::json expected_transcription = "{\"text\": \"This audio contains positive sentiment\"}";

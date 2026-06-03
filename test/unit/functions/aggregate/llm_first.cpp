@@ -82,6 +82,32 @@ TEST_F(LLMFirstTest, MultipleTuplesWithoutGroupBy) {
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), GetExpectedResponse());
 }
 
+TEST_F(LLMFirstTest, DefaultBatchSizeSplitsLargeInput) {
+    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(2);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .Times(2)
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
+
+    auto con = Config::GetConnection();
+
+    const auto results = con.Query(
+            "SELECT llm_first("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'What is the most relevant product?', 'context_columns': [{'data': description}]}"
+            ") AS first_product FROM range(" +
+            std::to_string(input_count) + ") AS t(i), "
+                                          "unnest(['Product description ' || i::VARCHAR]) AS products(description);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    nlohmann::json parsed = nlohmann::json::parse(results->GetValue(0, 0).GetValue<std::string>());
+    EXPECT_EQ(parsed.size(), 1);
+    EXPECT_EQ(parsed[0]["data"].size(), 1);
+}
+
 // Test GROUP BY with multiple tuples per group: LLM is called for each group
 TEST_F(LLMFirstTest, GroupByWithMultipleTuplesPerGroup) {
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))

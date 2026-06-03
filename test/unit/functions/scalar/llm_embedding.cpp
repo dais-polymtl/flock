@@ -154,4 +154,40 @@ TEST_F(LLMEmbeddingTest, Operation_LargeInputSet_ProcessesCorrectly) {
     }
 }
 
+TEST_F(LLMEmbeddingTest, Operation_DefaultBatchSizeSplitsLargeInput) {
+    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+
+    nlohmann::json expected_response = nlohmann::json::array();
+    for (size_t i = 0; i < input_count; i++) {
+        std::vector<double> embedding;
+        for (size_t j = 0; j < 5; j++) {
+            embedding.push_back(0.01 * i + 0.1 * j);
+        }
+        expected_response.push_back(embedding);
+    }
+
+    {
+        ::testing::InSequence sequence;
+        EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::SizeIs(DEFAULT_BATCH_SIZE)))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::SizeIs(1)))
+                .Times(1);
+    }
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() + "("
+                                        "{'model_name': 'text-embedding-3-small'}, "
+                                        "{'context_columns': [{'data': content}]}"
+                                        ") AS embedding FROM range(" +
+            std::to_string(input_count) + ") AS t(i), unnest(['Document content number ' || i::VARCHAR]) AS tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), input_count);
+    ASSERT_EQ(results->GetValue(0, 0).type().id(), duckdb::LogicalTypeId::LIST);
+    ASSERT_EQ(results->GetValue(0, DEFAULT_BATCH_SIZE).type().id(), duckdb::LogicalTypeId::LIST);
+}
+
 }// namespace flock
