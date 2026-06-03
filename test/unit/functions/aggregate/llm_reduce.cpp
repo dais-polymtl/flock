@@ -46,7 +46,7 @@ TEST_F(LLMReduceTest, SingleTupleWithLLMCall) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_reduce("
@@ -67,7 +67,7 @@ TEST_F(LLMReduceTest, MultipleTuplesWithoutGroupBy) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_reduce("
@@ -93,7 +93,7 @@ TEST_F(LLMReduceTest, DefaultBatchSizeSplitsLargeInput) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{first_batch_response}))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_reduce("
@@ -116,7 +116,7 @@ TEST_F(LLMReduceTest, GroupByWithMultipleTuplesPerGroup) {
             .Times(2)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_reduce("
@@ -143,7 +143,7 @@ TEST_F(LLMReduceTest, GroupByWithSingleTuplePerGroup) {
             .Times(3)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_reduce("
@@ -186,7 +186,7 @@ TEST_F(LLMReduceTest, AudioTranscription) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     const auto results = con.Query(
             "SELECT llm_reduce("
             "{'model_name': 'gpt-4o'}, "
@@ -215,7 +215,7 @@ TEST_F(LLMReduceTest, AudioAndTextColumns) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     const auto results = con.Query(
             "SELECT llm_reduce("
             "{'model_name': 'gpt-4o'}, "
@@ -233,7 +233,7 @@ TEST_F(LLMReduceTest, AudioAndTextColumns) {
 
 // Test audio transcription error handling for Ollama
 TEST_F(LLMReduceTest, AudioTranscriptionOllamaError) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
             .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
 

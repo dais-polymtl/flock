@@ -59,12 +59,16 @@ void MetricsManager::MergeAggregateMetrics(duckdb::DatabaseInstance* db,
     }
 
     auto& manager = GetForDatabase(db);
+    std::lock_guard<std::mutex> lock(manager.mutex_);
 
     // Use the first state_id as the merged state_id
     const void* merged_state_id = processed_state_ids[0];
 
     // Start a new invocation for the merged metrics (registers the state and sets registration order)
-    StartInvocation(db, merged_state_id, function_type);
+    current_db_ = db;
+    current_state_id_ = merged_state_id;
+    current_function_type_ = function_type;
+    manager.StartInvocationUnlocked(merged_state_id, function_type);
 
     // Get and merge metrics from all processed states
     int64_t total_input_tokens = 0;
@@ -76,7 +80,7 @@ void MetricsManager::MergeAggregateMetrics(duckdb::DatabaseInstance* db,
     std::string final_provider = provider;
 
     for (const void* state_id: processed_state_ids) {
-        auto& thread_metrics = manager.GetThreadMetrics(state_id);
+        auto& thread_metrics = manager.GetThreadMetricsUnlocked(state_id);
         const auto& metrics = thread_metrics.GetMetrics(function_type);
 
         if (!metrics.IsEmpty()) {
@@ -95,7 +99,7 @@ void MetricsManager::MergeAggregateMetrics(duckdb::DatabaseInstance* db,
     }
 
     // Get the merged state's metrics and set aggregated values
-    auto& merged_thread_metrics = manager.GetThreadMetrics(merged_state_id);
+    auto& merged_thread_metrics = manager.GetThreadMetricsUnlocked(merged_state_id);
     auto& merged_metrics = merged_thread_metrics.GetMetrics(function_type);
 
     // Set the aggregated values directly
@@ -112,7 +116,7 @@ void MetricsManager::MergeAggregateMetrics(duckdb::DatabaseInstance* db,
     // Clean up individual state metrics (reset function_type metrics for all except the merged one)
     for (size_t i = 1; i < processed_state_ids.size(); i++) {
         const void* state_id = processed_state_ids[i];
-        auto& thread_metrics = manager.GetThreadMetrics(state_id);
+        auto& thread_metrics = manager.GetThreadMetricsUnlocked(state_id);
         auto& metrics = thread_metrics.GetMetrics(function_type);
         // Reset only the specific function_type metrics for this state
         metrics = FunctionMetricsData{};

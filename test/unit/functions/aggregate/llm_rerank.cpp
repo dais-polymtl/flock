@@ -50,7 +50,7 @@ protected:
 
 // Test 1-tuple case: no LLM call needed, returns the single tuple directly
 TEST_F(LLMRerankTest, SingleTupleNoLLMCall) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_rerank("
@@ -76,7 +76,7 @@ TEST_F(LLMRerankTest, MultipleTuplesWithoutGroupBy) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_rerank("
@@ -112,7 +112,7 @@ TEST_F(LLMRerankTest, DefaultBatchSizeSplitsLargeInput) {
                 .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(9)}));
     }
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_rerank("
@@ -139,7 +139,7 @@ TEST_F(LLMRerankTest, GroupByWithMultipleTuplesPerGroup) {
             .Times(2)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{response_2_items}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_rerank("
@@ -165,7 +165,7 @@ TEST_F(LLMRerankTest, GroupByWithMultipleTuplesPerGroup) {
 
 // Test GROUP BY with single tuple per group: no LLM calls needed
 TEST_F(LLMRerankTest, GroupByWithSingleTuplePerGroup) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_rerank("
@@ -214,7 +214,7 @@ TEST_F(LLMRerankTest, AudioTranscription) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{response_2_items}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     const auto results = con.Query(
             "SELECT llm_rerank("
             "{'model_name': 'gpt-4o'}, "
@@ -233,7 +233,7 @@ TEST_F(LLMRerankTest, AudioTranscription) {
 
 // Test audio transcription error handling for Ollama
 TEST_F(LLMRerankTest, AudioTranscriptionOllamaError) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
             .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
 
