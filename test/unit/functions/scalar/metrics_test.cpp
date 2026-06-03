@@ -555,7 +555,6 @@ TEST_F(MetricsTest, ConcurrentUpdatesAreMergedSafely) {
 
     for (int thread_index = 0; thread_index < thread_count; thread_index++) {
         threads.emplace_back([db, thread_index]() {
-            constexpr int iterations = 100;
             const void* state_id = reinterpret_cast<const void*>(
                     static_cast<uintptr_t>(0x10000 + thread_index));
 
