@@ -112,6 +112,7 @@ TEST_F(LLMRerankTest, DefaultBatchSizeSplitsLargeInput) {
                 .Times(1);
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
                 .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(second_batch_size)}));
+    }
 
     auto con = GetConnection();
 
