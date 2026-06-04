@@ -37,6 +37,12 @@ protected:
         return nlohmann::json{{"items", ranking_indices}};
     }
 
+    nlohmann::json PrepareSequentialRanking(size_t input_count) const {
+        std::vector<int> ranking_indices(input_count);
+        std::iota(ranking_indices.begin(), ranking_indices.end(), 0);
+        return nlohmann::json{{"items", ranking_indices}};
+    }
+
     std::string FormatExpectedResult(const nlohmann::json& response) const override {
         return response.dump();
     }
@@ -44,7 +50,7 @@ protected:
 
 // Test 1-tuple case: no LLM call needed, returns the single tuple directly
 TEST_F(LLMRerankTest, SingleTupleNoLLMCall) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_rerank("
@@ -70,7 +76,7 @@ TEST_F(LLMRerankTest, MultipleTuplesWithoutGroupBy) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_rerank("
@@ -91,6 +97,40 @@ TEST_F(LLMRerankTest, MultipleTuplesWithoutGroupBy) {
     });
 }
 
+TEST_F(LLMRerankTest, DefaultBatchSizeSplitsLargeInput) {
+    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+
+    {
+        ::testing::InSequence sequence;
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, DEFAULT_BATCH_SIZE, ::testing::_, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(DEFAULT_BATCH_SIZE)}));
+
+        const int second_batch_size = (DEFAULT_BATCH_SIZE / 2) + 1;
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, second_batch_size, ::testing::_, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(second_batch_size)}));
+    }
+
+    auto con = GetConnection();
+
+    const auto results = con.Query(
+            "SELECT llm_rerank("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Rank these products by relevance', 'context_columns': [{'data': description}]}"
+            ") AS reranked_products FROM range(" +
+            std::to_string(input_count) + ") AS t(i), "
+                                          "unnest(['Product description ' || i::VARCHAR]) AS products(description);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    nlohmann::json parsed = nlohmann::json::parse(results->GetValue(0, 0).GetValue<std::string>());
+    ASSERT_EQ(parsed.size(), 1);
+    EXPECT_EQ(parsed[0]["data"].size(), input_count);
+}
+
 // Test GROUP BY with multiple tuples per group: LLM is called for each group
 TEST_F(LLMRerankTest, GroupByWithMultipleTuplesPerGroup) {
     nlohmann::json response_2_items = nlohmann::json{{"items", {1, 0}}};
@@ -101,7 +141,7 @@ TEST_F(LLMRerankTest, GroupByWithMultipleTuplesPerGroup) {
             .Times(2)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{response_2_items}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_rerank("
@@ -127,7 +167,7 @@ TEST_F(LLMRerankTest, GroupByWithMultipleTuplesPerGroup) {
 
 // Test GROUP BY with single tuple per group: no LLM calls needed
 TEST_F(LLMRerankTest, GroupByWithSingleTuplePerGroup) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_rerank("
@@ -176,7 +216,7 @@ TEST_F(LLMRerankTest, AudioTranscription) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{response_2_items}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     const auto results = con.Query(
             "SELECT llm_rerank("
             "{'model_name': 'gpt-4o'}, "
@@ -195,7 +235,7 @@ TEST_F(LLMRerankTest, AudioTranscription) {
 
 // Test audio transcription error handling for Ollama
 TEST_F(LLMRerankTest, AudioTranscriptionOllamaError) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
             .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
 

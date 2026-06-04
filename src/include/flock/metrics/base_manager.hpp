@@ -3,6 +3,7 @@
 #include "flock/metrics/data_structures.hpp"
 #include <algorithm>
 #include <cstdint>
+#include <mutex>
 #include <sstream>
 #include <type_traits>
 #include <unordered_map>
@@ -14,44 +15,25 @@ template<typename StateId>
 class BaseMetricsManager {
 public:
     ThreadMetrics& GetThreadMetrics(const StateId& state_id) {
-        const auto tid = std::this_thread::get_id();
-        auto& thread_map = thread_metrics_[tid];
-
-        auto it = thread_map.find(state_id);
-        if (it != thread_map.end()) {
-            return it->second;
-        }
-
-        return thread_map[state_id];
+        std::lock_guard<std::mutex> lock(mutex_);
+        return GetThreadMetricsUnlocked(state_id);
     }
 
     void RegisterThread(const StateId& state_id) {
-        GetThreadMetrics(state_id);
+        std::lock_guard<std::mutex> lock(mutex_);
+        RegisterThreadUnlocked(state_id);
     }
 
     // Initialize metrics tracking and assign registration order
     void StartInvocation(const StateId& state_id, FunctionType type) {
-        RegisterThread(state_id);
-
-        const auto tid = std::this_thread::get_id();
-        ThreadFunctionKey thread_function_key{tid, type};
-
-        if (thread_function_counters_.find(thread_function_key) == thread_function_counters_.end()) {
-            thread_function_counters_[thread_function_key] = 0;
-        }
-
-        StateFunctionKey state_function_key{state_id, type};
-        if (state_function_registration_order_.find(state_function_key) == state_function_registration_order_.end()) {
-            thread_function_counters_[thread_function_key]++;
-            state_function_registration_order_[state_function_key] = thread_function_counters_[thread_function_key];
-        }
-
-        GetThreadMetrics(state_id).GetMetrics(type);
+        std::lock_guard<std::mutex> lock(mutex_);
+        StartInvocationUnlocked(state_id, type);
     }
 
     // Store model name and provider (first call wins)
     void SetModelInfo(const StateId& state_id, FunctionType type, const std::string& model_name, const std::string& provider) {
-        auto& thread_metrics = GetThreadMetrics(state_id);
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto& thread_metrics = GetThreadMetricsUnlocked(state_id);
         auto& metrics = thread_metrics.GetMetrics(type);
         if (metrics.model_name.empty()) {
             metrics.model_name = model_name;
@@ -63,7 +45,8 @@ public:
 
     // Add input and output tokens (accumulative)
     void UpdateTokens(const StateId& state_id, FunctionType type, int64_t input, int64_t output) {
-        auto& thread_metrics = GetThreadMetrics(state_id);
+        std::lock_guard<std::mutex> lock(mutex_);
+        auto& thread_metrics = GetThreadMetricsUnlocked(state_id);
         auto& metrics = thread_metrics.GetMetrics(type);
         metrics.input_tokens += input;
         metrics.output_tokens += output;
@@ -71,21 +54,25 @@ public:
 
     // Increment API call counter
     void IncrementApiCalls(const StateId& state_id, FunctionType type) {
-        GetThreadMetrics(state_id).GetMetrics(type).api_calls++;
+        std::lock_guard<std::mutex> lock(mutex_);
+        GetThreadMetricsUnlocked(state_id).GetMetrics(type).api_calls++;
     }
 
     // Add API duration in microseconds (accumulative)
     void AddApiDuration(const StateId& state_id, FunctionType type, int64_t duration_us) {
-        GetThreadMetrics(state_id).GetMetrics(type).api_duration_us += duration_us;
+        std::lock_guard<std::mutex> lock(mutex_);
+        GetThreadMetricsUnlocked(state_id).GetMetrics(type).api_duration_us += duration_us;
     }
 
     // Add execution time in microseconds (accumulative)
     void AddExecutionTime(const StateId& state_id, FunctionType type, int64_t duration_us) {
-        GetThreadMetrics(state_id).GetMetrics(type).execution_time_us += duration_us;
+        std::lock_guard<std::mutex> lock(mutex_);
+        GetThreadMetricsUnlocked(state_id).GetMetrics(type).execution_time_us += duration_us;
     }
 
     // Get flattened metrics structure (merged across threads)
     nlohmann::json GetMetrics() const {
+        std::lock_guard<std::mutex> lock(mutex_);
         nlohmann::json result = nlohmann::json::object();
 
         struct Key {
@@ -182,6 +169,7 @@ public:
 
     // Get nested metrics structure preserving thread/state info (for debugging)
     nlohmann::json GetDebugMetrics() const {
+        std::lock_guard<std::mutex> lock(mutex_);
         nlohmann::json result;
         nlohmann::json threads_json = nlohmann::json::object();
 
@@ -242,12 +230,50 @@ public:
 
     // Clear all metrics and registration tracking
     void Reset() {
+        std::lock_guard<std::mutex> lock(mutex_);
         thread_metrics_.clear();
         state_function_registration_order_.clear();
         thread_function_counters_.clear();
     }
 
 protected:
+    ThreadMetrics& GetThreadMetricsUnlocked(const StateId& state_id) {
+        const auto tid = std::this_thread::get_id();
+        auto& thread_map = thread_metrics_[tid];
+
+        auto it = thread_map.find(state_id);
+        if (it != thread_map.end()) {
+            return it->second;
+        }
+
+        return thread_map[state_id];
+    }
+
+    void RegisterThreadUnlocked(const StateId& state_id) {
+        GetThreadMetricsUnlocked(state_id);
+    }
+
+    void StartInvocationUnlocked(const StateId& state_id, FunctionType type) {
+        RegisterThreadUnlocked(state_id);
+
+        const auto tid = std::this_thread::get_id();
+        ThreadFunctionKey thread_function_key{tid, type};
+
+        if (thread_function_counters_.find(thread_function_key) == thread_function_counters_.end()) {
+            thread_function_counters_[thread_function_key] = 0;
+        }
+
+        StateFunctionKey state_function_key{state_id, type};
+        if (state_function_registration_order_.find(state_function_key) == state_function_registration_order_.end()) {
+            thread_function_counters_[thread_function_key]++;
+            state_function_registration_order_[state_function_key] = thread_function_counters_[thread_function_key];
+        }
+
+        GetThreadMetricsUnlocked(state_id).GetMetrics(type);
+    }
+
+    mutable std::mutex mutex_;
+
     // Main storage: thread_id -> state_id -> ThreadMetrics
     std::unordered_map<std::thread::id, std::unordered_map<StateId, ThreadMetrics>, ThreadIdHash> thread_metrics_;
 

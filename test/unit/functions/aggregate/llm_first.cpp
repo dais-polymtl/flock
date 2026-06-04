@@ -40,7 +40,7 @@ protected:
 // Test 1-tuple case: no LLM call needed, returns the single tuple directly
 TEST_F(LLMFirstTest, SingleTupleNoLLMCall) {
     // No mock expectations - LLM should NOT be called for single tuple
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_first("
@@ -66,7 +66,7 @@ TEST_F(LLMFirstTest, MultipleTuplesWithoutGroupBy) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_first("
@@ -82,6 +82,32 @@ TEST_F(LLMFirstTest, MultipleTuplesWithoutGroupBy) {
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), GetExpectedResponse());
 }
 
+TEST_F(LLMFirstTest, DefaultBatchSizeSplitsLargeInput) {
+    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(2);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .Times(2)
+            .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
+
+    auto con = GetConnection();
+
+    const auto results = con.Query(
+            "SELECT llm_first("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'What is the most relevant product?', 'context_columns': [{'data': description}]}"
+            ") AS first_product FROM range(" +
+            std::to_string(input_count) + ") AS t(i), "
+                                          "unnest(['Product description ' || i::VARCHAR]) AS products(description);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    nlohmann::json parsed = nlohmann::json::parse(results->GetValue(0, 0).GetValue<std::string>());
+    EXPECT_EQ(parsed.size(), 1);
+    EXPECT_EQ(parsed[0]["data"].size(), 1);
+}
+
 // Test GROUP BY with multiple tuples per group: LLM is called for each group
 TEST_F(LLMFirstTest, GroupByWithMultipleTuplesPerGroup) {
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
@@ -90,7 +116,7 @@ TEST_F(LLMFirstTest, GroupByWithMultipleTuplesPerGroup) {
             .Times(2)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_first("
@@ -116,7 +142,7 @@ TEST_F(LLMFirstTest, GroupByWithMultipleTuplesPerGroup) {
 // Test GROUP BY with single tuple per group: no LLM calls needed
 TEST_F(LLMFirstTest, GroupByWithSingleTuplePerGroup) {
     // No mock expectations - LLM should NOT be called when each group has only 1 tuple
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_first("
@@ -165,7 +191,7 @@ TEST_F(LLMFirstTest, AudioTranscription) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_complete_response}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     const auto results = con.Query(
             "SELECT llm_first("
             "{'model_name': 'gpt-4o'}, "
@@ -184,7 +210,7 @@ TEST_F(LLMFirstTest, AudioTranscription) {
 
 // Test audio transcription error handling for Ollama
 TEST_F(LLMFirstTest, AudioTranscriptionOllamaError) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
             .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
 

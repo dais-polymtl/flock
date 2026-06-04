@@ -109,10 +109,7 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
     auto carry_forward_tuples = nlohmann::json::array();
     int start_index = 0;
 
-    auto batch_size = static_cast<int>(model.GetModelDetails().batch_size);
-    if (batch_size == 2048) {
-        batch_size = std::min<int>(batch_size, num_tuples);
-    }
+    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, num_tuples);
 
     if (batch_size <= 0) {
         throw std::runtime_error("Batch size must be greater than zero");

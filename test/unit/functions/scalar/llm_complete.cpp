@@ -31,6 +31,14 @@ protected:
         return expected_response;
     }
 
+    nlohmann::json PrepareExpectedResponseRange(size_t start_index, size_t count) const {
+        nlohmann::json expected_response = {{"items", {}}};
+        for (size_t i = 0; i < count; i++) {
+            expected_response["items"].push_back("response " + std::to_string(start_index + i));
+        }
+        return expected_response;
+    }
+
     std::string FormatExpectedResult(const nlohmann::json& response) const override {
         if (response.contains("items") && response["items"].is_array() && !response["items"].empty()) {
             return response["items"][0].get<std::string>();
@@ -132,11 +140,20 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
     constexpr size_t input_count = 100;
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
+    std::vector<nlohmann::json> batch_responses;
+    for (size_t start_index = 0; start_index < input_count; start_index += DEFAULT_BATCH_SIZE) {
+        const auto batch_count = std::min<size_t>(DEFAULT_BATCH_SIZE, input_count - start_index);
+        batch_responses.push_back(PrepareExpectedResponseRange(start_index, batch_count));
+    }
+    size_t next_response = 0;
 
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-            .Times(1);
+            .Times(static_cast<int>(batch_responses.size()));
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+            .Times(static_cast<int>(batch_responses.size()))
+            .WillRepeatedly(::testing::Invoke([&batch_responses, &next_response](const std::string&) {
+                return std::vector<nlohmann::json>{batch_responses[next_response++]};
+            }));
 
     // Use SQL approach - DuckDB's best practice for large datasets
     auto con = Config::GetConnection();

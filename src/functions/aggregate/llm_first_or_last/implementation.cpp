@@ -118,7 +118,7 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
             auto result_idx = GetFirstOrLastTupleId(batch_tuples);
 
             batch_tuples.clear();
-            for (auto i = 0; i < static_cast<int>(tuples.size()) - 1; i++) {
+            for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
                 batch_tuples.push_back(nlohmann::json::object());
                 for (const auto& item: tuples[i].items()) {
                     if (item.key() == "data") {
@@ -139,7 +139,15 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
 
     } while (start_index < static_cast<int>(tuples[0]["data"].size()));
 
-    return batch_tuples;
+    auto result_tuples = nlohmann::json::array();
+    for (const auto& column: batch_tuples) {
+        if (column.contains("name") && column["name"].is_string() &&
+            column["name"].get<std::string>() == "flock_row_id") {
+            continue;
+        }
+        result_tuples.push_back(column);
+    }
+    return result_tuples;
 }
 
 void LlmFirstOrLast::FinalizeResults(duckdb::Vector& states, duckdb::AggregateInputData& aggr_input_data,

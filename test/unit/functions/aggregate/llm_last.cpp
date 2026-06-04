@@ -39,7 +39,7 @@ protected:
 
 // Test 1-tuple case: no LLM call needed, returns the single tuple directly
 TEST_F(LLMLastTest, SingleTupleNoLLMCall) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_last("
@@ -65,7 +65,7 @@ TEST_F(LLMLastTest, MultipleTuplesWithoutGroupBy) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT llm_last("
@@ -91,7 +91,7 @@ TEST_F(LLMLastTest, GroupByWithMultipleTuplesPerGroup) {
             .Times(2)
             .WillRepeatedly(::testing::Return(std::vector<nlohmann::json>{response_index_1}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_last("
@@ -116,7 +116,7 @@ TEST_F(LLMLastTest, GroupByWithMultipleTuplesPerGroup) {
 
 // Test GROUP BY with single tuple per group: no LLM calls needed
 TEST_F(LLMLastTest, GroupByWithSingleTuplePerGroup) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
 
     const auto results = con.Query(
             "SELECT category, llm_last("
@@ -165,7 +165,7 @@ TEST_F(LLMLastTest, AudioTranscription) {
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{response_index_1}));
 
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     const auto results = con.Query(
             "SELECT llm_last("
             "{'model_name': 'gpt-4o'}, "
@@ -184,7 +184,7 @@ TEST_F(LLMLastTest, AudioTranscription) {
 
 // Test audio transcription error handling for Ollama
 TEST_F(LLMLastTest, AudioTranscriptionOllamaError) {
-    auto con = Config::GetConnection();
+    auto con = GetConnection();
     EXPECT_CALL(*mock_provider, AddTranscriptionRequest(::testing::_))
             .WillOnce(::testing::Throw(std::runtime_error("Audio transcription is not currently supported by Ollama.")));
 
