@@ -41,7 +41,7 @@ CREATE MODEL(
    'ClaudeModel',
    'claude-sonnet-4-5',
    'anthropic',
-   {"tuple_format": "json", "batch_size": 32, "model_parameters": {"temperature": 0.7, "max_tokens": 1024}}
+   {"tuple_format": "json", "batch_size": 32, "max_async_calls": 20, "model_parameters": {"temperature": 0.7, "max_tokens": 1024}}
 );
 ```
 
@@ -191,7 +191,7 @@ Attempting to use `llm_embedding` with an Anthropic model will result in a clear
 
 ## Rate Limits and Usage
 
-Anthropic has rate limits based on your plan tier. Monitor your usage in the [Anthropic Console](https://console.anthropic.com/). Consider using batch processing with appropriate `batch_size` settings for high-volume workloads.
+Anthropic has rate limits based on your plan tier. Monitor your usage in the [Anthropic Console](https://console.anthropic.com/). Consider using batch processing with appropriate `batch_size` and `max_async_calls` settings for high-volume workloads.
 
 ## API Version
 

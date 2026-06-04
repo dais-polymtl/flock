@@ -18,16 +18,17 @@ void Config::SetupDefaultModelsConfig(duckdb::Connection& con, std::string& sche
                                  schema_name, table_name));
 
     con.Query(duckdb_fmt::format(
-            "INSERT OR IGNORE INTO {}.{} (model_name, model, provider_name) "
-            "VALUES "
-            "('default', 'gpt-4o-mini', 'openai'), "
-            "('gpt-4o-mini', 'gpt-4o-mini', 'openai'), "
-            "('gpt-4o', 'gpt-4o', 'openai'), "
-            "('gpt-4o-transcribe', 'gpt-4o-transcribe', 'openai'),"
-            "('gpt-4o-mini-transcribe', 'gpt-4o-mini-transcribe', 'openai'),"
-            "('text-embedding-3-large', 'text-embedding-3-large', 'openai'), "
-            "('text-embedding-3-small', 'text-embedding-3-small', 'openai');",
-            schema_name, table_name));
+                "INSERT OR IGNORE INTO {}.{} (model_name, model, provider_name, model_args) "
+                "VALUES "
+                "('default', 'gpt-4o-mini', 'openai', '{{}}'), "
+                "('gpt-4o-mini', 'gpt-4o-mini', 'openai', '{{}}'), "
+                "('gpt-4o', 'gpt-4o', 'openai', '{{}}'), "
+                "('gpt-4o-transcribe', 'gpt-4o-transcribe', 'openai', '{{}}'),"
+                "('gpt-4o-mini-transcribe', 'gpt-4o-mini-transcribe', 'openai', '{{}}'),"
+                "('text-embedding-3-large', 'text-embedding-3-large', 'openai', '{{}}'), "
+                "('text-embedding-3-small', 'text-embedding-3-small', 'openai', '{{}}'), "
+                "('flock_demo', 'demo', 'demo', '{{\"tuple_format\":\"JSON\",\"batch_size\":16,\"max_async_calls\":20,\"model_parameters\":{{}}}}');",
+                schema_name, table_name));
 }
 
 void Config::SetupUserDefinedModelsConfig(duckdb::Connection& con, std::string& schema_name) {

@@ -40,7 +40,7 @@ CREATE MODEL(
    'QuackingModel',
    'gpt-4o',
    'azure',
-   {"tuple_format": "json", "batch_size": 32, "model_parameters": {"temperature": 0.7}}
+   {"tuple_format": "json", "batch_size": 32, "max_async_calls": 20, "model_parameters": {"temperature": 0.7}}
 );
 ```
 

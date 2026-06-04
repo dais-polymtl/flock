@@ -489,7 +489,8 @@ SELECT
     llm_complete(
         {
             'model_name': 'gpt-4o',
-            'batch_size': 5  -- Process 5 images at once
+            'batch_size': 5,  -- Process 5 images at once
+            'max_async_calls': 10  -- Maximum in-flight calls
         },
         {
             'prompt': 'Describe this image briefly.',

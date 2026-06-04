@@ -23,7 +23,26 @@ Models are stored in a table with the following structure:
 | **Model Name**      | Unique identifier for the model                                                                                                                                                                                                                   |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                                                                                                                                                                                     |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`)                                                                                                                                                                                           |
-| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, and `model_parameters` (which itself is a JSON object for all model params) are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. |
+| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `max_async_calls`, and `model_parameters` (which itself is a JSON object for all model params) are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. |
+
+`max_async_calls` controls provider concurrency. If omitted, it defaults to `20` and applies to all supported function calls.
+
+Flock includes a built-in default model `flock_demo` using the synthetic demo provider:
+
+```sql
+-- Optional: initialize per database with explicit defaults for local sessions
+CREATE LOCAL MODEL(
+    'flock_demo',
+    'demo',
+    'demo',
+    {
+        "tuple_format": "JSON",
+        "batch_size": 16,
+        "max_async_calls": 20,
+        "model_parameters": {}
+    }
+);
+```
 
 ## 2. Management Commands
 
@@ -44,7 +63,7 @@ MODEL 'model_name';
 - Create a new user-defined model
 
 ```sql
--- User-defined model (only tuple_format, batch_size, and model_parameters allowed in JSON)
+-- User-defined model (tuple_format, batch_size, max_async_calls, and model_parameters allowed in JSON)
 -- tuple_format can be "JSON", "XML", or "Markdown"
 CREATE
 MODEL(
@@ -54,6 +73,7 @@ MODEL(
     {
         "tuple_format": "JSON",
         "batch_size": 8,
+        "max_async_calls": 20,
         "model_parameters": {
             "temperature": 0.2,
             "top_p": 0.95
@@ -68,6 +88,7 @@ MODEL(
     {
         "tuple_format": "XML",
         "batch_size": 8,
+        "max_async_calls": 20,
         "model_parameters": {
             "n": 3,
             "frequency_penalty": 0.1
@@ -103,6 +124,7 @@ UPDATE MODEL(
     {
         "tuple_format": "JSON",
         "batch_size": 8,
+        "max_async_calls": 20,
         "model_parameters": {
             "temperature": 0.2,
             "top_p": 0.95
@@ -116,6 +138,7 @@ UPDATE MODEL(
     {
         "tuple_format": "XML",
         "batch_size": 8,
+        "max_async_calls": 20,
         "model_parameters": {
             "n": 3,
             "frequency_penalty": 0.1
@@ -128,7 +151,8 @@ UPDATE MODEL(
     'provider',
     {
     "tuple_format": "Markdown",
-    "batch_size": 8
+    "batch_size": 8,
+    "max_async_calls": 20
     }
 );
 ```

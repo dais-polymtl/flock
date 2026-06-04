@@ -109,3 +109,35 @@ Icon={SiAnthropic}
 title="Anthropic / Claude"
 link="/flock/docs/getting-started/anthropic"
 />
+
+## Quick Demo Provider and Async Mode
+
+You can try Flock immediately with the built-in `flock_demo` model (no API credentials required):
+
+```sql
+CREATE LOCAL MODEL(
+  'flock_demo',
+  'demo',
+  'demo',
+  {
+    "tuple_format": "JSON",
+    "batch_size": 16,
+    "max_async_calls": 20,
+    "model_parameters": {}
+  }
+);
+```
+
+Then run concurrent calls with a per-query override:
+
+```sql
+SELECT llm_complete(
+  {
+    'model_name': 'flock_demo',
+    'batch_size': 4,
+    'max_async_calls': 8
+  },
+  {'prompt': 'Summarize this text:'},
+  {'text': '...'}
+);
+```

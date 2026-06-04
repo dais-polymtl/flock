@@ -119,6 +119,17 @@ TEST_F(ModelManagerTest, ProviderSelection) {
         Model ollama_model(ollama_config);
         EXPECT_EQ(ollama_model.GetModelDetails().provider_name, "ollama");
     });
+    // Test Demo provider
+    json demo_config = {
+            {"model_name", "demo-model"},
+            {"model", "demo"},
+            {"provider", "demo"},
+            {"tuple_format", "json"},
+            {"batch_size", 4}};
+    EXPECT_NO_THROW({
+        Model demo_model(demo_config);
+        EXPECT_EQ(demo_model.GetModelDetails().provider_name, "demo");
+    });
 }
 
 // Test model details retrieval
@@ -140,6 +151,36 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
     EXPECT_EQ(details.tuple_format, "XML");
     EXPECT_EQ(details.batch_size, 10);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationUsesDefaultMaxAsyncCallsWhenUnset) {
+    json model_config = {
+            {"model_name", "gpt-4o"}};
+
+    EXPECT_NO_THROW({
+        Model model(model_config);
+        ModelDetails details = model.GetModelDetails();
+        EXPECT_EQ(details.model_name, "gpt-4o");
+        EXPECT_EQ(details.max_async_calls, DEFAULT_MAX_ASYNC_CALLS);
+    });
+}
+
+TEST_F(ModelManagerTest, ModelInitializationWithCustomMaxAsyncCalls) {
+    json model_config = {
+            {"model_name", "gpt-4o"},
+            {"max_async_calls", 7},
+            {"batch_size", 4},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"model_parameters", "{}"}};
+
+    EXPECT_NO_THROW({
+        Model model(model_config);
+        ModelDetails details = model.GetModelDetails();
+        EXPECT_EQ(details.batch_size, 4);
+        EXPECT_EQ(details.max_async_calls, 7);
+    });
 }
 
 }// namespace flock

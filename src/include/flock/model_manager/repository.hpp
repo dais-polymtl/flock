@@ -9,6 +9,7 @@
 namespace flock {
 
 inline constexpr int DEFAULT_BATCH_SIZE = 16;
+inline constexpr int DEFAULT_MAX_ASYNC_CALLS = 20;
 
 struct ModelDetails {
     std::string provider_name;
@@ -17,6 +18,7 @@ struct ModelDetails {
     std::unordered_map<std::string, std::string> secret;
     std::string tuple_format;
     int batch_size;
+    int max_async_calls;
     nlohmann::json model_parameters;
 };
 
@@ -24,6 +26,7 @@ const std::string OLLAMA = "ollama";
 const std::string OPENAI = "openai";
 const std::string AZURE = "azure";
 const std::string ANTHROPIC = "anthropic";
+const std::string DEMO = "demo";
 const std::string DEFAULT_PROVIDER = "default";
 const std::string EMPTY_PROVIDER = "";
 
@@ -35,6 +38,7 @@ enum SupportedProviders {
     FLOCKMTL_AZURE,
     FLOCKMTL_OLLAMA,
     FLOCKMTL_ANTHROPIC,
+    FLOCKMTL_DEMO,
     FLOCKMTL_UNSUPPORTED_PROVIDER,
     FLOCKMTL_SUPPORTED_PROVIDER_COUNT
 };
@@ -49,6 +53,8 @@ inline SupportedProviders GetProviderType(std::string provider) {
         return FLOCKMTL_OLLAMA;
     if (provider == ANTHROPIC)
         return FLOCKMTL_ANTHROPIC;
+    if (provider == DEMO)
+        return FLOCKMTL_DEMO;
 
     return FLOCKMTL_UNSUPPORTED_PROVIDER;
 }
@@ -63,6 +69,8 @@ inline std::string GetProviderName(SupportedProviders provider) {
             return OLLAMA;
         case FLOCKMTL_ANTHROPIC:
             return ANTHROPIC;
+        case FLOCKMTL_DEMO:
+            return DEMO;
         default:
             return "";
     }

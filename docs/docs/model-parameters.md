@@ -17,8 +17,77 @@ import TOCInline from '@theme/TOCInline';
 Model parameters are passed as JSON strings within the `model_parameters` field of LLM function calls. Different
 providers support different parameters, allowing you to customize temperature, token limits, sampling methods, and more.
 
+Flock also supports **model execution settings** in model arguments:
+
+- `batch_size`: maximum number of tuples per API call (applies to all map functions).
+- `max_async_calls`: maximum number of parallel in-flight provider calls (default `20`).
+- `max_async_calls` works with `batch_size`: each API call still respects batch size, while in-flight calls are capped by
+  `max_async_calls`.
+
+The async mode is especially useful for experimenting with batch behavior and is independent from
+`batch_size`. You can tune both in one model argument:
+
+## Model Execution Settings
+
+`max_async_calls` can be set at model creation time or directly inside the `model_name` argument when calling an LLM
+function.
+
+```sql
+SELECT llm_complete(
+  {
+    'model_name': 'gpt-4o',
+    'batch_size': 16,
+    'max_async_calls': 40,
+    'model_parameters': '{"temperature": 0.7, "max_tokens": 1000}'
+  },
+  {'prompt': 'Write a concise executive summary.'},
+  {'text': doc_text}
+);
+```
+
+If you do not set `max_async_calls`, Flock uses the model-level value, which defaults to `20`.
+
 **Compatibility**: Works with all Flock LLM functions - `llm_complete`, `llm_filter`, `llm_embedding`, `llm_reduce`,
 `llm_rerank`, `llm_first`, `llm_last`
+
+### Async Mode with Aggregate Functions
+
+Aggregate functions (`llm_reduce`, `llm_rerank`, `llm_first`, `llm_last`) use the same concurrency controls. Async mode controls
+how many aggregate worker calls execute at once while preserving batch-size safety per request.
+
+## Demo Provider
+
+Flock ships with a built-in demo provider (`provider='demo'`) so you can run end-to-end tests without external
+API credentials. The demo provider returns deterministic synthetic outputs and honors both `batch_size` and
+`max_async_calls`.
+
+Try it directly:
+
+```sql
+SELECT llm_complete(
+  {
+    'model_name': 'flock_demo',
+    'batch_size': 4,
+    'max_async_calls': 2
+  },
+  {'prompt': 'Classify this text', 'context_columns': [{'name': 'text', 'data': ['A', 'B', 'C']}]}
+);
+```
+
+### Quick Demo Provider Query
+
+You can initialize once and run a query directly with per-query overrides:
+
+```sql
+SELECT llm_filter(
+  {
+    'model_name': 'flock_demo',
+    'batch_size': 4,
+    'max_async_calls': 8
+  },
+  {'prompt': 'Keep only rows mentioning positive sentiment.', 'text': message}
+);
+```
 
 ## OpenAI Parameters
 

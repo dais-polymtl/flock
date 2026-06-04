@@ -254,6 +254,22 @@ TEST(ModelParserTest, ParseStringBatchSizeCreateModelWithComment) {
     EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": \"32\", \"model_parameters\": {\"param1\": \"value1\"}}) -- Invalid batch size", statement), std::runtime_error);
 }
 
+TEST(ModelParserTest, ParseCreateModelWithMaxAsyncCalls) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"max_async_calls\": 7, \"model_parameters\": {\"param1\": \"value1\"}})", statement));
+    ASSERT_NE(statement, nullptr);
+    auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
+    ASSERT_NE(create_stmt, nullptr);
+    EXPECT_EQ(create_stmt->model_args["max_async_calls"], 7);
+}
+
+TEST(ModelParserTest, ParseStringMaxAsyncCallsCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"max_async_calls\": \"7\", \"model_parameters\": {\"param1\": \"value1\"}})", statement), std::runtime_error);
+}
+
 TEST(ModelParserTest, ParseCreateModelWithInvalidArgs) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
@@ -568,6 +584,22 @@ TEST(ModelParserTest, ParseStringBatchSizeUpdateModelWithComment) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
     EXPECT_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": \"64\", \"model_parameters\": {\"param2\": \"value2\"}}) -- Invalid batch size", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseUpdateModelWithMaxAsyncCalls) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"max_async_calls\": 11, \"model_parameters\": {\"param2\": \"value2\"}})", statement));
+    ASSERT_NE(statement, nullptr);
+    const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
+    ASSERT_NE(update_stmt, nullptr);
+    EXPECT_EQ(update_stmt->new_model_args["max_async_calls"], 11);
+}
+
+TEST(ModelParserTest, ParseStringMaxAsyncCallsUpdateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"max_async_calls\": \"11\", \"model_parameters\": {\"param2\": \"value2\"}})", statement), std::runtime_error);
 }
 
 /**************************************************
