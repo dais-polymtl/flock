@@ -8,7 +8,6 @@ file(COPY unit_test.db DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 add_executable(${PROJECT_NAME}_tests test_main.cpp ${TEST_SOURCES})
 
 # GNU ld (Linux + MinGW) needs --start-group/--end-group for circular deps
-# jemalloc is only built on Linux
 target_link_libraries(${PROJECT_NAME}_tests PRIVATE
     GTest::gtest
     GTest::gmock
@@ -18,7 +17,6 @@ target_link_libraries(${PROJECT_NAME}_tests PRIVATE
     core_functions_extension
     json_extension
     parquet_extension
-    $<$<PLATFORM_ID:Linux>:jemalloc_extension>
     duckdb_static
     $<$<CXX_COMPILER_ID:GNU>:-Wl,--end-group>)
 
