@@ -106,11 +106,12 @@ TEST_F(LLMRerankTest, DefaultBatchSizeSplitsLargeInput) {
                 .Times(1);
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
                 .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(DEFAULT_BATCH_SIZE)}));
-        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 9, ::testing::_, ::testing::_))
+
+        const int second_batch_size = (DEFAULT_BATCH_SIZE / 2) + 1;
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, second_batch_size, ::testing::_, ::testing::_))
                 .Times(1);
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-                .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(9)}));
-    }
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(second_batch_size)}));
 
     auto con = GetConnection();
 
