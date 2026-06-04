@@ -6,6 +6,7 @@
 #include "session.hpp"
 #include <cstdio>
 #include <curl/curl.h>
+#include <algorithm>
 #include <map>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -15,8 +16,8 @@ namespace flock {
 
 class BaseModelProviderHandler : public IModelProviderHandler {
 public:
-    explicit BaseModelProviderHandler(bool throw_exception)
-        : _throw_exception(throw_exception) {}
+    explicit BaseModelProviderHandler(int max_async_calls, bool throw_exception)
+        : _throw_exception(throw_exception), _max_async_calls(max_async_calls) {}
     virtual ~BaseModelProviderHandler() = default;
 
     void AddRequest(const nlohmann::json& json, RequestType type = RequestType::Completion) override {
@@ -105,9 +106,6 @@ protected:
             std::string temp_file_path;
             bool is_temp_file;
         };
-        std::vector<CurlRequestData> requests(jsons.size());
-        CURLM* multi_handle = curl_multi_init();
-
         // Determine URL based on request type
         std::string url;
         bool is_transcription = (request_type == RequestType::Transcription);
@@ -120,159 +118,164 @@ protected:
             url = getEmbedUrl();
         }
 
-        // Prepare all requests
-        for (size_t i = 0; i < jsons.size(); ++i) {
-            requests[i].easy = curl_easy_init();
-            curl_easy_setopt(requests[i].easy, CURLOPT_URL, url.c_str());
-
-            if (is_transcription) {
-                // Handle transcription requests (multipart/form-data)
-                const auto& req = jsons[i];
-                if (!req.contains("file_path") || req["file_path"].is_null()) {
-                    trigger_error("Missing or null file_path in transcription request");
-                }
-                if (!req.contains("model") || req["model"].is_null()) {
-                    trigger_error("Missing or null model in transcription request");
-                }
-                auto file_path = req["file_path"].get<std::string>();
-                auto model = req["model"].get<std::string>();
-                auto prompt = req.contains("prompt") && !req["prompt"].is_null() ? req["prompt"].get<std::string>() : "";
-                requests[i].is_temp_file = req.contains("is_temp_file") ? req["is_temp_file"].get<bool>() : false;
-                if (requests[i].is_temp_file) {
-                    requests[i].temp_file_path = file_path;
-                }
-
-                // Set up multipart form data
-                requests[i].mime_form = curl_mime_init(requests[i].easy);
-                curl_mimepart* field = curl_mime_addpart(requests[i].mime_form);
-                curl_mime_name(field, "file");
-                curl_mime_filedata(field, file_path.c_str());
-
-                field = curl_mime_addpart(requests[i].mime_form);
-                curl_mime_name(field, "model");
-                curl_mime_data(field, model.c_str(), CURL_ZERO_TERMINATED);
-
-                field = curl_mime_addpart(requests[i].mime_form);
-                curl_mime_name(field, "response_format");
-                curl_mime_data(field, "json", CURL_ZERO_TERMINATED);
-
-                if (!prompt.empty()) {
-                    field = curl_mime_addpart(requests[i].mime_form);
-                    curl_mime_name(field, "prompt");
-                    curl_mime_data(field, prompt.c_str(), CURL_ZERO_TERMINATED);
-                }
-
-                curl_easy_setopt(requests[i].easy, CURLOPT_MIMEPOST, requests[i].mime_form);
-
-                // Set headers
-                struct curl_slist* headers = nullptr;
-                headers = curl_slist_append(headers, "Expect:");
-                for (const auto& h: getExtraHeaders()) {
-                    headers = curl_slist_append(headers, h.c_str());
-                }
-                curl_easy_setopt(requests[i].easy, CURLOPT_HTTPHEADER, headers);
-            } else {
-                // Handle JSON requests (completions/embeddings)
-                requests[i].payload = jsons[i].dump();
-                struct curl_slist* headers = nullptr;
-                headers = curl_slist_append(headers, "Content-Type: application/json");
-                for (const auto& h: getExtraHeaders()) {
-                    headers = curl_slist_append(headers, h.c_str());
-                }
-                curl_easy_setopt(requests[i].easy, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(requests[i].easy, CURLOPT_POST, 1L);
-                curl_easy_setopt(requests[i].easy, CURLOPT_POSTFIELDS, requests[i].payload.c_str());
-            }
-
-            // Set response callback
-            curl_easy_setopt(
-                    requests[i].easy, CURLOPT_WRITEFUNCTION, +[](char* ptr, size_t size, size_t nmemb, void* userdata) -> size_t {
-                std::string* resp = static_cast<std::string*>(userdata);
-                resp->append(ptr, size * nmemb);
-                return size * nmemb; });
-            curl_easy_setopt(requests[i].easy, CURLOPT_WRITEDATA, &requests[i].response);
-
-            curl_multi_add_handle(multi_handle, requests[i].easy);
-        }
-
-        auto api_start = std::chrono::high_resolution_clock::now();
-
-        int still_running = 0;
-        curl_multi_perform(multi_handle, &still_running);
-        while (still_running) {
-            int numfds;
-            curl_multi_wait(multi_handle, NULL, 0, 1000, &numfds);
-            curl_multi_perform(multi_handle, &still_running);
-        }
-
-        auto api_end = std::chrono::high_resolution_clock::now();
-        double api_duration_ms = std::chrono::duration<double, std::milli>(api_end - api_start).count();
-
+        std::vector<nlohmann::json> results(jsons.size());
         int64_t batch_input_tokens = 0;
         int64_t batch_output_tokens = 0;
+        double total_api_duration_ms = 0.0;
 
-        std::vector<nlohmann::json> results(jsons.size());
-        for (size_t i = 0; i < requests.size(); ++i) {
-            // Clean up temp files for transcriptions
-            if (is_transcription && requests[i].is_temp_file && !requests[i].temp_file_path.empty()) {
-                std::remove(requests[i].temp_file_path.c_str());
-            }
+        const size_t max_batch_size = std::max<size_t>(1, static_cast<size_t>(_max_async_calls));
+        for (size_t batch_start = 0; batch_start < jsons.size(); batch_start += max_batch_size) {
+            const size_t batch_end = std::min(batch_start + max_batch_size, jsons.size());
+            const size_t chunk_size = batch_end - batch_start;
 
-            long http_code = 0;
-            curl_easy_getinfo(requests[i].easy, CURLINFO_RESPONSE_CODE, &http_code);
+            std::vector<CurlRequestData> requests(chunk_size);
+            CURLM* multi_handle = curl_multi_init();
 
-            if (requests[i].response.empty()) {
-                trigger_error("Empty response from provider (HTTP " + std::to_string(http_code) + ", URL: " + url + ")");
-            } else if (isJson(requests[i].response)) {
-                try {
-                    nlohmann::json parsed = nlohmann::json::parse(requests[i].response);
-                    checkResponse(parsed, request_type);
+            // Prepare this chunk requests
+            for (size_t i = 0; i < chunk_size; ++i) {
+                const size_t json_idx = batch_start + i;
+                requests[i].easy = curl_easy_init();
+                curl_easy_setopt(requests[i].easy, CURLOPT_URL, url.c_str());
 
-                    // Extract token usage for completions/embeddings
-                    if (!is_transcription) {
-                        auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
-                        batch_input_tokens += input_tokens;
-                        batch_output_tokens += output_tokens;
+                if (is_transcription) {
+                    const auto& req = jsons[json_idx];
+                    if (!req.contains("file_path") || req["file_path"].is_null()) {
+                        trigger_error("Missing or null file_path in transcription request");
+                    }
+                    if (!req.contains("model") || req["model"].is_null()) {
+                        trigger_error("Missing or null model in transcription request");
+                    }
+                    auto file_path = req["file_path"].get<std::string>();
+                    auto model = req["model"].get<std::string>();
+                    auto prompt = req.contains("prompt") && !req["prompt"].is_null() ? req["prompt"].get<std::string>() : "";
+                    requests[i].is_temp_file = req.contains("is_temp_file") ? req["is_temp_file"].get<bool>() : false;
+                    if (requests[i].is_temp_file) {
+                        requests[i].temp_file_path = file_path;
                     }
 
-                    // Let provider extract output based on request type
+                    requests[i].mime_form = curl_mime_init(requests[i].easy);
+                    curl_mimepart* field = curl_mime_addpart(requests[i].mime_form);
+                    curl_mime_name(field, "file");
+                    curl_mime_filedata(field, file_path.c_str());
+
+                    field = curl_mime_addpart(requests[i].mime_form);
+                    curl_mime_name(field, "model");
+                    curl_mime_data(field, model.c_str(), CURL_ZERO_TERMINATED);
+
+                    field = curl_mime_addpart(requests[i].mime_form);
+                    curl_mime_name(field, "response_format");
+                    curl_mime_data(field, "json", CURL_ZERO_TERMINATED);
+
+                    if (!prompt.empty()) {
+                        field = curl_mime_addpart(requests[i].mime_form);
+                        curl_mime_name(field, "prompt");
+                        curl_mime_data(field, prompt.c_str(), CURL_ZERO_TERMINATED);
+                    }
+
+                    curl_easy_setopt(requests[i].easy, CURLOPT_MIMEPOST, requests[i].mime_form);
+
+                    struct curl_slist* headers = nullptr;
+                    headers = curl_slist_append(headers, "Expect:");
+                    for (const auto& h: getExtraHeaders()) {
+                        headers = curl_slist_append(headers, h.c_str());
+                    }
+                    curl_easy_setopt(requests[i].easy, CURLOPT_HTTPHEADER, headers);
+                } else {
+                    requests[i].payload = jsons[json_idx].dump();
+                    struct curl_slist* headers = nullptr;
+                    headers = curl_slist_append(headers, "Content-Type: application/json");
+                    for (const auto& h: getExtraHeaders()) {
+                        headers = curl_slist_append(headers, h.c_str());
+                    }
+                    curl_easy_setopt(requests[i].easy, CURLOPT_HTTPHEADER, headers);
+                    curl_easy_setopt(requests[i].easy, CURLOPT_POST, 1L);
+                    curl_easy_setopt(requests[i].easy, CURLOPT_POSTFIELDS, requests[i].payload.c_str());
+                }
+
+                curl_easy_setopt(
+                        requests[i].easy, CURLOPT_WRITEFUNCTION, +[](char* ptr, size_t size, size_t nmemb, void* userdata) -> size_t {
+                    std::string* resp = static_cast<std::string*>(userdata);
+                    resp->append(ptr, size * nmemb);
+                    return size * nmemb;
+                });
+                curl_easy_setopt(requests[i].easy, CURLOPT_WRITEDATA, &requests[i].response);
+
+                curl_multi_add_handle(multi_handle, requests[i].easy);
+            }
+
+            auto api_start = std::chrono::high_resolution_clock::now();
+            int still_running = 0;
+            curl_multi_perform(multi_handle, &still_running);
+            while (still_running) {
+                int numfds;
+                curl_multi_wait(multi_handle, NULL, 0, 1000, &numfds);
+                curl_multi_perform(multi_handle, &still_running);
+            }
+            auto api_end = std::chrono::high_resolution_clock::now();
+            total_api_duration_ms +=
+                    std::chrono::duration<double, std::milli>(api_end - api_start).count();
+
+            for (size_t i = 0; i < requests.size(); ++i) {
+                const size_t result_idx = batch_start + i;
+
+                if (is_transcription && requests[i].is_temp_file && !requests[i].temp_file_path.empty()) {
+                    std::remove(requests[i].temp_file_path.c_str());
+                }
+
+                long http_code = 0;
+                curl_easy_getinfo(requests[i].easy, CURLINFO_RESPONSE_CODE, &http_code);
+
+                if (requests[i].response.empty()) {
+                    trigger_error("Empty response from provider (HTTP " + std::to_string(http_code) + ", URL: " + url + ")");
+                } else if (isJson(requests[i].response)) {
                     try {
-                        results[i] = ExtractOutput(parsed, request_type);
+                        nlohmann::json parsed = nlohmann::json::parse(requests[i].response);
+                        checkResponse(parsed, request_type);
+
+                        if (!is_transcription) {
+                            auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
+                            batch_input_tokens += input_tokens;
+                            batch_output_tokens += output_tokens;
+                        }
+
+                        try {
+                            results[result_idx] = ExtractOutput(parsed, request_type);
+                        } catch (const std::exception& e) {
+                            std::string msg = e.what();
+                            if (msg.rfind("[ModelProvider]", 0) == 0) {
+                                throw;
+                            }
+                            trigger_error(std::string("Output extraction error: ") + msg);
+                        }
                     } catch (const std::exception& e) {
                         std::string msg = e.what();
                         if (msg.rfind("[ModelProvider]", 0) == 0) {
                             throw;
                         }
-                        trigger_error(std::string("Output extraction error: ") + msg);
+                        trigger_error(std::string("Response processing error: ") + msg);
                     }
-                } catch (const std::exception& e) {
-                    std::string msg = e.what();
-                    if (msg.rfind("[ModelProvider]", 0) == 0) {
-                        throw;
-                    }
-                    trigger_error(std::string("Response processing error: ") + msg);
+                } else {
+                    trigger_error("Invalid JSON response (HTTP " + std::to_string(http_code) + ", URL: " + url + "): " + requests[i].response);
                 }
-            } else {
-                trigger_error("Invalid JSON response (HTTP " + std::to_string(http_code) + ", URL: " + url + "): " + requests[i].response);
+
+                if (is_transcription && requests[i].mime_form) {
+                    curl_mime_free(requests[i].mime_form);
+                }
+                curl_multi_remove_handle(multi_handle, requests[i].easy);
+                curl_easy_cleanup(requests[i].easy);
             }
 
-            // Clean up mime form for transcriptions
-            if (is_transcription && requests[i].mime_form) {
-                curl_mime_free(requests[i].mime_form);
-            }
-            curl_multi_remove_handle(multi_handle, requests[i].easy);
-            curl_easy_cleanup(requests[i].easy);
+            curl_multi_cleanup(multi_handle);
+        }
+
+        for (size_t i = 0; i < jsons.size(); ++i) {
+            MetricsManager::IncrementApiCalls();
         }
 
         if (!is_transcription) {
             MetricsManager::UpdateTokens(batch_input_tokens, batch_output_tokens);
         }
-        MetricsManager::AddApiDuration(api_duration_ms);
-        for (size_t i = 0; i < jsons.size(); ++i) {
-            MetricsManager::IncrementApiCalls();
-        }
-
-        curl_multi_cleanup(multi_handle);
+        MetricsManager::AddApiDuration(total_api_duration_ms);
         return results;
 #endif
     }
@@ -282,6 +285,7 @@ protected:
 
 protected:
     bool _throw_exception;
+    int _max_async_calls;
     std::vector<nlohmann::json> _request_batch;
     std::vector<RequestType> _request_types;
 

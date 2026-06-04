@@ -139,6 +139,28 @@ TEST_F(LLMLastTest, GroupByWithSingleTuplePerGroup) {
     }
 }
 
+TEST_F(LLMLastTest, Operation_ThreeArguments_OverridesMaxAsyncCalls) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(GetExpectedJsonResponse()));
+
+    auto con = GetConnection();
+
+    const auto results = con.Query(
+            "SELECT llm_last("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Select the last product', 'context_columns': [{'data': description}]}, "
+            "{'max_async_calls': 4}) AS last_product FROM VALUES "
+            "('High-performance running shoes with advanced cushioning'), "
+            "('Wireless noise-cancelling headphones for immersive audio'), "
+            "('Smart fitness tracker with heart rate monitoring') AS products(description);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), GetExpectedResponse());
+}
+
 // Test argument validation
 TEST_F(LLMLastTest, ValidateArguments) {
     TestValidateArguments();

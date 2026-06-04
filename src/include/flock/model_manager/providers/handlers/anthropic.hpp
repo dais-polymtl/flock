@@ -13,8 +13,8 @@ namespace flock {
 
 class AnthropicModelManager : public BaseModelProviderHandler {
 public:
-    AnthropicModelManager(std::string api_key, std::string api_version, bool throw_exception)
-        : BaseModelProviderHandler(throw_exception),
+    AnthropicModelManager(std::string api_key, std::string api_version, int max_async_calls, bool throw_exception)
+        : BaseModelProviderHandler(max_async_calls, throw_exception),
           _api_key(std::move(api_key)),
           _api_version(std::move(api_version)),
           _session("Anthropic", throw_exception) {

@@ -162,6 +162,28 @@ TEST_F(LLMReduceTest, GroupByWithSingleTuplePerGroup) {
     ASSERT_EQ(results->GetValue(1, 2).GetValue<std::string>(), GetExpectedResponse());
 }
 
+TEST_F(LLMReduceTest, Operation_ThreeArguments_OverridesMaxAsyncCalls) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
+
+    auto con = GetConnection();
+
+    const auto results = con.Query(
+            "SELECT llm_reduce("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Summarize the following product descriptions', 'context_columns': [{'data': description}]}, "
+            "{'max_async_calls': 4}) AS product_summary FROM VALUES "
+            "('High-performance running shoes with advanced cushioning'), "
+            "('Wireless noise-cancelling headphones for immersive audio'), "
+            "('Smart fitness tracker with heart rate monitoring') AS products(description);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), GetExpectedResponse());
+}
+
 // Test argument validation
 TEST_F(LLMReduceTest, ValidateArguments) {
     TestValidateArguments();

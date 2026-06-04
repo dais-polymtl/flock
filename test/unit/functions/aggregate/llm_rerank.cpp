@@ -190,6 +190,32 @@ TEST_F(LLMRerankTest, GroupByWithSingleTuplePerGroup) {
     }
 }
 
+TEST_F(LLMRerankTest, Operation_ThreeArguments_OverridesMaxAsyncCalls) {
+    nlohmann::json response_3_items = nlohmann::json{{"items", {2, 1, 0}}};
+
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{response_3_items}));
+
+    auto con = GetConnection();
+    const auto results = con.Query(
+            "SELECT llm_rerank("
+            "{'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Rank these products', 'context_columns': [{'data': description}]}, "
+            "{'max_async_calls': 4}) AS reranked_products FROM VALUES "
+            "('High-performance running shoes with advanced cushioning'), "
+            "('Professional business shoes'), "
+            "('Casual sneakers for everyday wear') AS products(description);");
+
+    ASSERT_FALSE(results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    EXPECT_NO_THROW({
+        nlohmann::json parsed = nlohmann::json::parse(results->GetValue(0, 0).GetValue<std::string>());
+        EXPECT_EQ(parsed[0]["data"].size(), 3);
+    });
+}
+
 // Test argument validation
 TEST_F(LLMRerankTest, ValidateArguments) {
     TestValidateArguments();

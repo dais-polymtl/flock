@@ -10,7 +10,8 @@ public:
     AzureProvider(const ModelDetails& model_details) : IProvider(model_details) {
         model_handler_ =
                 std::make_unique<AzureModelManager>(model_details_.secret["api_key"], model_details_.secret["resource_name"],
-                                                    model_details_.model, model_details_.secret["api_version"], true);
+                                                    model_details_.model, model_details_.secret["api_version"],
+                                                    model_details_.max_async_calls, true);
     }
 
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) override;

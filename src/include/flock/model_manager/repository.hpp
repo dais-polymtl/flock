@@ -9,6 +9,7 @@
 namespace flock {
 
 inline constexpr int DEFAULT_BATCH_SIZE = 16;
+inline constexpr int DEFAULT_MAX_ASYNC_CALLS = 20;
 
 struct ModelDetails {
     std::string provider_name;
@@ -17,6 +18,7 @@ struct ModelDetails {
     std::unordered_map<std::string, std::string> secret;
     std::string tuple_format;
     int batch_size;
+    int max_async_calls;
     nlohmann::json model_parameters;
 };
 

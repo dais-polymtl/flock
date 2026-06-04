@@ -8,6 +8,10 @@ void ScalarRegistry::RegisterLlmFilter(duckdb::ExtensionLoader& loader) {
                                                    {duckdb::LogicalType::ANY, duckdb::LogicalType::ANY},
                                                    duckdb::LogicalType::VARCHAR, LlmFilter::Execute,
                                                    LlmFilter::Bind));
+    loader.RegisterFunction(duckdb::ScalarFunction(
+            "llm_filter",
+            {duckdb::LogicalType::ANY, duckdb::LogicalType::ANY, duckdb::LogicalType::ANY},
+            duckdb::LogicalType::VARCHAR, LlmFilter::Execute, LlmFilter::Bind));
 }
 
 }// namespace flock

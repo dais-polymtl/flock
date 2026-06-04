@@ -165,6 +165,24 @@ TEST_F(LLMFilterTest, Operation_DefaultBatchSizeSplitsLargeInput) {
     EXPECT_EQ(results->GetValue(0, DEFAULT_BATCH_SIZE).GetValue<std::string>(), "false");
 }
 
+TEST_F(LLMFilterTest, Operation_ThreeArguments_OverridesMaxAsyncCalls) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{nlohmann::json{{"items", {true}}}}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() +
+            "({'model_name': 'gpt-4o'}, "
+            "{'prompt': 'Is this content relevant?', 'context_columns': [{'data': content}]}, "
+            "{'max_async_calls': 4}) AS result FROM unnest(['Content item']) as tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
+}
+
 // Test llm_filter with audio transcription
 TEST_F(LLMFilterTest, LLMFilterWithAudioTranscription) {
     const nlohmann::json expected_transcription = "{\"text\": \"This audio contains positive sentiment\"}";

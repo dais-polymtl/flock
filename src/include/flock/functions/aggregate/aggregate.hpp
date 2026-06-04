@@ -57,6 +57,7 @@ private:
 
     static void InitializeModelJson(duckdb::ClientContext& context,
                                     const duckdb::unique_ptr<duckdb::Expression>& model_expr,
+                                    const duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments,
                                     LlmFunctionBindData& bind_data);
 
     static void InitializePrompt(duckdb::ClientContext& context,

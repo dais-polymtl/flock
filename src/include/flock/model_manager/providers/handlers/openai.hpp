@@ -8,8 +8,8 @@ namespace flock {
 
 class OpenAIModelManager : public BaseModelProviderHandler {
 public:
-    OpenAIModelManager(std::string token, std::string api_base_url, bool throw_exception)
-        : BaseModelProviderHandler(throw_exception), _token(token), _session("OpenAI", throw_exception) {
+    OpenAIModelManager(std::string token, std::string api_base_url, int max_async_calls, bool throw_exception)
+        : BaseModelProviderHandler(max_async_calls, throw_exception), _token(std::move(token)), _session("OpenAI", throw_exception) {
         _session.setToken(token, "");
         if (api_base_url.empty()) {
             _api_base_url = "https://api.openai.com/v1/";

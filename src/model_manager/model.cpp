@@ -39,6 +39,14 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         model_details_.secret = model_json["secret"].get<std::unordered_map<std::string, std::string>>();
         model_details_.tuple_format = model_json.at("tuple_format").get<std::string>();
         model_details_.batch_size = model_json.at("batch_size").get<int>();
+        if (model_json.contains("max_async_calls")) {
+            model_details_.max_async_calls = model_json.at("max_async_calls").get<int>();
+        } else {
+            model_details_.max_async_calls = DEFAULT_MAX_ASYNC_CALLS;
+        }
+        if (model_details_.max_async_calls <= 0) {
+            throw std::invalid_argument("`max_async_calls` must be greater than zero");
+        }
 
         if (model_json.contains("model_parameters")) {
             auto& mp = model_json.at("model_parameters");
@@ -80,6 +88,17 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
             model_details_.tuple_format = db_model_args.at("tuple_format").get<std::string>();
         } else {
             model_details_.tuple_format = "XML";
+        }
+
+        if (model_json.contains("max_async_calls")) {
+            model_details_.max_async_calls = model_json.at("max_async_calls").get<int>();
+        } else if (db_model_args.contains("max_async_calls")) {
+            model_details_.max_async_calls = db_model_args.at("max_async_calls").get<int>();
+        } else {
+            model_details_.max_async_calls = DEFAULT_MAX_ASYNC_CALLS;
+        }
+        if (model_details_.max_async_calls <= 0) {
+            throw std::invalid_argument("`max_async_calls` must be greater than zero");
         }
 
         if (model_json.contains("batch_size")) {
@@ -167,6 +186,7 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     if (!model_details_.model_parameters.empty()) {
         result["model_parameters"] = model_details_.model_parameters;
     }
+    result["max_async_calls"] = model_details_.max_async_calls;
     return result;
 }
 

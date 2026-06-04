@@ -8,9 +8,9 @@ namespace flock {
 void AggregateFunctionBase::ValidateArgumentCount(
         const duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments,
         const std::string& function_name) {
-    if (arguments.size() != 2) {
+    if (arguments.size() < 2 || arguments.size() > 3) {
         throw duckdb::BinderException(
-                function_name + " requires 2 arguments: (1) model, (2) prompt with context_columns. Got " +
+                function_name + " requires 2 or 3 arguments: (1) model, (2) prompt with context_columns, (3) optional options struct. Got " +
                 std::to_string(arguments.size()));
     }
 }
@@ -57,6 +57,7 @@ void AggregateFunctionBase::ValidatePromptStructFields(const PromptStructInfo& i
 void AggregateFunctionBase::InitializeModelJson(
         duckdb::ClientContext& context,
         const duckdb::unique_ptr<duckdb::Expression>& model_expr,
+        const duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments,
         LlmFunctionBindData& bind_data) {
     if (!model_expr->IsFoldable()) {
         return;
@@ -65,6 +66,14 @@ void AggregateFunctionBase::InitializeModelJson(
     auto model_value = duckdb::ExpressionExecutor::EvaluateScalar(context, *model_expr);
     auto user_model_json = CastValueToJson(model_value);
     bind_data.model_json = Model::ResolveModelDetailsToJson(user_model_json);
+
+    if (arguments.size() > 2 && arguments[2]->IsFoldable()) {
+        auto override_value = duckdb::ExpressionExecutor::EvaluateScalar(context, *arguments[2]);
+        auto override_json = CastValueToJson(override_value);
+        for (auto& item : override_json.items()) {
+            bind_data.model_json[item.key()] = item.value();
+        }
+    }
 }
 
 void AggregateFunctionBase::InitializePrompt(
@@ -117,7 +126,7 @@ duckdb::unique_ptr<LlmFunctionBindData> AggregateFunctionBase::ValidateAndInitia
 
     auto bind_data = duckdb::make_uniq<LlmFunctionBindData>();
 
-    InitializeModelJson(context, arguments[0], *bind_data);
+    InitializeModelJson(context, arguments[0], arguments, *bind_data);
     InitializePrompt(context, arguments[1], *bind_data);
 
     return bind_data;

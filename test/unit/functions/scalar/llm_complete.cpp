@@ -122,6 +122,24 @@ TEST_F(LLMCompleteTest, Operation_ThreeArguments_BatchProcessing) {
     EXPECT_EQ(result_value, responses[0]);
 }
 
+TEST_F(LLMCompleteTest, Operation_ThreeArguments_OverridesMaxAsyncCalls) {
+    const nlohmann::json expected_response = {{"items", {"response 1", "response 2"}}};
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() +
+            "({'model_name': 'gpt-4o'}, " +
+            "{'prompt': '" + std::string(TEST_PROMPT) + "', 'context_columns': [{'data': product}]}, " +
+            "{'max_async_calls': 4}) AS result FROM unnest(['Product 1', 'Product 2']) as tbl(product);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 2);
+}
+
 TEST_F(LLMCompleteTest, Operation_InvalidArguments_ThrowsException) {
     // Test with invalid SQL syntax - missing required arguments
     auto con = Config::GetConnection();

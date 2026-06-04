@@ -90,6 +90,18 @@ TEST(ModelParserTest, ParseCreateGlobalModel) {
     EXPECT_EQ(create_stmt->catalog, "flock_storage.");
 }
 
+TEST(ModelParserTest, ParseCreateModelWithMaxAsyncCalls) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 16, \"max_async_calls\": 7, \"model_parameters\": {\"param1\": \"value1\"}})", statement));
+    ASSERT_NE(statement, nullptr);
+    auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
+    ASSERT_NE(create_stmt, nullptr);
+    EXPECT_EQ(create_stmt->model_args["batch_size"], 16);
+    EXPECT_EQ(create_stmt->model_args["max_async_calls"], 7);
+    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+}
+
 TEST(ModelParserTest, ParseCreateGlobalModelWithSemicolon) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
@@ -246,6 +258,18 @@ TEST(ModelParserTest, ParseStringBatchSizeCreateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
     EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": \"32\", \"model_parameters\": {\"param1\": \"value1\"}})", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseNonIntegerMaxAsyncCallsCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 16, \"max_async_calls\": \"7\"})", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseCreateModelWithInvalidArgsMaxAsyncCalls) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"max_async_calls\": 7.5})", statement), std::runtime_error);
 }
 
 TEST(ModelParserTest, ParseStringBatchSizeCreateModelWithComment) {

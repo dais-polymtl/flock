@@ -8,7 +8,8 @@ namespace flock {
 class OllamaProvider : public IProvider {
 public:
     OllamaProvider(const ModelDetails& model_details) : IProvider(model_details) {
-        model_handler_ = std::make_unique<OllamaModelManager>(model_details_.secret["api_url"], true);
+        model_handler_ = std::make_unique<OllamaModelManager>(
+                model_details_.secret["api_url"], model_details_.max_async_calls, true);
     }
 
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) override;

@@ -190,4 +190,25 @@ TEST_F(LLMEmbeddingTest, Operation_DefaultBatchSizeSplitsLargeInput) {
     ASSERT_EQ(results->GetValue(0, DEFAULT_BATCH_SIZE).type().id(), duckdb::LogicalTypeId::LIST);
 }
 
+TEST_F(LLMEmbeddingTest, Operation_ThreeArguments_OverridesMaxAsyncCalls) {
+    nlohmann::json expected_response = nlohmann::json::array({{0.1, 0.2, 0.3, 0.4, 0.5}});
+
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() +
+            "({'model_name': 'text-embedding-3-small'}, "
+            "{'context_columns': [{'data': content}]}, "
+            "{'max_async_calls': 4}) AS embedding FROM unnest(['Document content']) as tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    auto result_value = results->GetValue(0, 0);
+    ASSERT_EQ(result_value.type().id(), duckdb::LogicalTypeId::LIST);
+}
+
 }// namespace flock

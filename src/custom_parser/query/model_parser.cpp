@@ -8,6 +8,35 @@
 
 namespace flock {
 
+namespace {
+
+void ParseModelArgs(const std::string& raw_args, nlohmann::json& model_args) {
+    try {
+        nlohmann::json input_args = nlohmann::json::parse(raw_args);
+        // Only allow tuple_format, batch_size, model_parameters, and max_async_calls
+        for (auto it = input_args.begin(); it != input_args.end(); ++it) {
+            const std::string& key = it.key();
+            if (key == "tuple_format" || key == "batch_size" || key == "model_parameters" || key == "max_async_calls") {
+                const auto& param_val = it.value();
+                if (key == "batch_size" || key == "max_async_calls") {
+                    if (!param_val.is_number_integer()) {
+                        throw std::runtime_error("Expected '" + key + "' to be an integer.");
+                    }
+                    model_args[key] = param_val.get<int>();
+                } else {
+                    model_args[key] = it.value();
+                }
+            } else {
+                throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, max_async_calls, and model_parameters are allowed.");
+            }
+        }
+    } catch (const std::exception& e) {
+        throw std::runtime_error(std::string("Failed to parse model_args JSON: ") + e.what());
+    }
+}
+
+}
+
 void ModelParser::Parse(const std::string& query, std::unique_ptr<QueryStatement>& statement) {
     Tokenizer tokenizer(query);
     auto token = tokenizer.NextToken();
@@ -83,34 +112,13 @@ void ModelParser::ParseCreateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
     token = tokenizer.NextToken();
     nlohmann::json model_args = nlohmann::json::object();
     // The JSON argument is optional. If present, extract tuple_format, batch_size, and model_parameters (all optional).
-    if (token.type == TokenType::SYMBOL || token.value == ",") {
-        token = tokenizer.NextToken();
-        try {
-            nlohmann::json input_args = nlohmann::json::parse(token.value);
-            // Only allow tuple_format, batch_size, model_parameters
-            for (auto it = input_args.begin(); it != input_args.end(); ++it) {
-                const std::string& key = it.key();
-                if (key == "tuple_format" || key == "batch_size" || key == "model_parameters") {
-                    const auto& param_val = it.value();
-                    if (key == "batch_size") {
-                        if (!param_val.is_number_integer()) {
-                            throw std::runtime_error("Expected 'batch_size' to be an integer.");
-                        }
-                        model_args[key] = param_val.get<int>();
-                    } else {
-                        model_args[key] = it.value();
-                    }
-                } else {
-                    throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, and model_parameters are allowed.");
-                }
+        if (token.type == TokenType::SYMBOL || token.value == ",") {
+            token = tokenizer.NextToken();
+            ParseModelArgs(token.value, model_args);
+            token = tokenizer.NextToken();
+            if (token.type != TokenType::PARENTHESIS) {
+                throw std::runtime_error("Expected closing parenthesis ')' after model_args.");
             }
-        } catch (const std::exception& e) {
-            throw std::runtime_error(std::string("Failed to parse model_args JSON: ") + e.what());
-        }
-        token = tokenizer.NextToken();
-        if (token.type != TokenType::PARENTHESIS) {
-            throw std::runtime_error("Expected closing parenthesis ')' after model_args.");
-        }
     } else if (token.type == TokenType::PARENTHESIS && token.value == ")") {
     } else {
         throw std::runtime_error("Expected closing parenthesis ')' or JSON after provider_name.");
@@ -223,28 +231,7 @@ void ModelParser::ParseUpdateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
         nlohmann::json new_model_args = nlohmann::json::object();
         if (token.type == TokenType::SYMBOL || token.value == ",") {
             token = tokenizer.NextToken();
-            try {
-                nlohmann::json input_args = nlohmann::json::parse(token.value);
-                // Only allow tuple_format, batch_size, model_parameters
-                for (auto it = input_args.begin(); it != input_args.end(); ++it) {
-                    const std::string& key = it.key();
-                    if (key == "tuple_format" || key == "batch_size" || key == "model_parameters") {
-                        const auto& param_val = it.value();
-                        if (key == "batch_size") {
-                            if (!param_val.is_number_integer()) {
-                                throw std::runtime_error("Expected 'batch_size' to be an integer.");
-                            }
-                            new_model_args[key] = param_val.get<int>();
-                        } else {
-                            new_model_args[key] = it.value();
-                        }
-                    } else {
-                        throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, and model_parameters are allowed.");
-                    }
-                }
-            } catch (const std::exception& e) {
-                throw std::runtime_error(std::string("Failed to parse model_args JSON: ") + e.what());
-            }
+            ParseModelArgs(token.value, new_model_args);
             token = tokenizer.NextToken();
             if (token.type != TokenType::PARENTHESIS) {
                 throw std::runtime_error("Expected closing parenthesis ')' after model_args.");

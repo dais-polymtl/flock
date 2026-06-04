@@ -8,6 +8,10 @@ void ScalarRegistry::RegisterLlmComplete(duckdb::ExtensionLoader& loader) {
                                                    {duckdb::LogicalType::ANY, duckdb::LogicalType::ANY},
                                                    duckdb::LogicalType::JSON(), LlmComplete::Execute,
                                                    LlmComplete::Bind));
+    loader.RegisterFunction(duckdb::ScalarFunction(
+            "llm_complete",
+            {duckdb::LogicalType::ANY, duckdb::LogicalType::ANY, duckdb::LogicalType::ANY},
+            duckdb::LogicalType::JSON(), LlmComplete::Execute, LlmComplete::Bind));
 }
 
 }// namespace flock

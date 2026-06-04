@@ -142,4 +142,35 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.batch_size, 10);
 }
 
+TEST_F(ModelManagerTest, ModelInitializationUsesDefaultMaxAsyncCallsWhenUnset) {
+    json model_config = {
+            {"model_name", "gpt-4o"}};
+
+    EXPECT_NO_THROW({
+        Model model(model_config);
+        ModelDetails details = model.GetModelDetails();
+        EXPECT_EQ(details.model_name, "gpt-4o");
+        EXPECT_EQ(details.model, "gpt-4o");
+        EXPECT_EQ(details.provider_name, "openai");
+        EXPECT_EQ(details.max_async_calls, DEFAULT_MAX_ASYNC_CALLS);
+    });
+}
+
+TEST_F(ModelManagerTest, ModelInitializationWithCustomMaxAsyncCalls) {
+    json model_config = {
+            {"model_name", "gpt-4o"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 4},
+            {"max_async_calls", 7}};
+
+    EXPECT_NO_THROW({
+        Model model(model_config);
+        ModelDetails details = model.GetModelDetails();
+        EXPECT_EQ(details.batch_size, 4);
+        EXPECT_EQ(details.max_async_calls, 7);
+    });
+}
+
 }// namespace flock

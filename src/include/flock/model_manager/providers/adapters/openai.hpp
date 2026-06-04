@@ -13,7 +13,7 @@ public:
             base_url = it->second;
         }
         model_handler_ = std::make_unique<OpenAIModelManager>(
-                model_details_.secret["api_key"], base_url, true);
+                model_details_.secret["api_key"], base_url, model_details_.max_async_calls, true);
     }
 
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) override;
