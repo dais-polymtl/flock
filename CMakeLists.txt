@@ -17,15 +17,15 @@ add_subdirectory(src)
 
 # Find dependencies
 if(NOT EMSCRIPTEN)
-    find_package(CURL REQUIRED)
+  find_package(CURL REQUIRED)
 endif()
 find_package(nlohmann_json CONFIG REQUIRED)
 
 # Coverage instrumentation (must be before targets are built)
 if(CMAKE_BUILD_TYPE STREQUAL "Coverage")
-    message(STATUS "Enabling code coverage")
-    add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
-    add_link_options(-fprofile-instr-generate -fcoverage-mapping)
+  message(STATUS "Enabling code coverage")
+  add_compile_options(-fprofile-instr-generate -fcoverage-mapping)
+  add_link_options(-fprofile-instr-generate -fcoverage-mapping)
 endif()
 
 # Build the DuckDB static and loadable extensions
@@ -40,13 +40,13 @@ endif()
 
 # Link libraries for the static extension
 if(NOT EMSCRIPTEN)
-    target_link_libraries(${EXTENSION_NAME} CURL::libcurl)
+  target_link_libraries(${EXTENSION_NAME} CURL::libcurl)
 endif()
 target_link_libraries(${EXTENSION_NAME} nlohmann_json::nlohmann_json)
 
 # Link libraries for the loadable extension
 if(NOT EMSCRIPTEN)
-    target_link_libraries(${LOADABLE_EXTENSION_NAME} CURL::libcurl)
+  target_link_libraries(${LOADABLE_EXTENSION_NAME} CURL::libcurl)
 endif()
 target_link_libraries(${LOADABLE_EXTENSION_NAME} nlohmann_json::nlohmann_json)
 
@@ -58,7 +58,7 @@ install(
   ARCHIVE DESTINATION "${INSTALL_LIB_DIR}")
 
 if(NOT EMSCRIPTEN)
-    # Add the test directory if not on WASM
-    enable_testing()
-    add_subdirectory(test/unit)
+  # Add the test directory if not on WASM
+  enable_testing()
+  add_subdirectory(test/unit)
 endif()

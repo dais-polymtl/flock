@@ -5,6 +5,7 @@
 #include <string>
 
 // JavaScript XMLHttpRequest wrapper - works synchronously in web workers
+// clang-format off
 EM_JS(char*, wasm_http_request_impl, (const char* method, const char* url, const char* body, const char* headers_json), {
     try {
         var xhr = new XMLHttpRequest();
@@ -54,10 +55,11 @@ EM_JS(char*, wasm_http_request_impl, (const char* method, const char* url, const
         return stringOnWasmHeap;
     }
 });
+// clang-format on
 
 // C++ wrapper function
 extern "C" char* wasm_http_request(const char* method, const char* url, const char* body, const char* headers_json) {
     return wasm_http_request_impl(method, url, body, headers_json);
 }
 
-#endif  // __EMSCRIPTEN__
+#endif// __EMSCRIPTEN__
