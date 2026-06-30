@@ -1,0 +1,149 @@
+# Fork of duckdb/extension-ci-tools@v1.5.4 with vcpkg setup for tidy-check.
+# taken from: https://github.com/duckdb/extension-ci-tools/blob/a00c74e02aefbfa3fd31a4c74c4b6bc260af0de7/.github/workflows/_extension_code_quality.yml
+# Flock's CMake configure needs curl/nlohmann-json (and GTest for unit tests).
+name: CodeQuality
+on:
+  workflow_call:
+    inputs:
+      explicit_checks:
+        type: string
+        required: false
+      extension_name:
+        type: string
+        required: true
+      override_repository:
+        type: string
+        required: false
+      override_ref:
+        type: string
+        required: false
+      duckdb_version:
+        type: string
+        required: true
+      override_ci_tools_repository:
+        type: string
+        required: false
+        default: "duckdb/extension-ci-tools"
+      ci_tools_version:
+        type: string
+        required: true
+      extra_toolchains:
+        type: string
+        required: false
+      format_checks:
+        type: string
+        required: false
+        default: "format;tidy"
+    secrets:
+      GH_TOKEN:
+        required: false
+  repository_dispatch:
+  merge_group:
+  pull_request:
+    types: [opened, reopened]
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/**'
+
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+jobs:
+  format-check:
+    name: Format Check
+    if: contains(inputs.format_checks, 'format')
+    runs-on: ubuntu-22.04
+
+    env:
+      CC: gcc-10
+      CXX: g++-10
+      GEN: ninja
+
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout override repository
+        if: ${{inputs.override_repository != ''}}
+        with:
+          repository: ${{ inputs.override_repository }}
+          ref: ${{ inputs.override_ref }}
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - uses: actions/checkout@v4
+        name: Checkout current repository
+        if: ${{inputs.override_repository == ''}}
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - uses: actions/checkout@v4
+        name: Checkout Extension CI tools
+        with:
+          path: 'extension-ci-tools'
+          ref: ${{ inputs.ci_tools_version }}
+          repository: ${{ inputs.override_ci_tools_repository }}
+
+      - name: Install
+        shell: bash
+        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build clang-format-11 && sudo pip3 install cmake-format 'black==24.*' cxxheaderparser pcpp 'clang_format==11.0.1'
+
+      - name: List Installed Packages
+        shell: bash
+        run: pip3 freeze
+
+      - name: Format Check
+        shell: bash
+        run: |
+          clang-format --version
+          clang-format --dump-config
+          black --version
+          make format-check
+
+  tidy-check:
+    name: Tidy Check
+    if: contains(inputs.format_checks, 'tidy')
+    runs-on: ubuntu-24.04
+
+    env:
+      CC: gcc
+      CXX: g++
+      GEN: ninja
+      TIDY_THREADS: 4
+      TIDY_CHECKS: ${{ inputs.explicit_checks && inputs.explicit_checks || '' }}
+      VCPKG_TOOLCHAIN_PATH: ${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout override repository
+        if: ${{inputs.override_repository != ''}}
+        with:
+          repository: ${{ inputs.override_repository }}
+          ref: ${{ inputs.override_ref }}
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - uses: actions/checkout@v4
+        name: Checkout current repository
+        if: ${{inputs.override_repository == ''}}
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+
+      - uses: actions/checkout@v4
+        name: Checkout Extension CI tools
+        with:
+          path: 'extension-ci-tools'
+          ref: ${{ inputs.ci_tools_version }}
+          repository: ${{ inputs.override_ci_tools_repository }}
+
+      - name: Install
+        shell: bash
+        run: sudo apt-get update -y -qq && sudo apt-get install -y -qq ninja-build clang-tidy && sudo pip3 install pybind11[global] --break-system-packages
+
+      - name: Setup vcpkg
+        shell: bash
+        run: bash scripts/setup_vcpkg.sh
+
+      - name: Tidy Check
+        shell: bash
+        run: make tidy-check

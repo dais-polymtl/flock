@@ -179,9 +179,9 @@ TEST_F(LLMEmbeddingTest, Operation_DefaultBatchSizeSplitsLargeInput) {
     auto con = Config::GetConnection();
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
-                                        "{'model_name': 'text-embedding-3-small'}, "
-                                        "{'context_columns': [{'data': content}]}"
-                                        ") AS embedding FROM range(" +
+                                            "{'model_name': 'text-embedding-3-small'}, "
+                                            "{'context_columns': [{'data': content}]}"
+                                            ") AS embedding FROM range(" +
             std::to_string(input_count) + ") AS t(i), unnest(['Document content number ' || i::VARCHAR]) AS tbl(content);");
 
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();

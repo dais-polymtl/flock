@@ -31,9 +31,7 @@ def test_llm_rerank_basic_functionality(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-rerank-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -81,9 +79,7 @@ def test_llm_rerank_with_group_by(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-rerank-group_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -143,9 +139,7 @@ def test_llm_rerank_with_batch_processing(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-rerank-batch_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -196,9 +190,7 @@ def test_llm_rerank_with_model_parameters(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-rerank-params_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -246,9 +238,7 @@ def test_llm_rerank_multiple_criteria(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-rerank-multi_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -296,9 +286,7 @@ def test_llm_rerank_empty_table(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-rerank-empty_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -357,11 +345,7 @@ def test_llm_rerank_error_handling_invalid_model(integration_setup):
             """
     result = run_cli(duckdb_cli_path, db_path, query)
 
-    assert (
-        result.returncode != 0
-        or "error" in result.stderr.lower()
-        or "Error" in result.stdout
-    )
+    assert result.returncode != 0 or "error" in result.stderr.lower() or "Error" in result.stdout
 
 
 def test_llm_rerank_error_handling_empty_prompt(integration_setup, model_config):
@@ -370,9 +354,7 @@ def test_llm_rerank_error_handling_empty_prompt(integration_setup, model_config)
     model_name, provider = model_config
 
     test_model_name = f"test-rerank-empty-prompt_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -411,9 +393,7 @@ def test_llm_rerank_error_handling_missing_arguments(integration_setup, model_co
     model_name, provider = model_config
 
     test_model_name = f"test-rerank-missing-args_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Test with only 2 arguments (should fail since llm_rerank requires 3)
@@ -438,9 +418,7 @@ def test_llm_rerank_with_special_characters(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-rerank-unicode_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -484,9 +462,7 @@ def _test_llm_rerank_performance_large_dataset(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-rerank-perf_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -519,9 +495,7 @@ def _test_llm_rerank_performance_large_dataset(integration_setup, model_config):
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 4, (
-        f"Expected at least 4 lines (header + 3 categories), got {len(lines)}"
-    )
+    assert len(lines) >= 4, f"Expected at least 4 lines (header + 3 categories), got {len(lines)}"
     assert "category" in result.stdout.lower()
 
 
@@ -531,9 +505,7 @@ def test_llm_rerank_with_image_integration(integration_setup, model_config_image
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-rerank-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -549,9 +521,7 @@ def test_llm_rerank_with_image_integration(integration_setup, model_config_image
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    dress_url = (
-        "https://plus.unsplash.com/premium_photo-1687279093043-73bd1bf3f0bf?w=400"
-    )
+    dress_url = "https://plus.unsplash.com/premium_photo-1687279093043-73bd1bf3f0bf?w=400"
     coat_url = "https://images.unsplash.com/photo-1519944159858-806d435dc86b?w=400"
     blouse_url = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400"
 
@@ -606,9 +576,7 @@ def test_llm_rerank_image_with_group_by(integration_setup, model_config_image):
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-group-rerank_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -676,9 +644,7 @@ def test_llm_rerank_image_with_group_by(integration_setup, model_config_image):
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 4, (
-        f"Expected at least 4 lines (header + 3 room types), got {len(lines)}"
-    )
+    assert len(lines) >= 4, f"Expected at least 4 lines (header + 3 room types), got {len(lines)}"
     assert "ranked_room_designs" in result.stdout.lower()
 
 
@@ -688,9 +654,7 @@ def test_llm_rerank_image_batch_processing(integration_setup, model_config_image
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-batch-rerank_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -757,9 +721,7 @@ def test_llm_rerank_image_batch_processing(integration_setup, model_config_image
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 4, (
-        f"Expected at least 4 lines (header + 3 countries), got {len(lines)}"
-    )
+    assert len(lines) >= 4, f"Expected at least 4 lines (header + 3 countries), got {len(lines)}"
     assert "ranked_destinations" in result.stdout.lower()
 
 
@@ -780,7 +742,9 @@ def test_llm_rerank_with_audio_transcription(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     transcription_model_name = f"test-transcription-rerank_{model_name}"
-    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
+    create_transcription_model_query = (
+        f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
+    )
     run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
 
     # Get audio file path
@@ -845,9 +809,7 @@ def test_llm_rerank_with_audio_transcription(integration_setup, model_config):
 
     # Parse the JSON result which contains the reranked tuples
     result_json = json.loads(row["ranked_topics"])
-    assert isinstance(result_json, list), (
-        f"Expected list of tuples, got: {type(result_json)}"
-    )
+    assert isinstance(result_json, list), f"Expected list of tuples, got: {type(result_json)}"
     assert len(result_json) > 0, "Expected at least one tuple in result"
 
 
@@ -878,22 +840,28 @@ def test_llm_rerank_audio_ollama_error(integration_setup):
     """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+        """
         SELECT llm_rerank(
-            {'model_name': '""" + test_model_name + """'},
+            {'model_name': '"""
+        + test_model_name
+        + """'},
             {
                 'prompt': 'Rank these audio files',
                 'context_columns': [
                     {
                         'data': audio_url,
                         'type': 'audio',
-                        'transcription_model': '""" + transcription_model_name + """'
+                        'transcription_model': '"""
+        + transcription_model_name
+        + """'
                     }
                 ]
             }
         ) AS result
         FROM test_audio;
         """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode != 0

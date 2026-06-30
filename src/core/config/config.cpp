@@ -2,8 +2,8 @@
 #include "duckdb/common/file_system.hpp"
 #include "flock/secret_manager/secret_manager.hpp"
 #include <chrono>
-#include <thread>
 #include <fmt/format.h>
+#include <thread>
 
 namespace flock {
 
