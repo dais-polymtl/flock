@@ -41,7 +41,9 @@ def test_create_local_model_explicit(integration_setup):
 
 def test_create_model_with_args(integration_setup):
     duckdb_cli_path, db_path = integration_setup
-    create_query = "CREATE MODEL('model-with-args', 'gpt-4o', 'openai', '{\"batch_size\": 10, \"tuple_format\": \"csv\"}');"
+    create_query = (
+        "CREATE MODEL('model-with-args', 'gpt-4o', 'openai', '{\"batch_size\": 10, \"tuple_format\": \"csv\"}');"
+    )
     run_cli(duckdb_cli_path, db_path, create_query, with_secrets=False)
     get_query = "GET MODEL 'model-with-args';"
     result = run_cli(duckdb_cli_path, db_path, get_query, with_secrets=False)
@@ -274,9 +276,7 @@ def test_create_model_without_semicolon(integration_setup):
 
 def test_create_model_with_comment(integration_setup):
     duckdb_cli_path, db_path = integration_setup
-    create_query = (
-        "CREATE MODEL('comment-model', 'gpt-4o', 'openai'); -- This is a comment"
-    )
+    create_query = "CREATE MODEL('comment-model', 'gpt-4o', 'openai'); -- This is a comment"
     run_cli(duckdb_cli_path, db_path, create_query, with_secrets=False)
     get_query = "GET MODEL 'comment-model';"
     result = run_cli(duckdb_cli_path, db_path, get_query, with_secrets=False)

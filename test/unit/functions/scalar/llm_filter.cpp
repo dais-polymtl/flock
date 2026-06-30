@@ -154,9 +154,9 @@ TEST_F(LLMFilterTest, Operation_DefaultBatchSizeSplitsLargeInput) {
     auto con = Config::GetConnection();
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
-                                        "{'model_name': 'gpt-4o'}, "
-                                        "{'prompt': 'Is this content relevant?', 'context_columns': [{'data': content}]}"
-                                        ") AS result FROM range(" +
+                                            "{'model_name': 'gpt-4o'}, "
+                                            "{'prompt': 'Is this content relevant?', 'context_columns': [{'data': content}]}"
+                                            ") AS result FROM range(" +
             std::to_string(input_count) + ") AS t(i), unnest(['Content item ' || i::VARCHAR]) AS tbl(content);");
 
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();

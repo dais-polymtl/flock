@@ -5,8 +5,20 @@ PROJ_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 EXT_NAME = flock
 EXT_CONFIG = ${PROJ_DIR}extension_config.cmake
 
+# Use the local vcpkg toolchain when available so tidy-check can resolve curl/json deps.
+ifneq ($(wildcard ${PROJ_DIR}vcpkg/scripts/buildsystems/vcpkg.cmake),)
+VCPKG_TOOLCHAIN_PATH ?= ${PROJ_DIR}vcpkg/scripts/buildsystems/vcpkg.cmake
+endif
+
 # Include the Makefile from extension-ci-tools
 include extension-ci-tools/makefiles/duckdb_extension.Makefile
+
+# Upstream tidy-check omits VCPKG_MANIFEST_FLAGS, which flock needs for curl/nlohmann-json.
+tidy-check:
+	mkdir -p ./build/tidy
+	cmake $(GENERATOR) $(BUILD_FLAGS) $(EXT_DEBUG_FLAGS) $(VCPKG_MANIFEST_FLAGS) -DDISABLE_UNITY=1 -DCLANG_TIDY=1 -S $(DUCKDB_SRCDIR) -B build/tidy
+	cp duckdb/.clang-tidy build/tidy/.clang-tidy
+	cd build/tidy && python3 ../../duckdb/scripts/run-clang-tidy.py '$(PROJ_DIR)src/.*/' -header-filter '$(PROJ_DIR)src/.*/' -quiet ${TIDY_THREAD_PARAMETER} ${TIDY_BINARY_PARAMETER} ${TIDY_PERFORM_CHECKS}
 
 # Color codes
 RESET = \033[0m
