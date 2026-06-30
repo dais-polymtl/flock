@@ -8,6 +8,26 @@
 
 namespace flock {
 
+namespace {
+
+nlohmann::json ParseModelParametersField(const nlohmann::json& model_json) {
+    const auto& mp = model_json.at("model_parameters");
+    return mp.is_string() ? nlohmann::json::parse(mp.get<std::string>()) : mp;
+}
+
+std::string ResolveDefaultSecretName(const std::string& provider_name, const nlohmann::json& model_json) {
+    auto secret_name = "__default_" + provider_name;
+    if (provider_name == AZURE) {
+        secret_name += "_llm";
+    }
+    if (model_json.contains("secret_name")) {
+        secret_name = model_json.at("secret_name").get<std::string>();
+    }
+    return secret_name;
+}
+
+}// namespace
+
 const std::regex base64_regex(R"(^[A-Za-z0-9+/=]+$)");
 
 bool is_base64(const std::string& str) {
@@ -25,66 +45,73 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         throw std::invalid_argument("`model_name` is required in model settings");
     }
 
-    bool has_resolved_details = model_json.contains("model") &&
-                                model_json.contains("provider") &&
-                                model_json.contains("secret") &&
-                                model_json.contains("tuple_format") &&
-                                model_json.contains("batch_size");
+    std::string db_model;
+    std::string db_provider;
+    nlohmann::json db_model_args = nlohmann::json::object();
+    bool db_loaded = false;
 
-    nlohmann::json db_model_args;
+    const bool is_fully_resolved = model_json.contains("model") && model_json.contains("provider") &&
+                                   model_json.contains("secret") && model_json.contains("tuple_format") &&
+                                   model_json.contains("batch_size");
 
-    if (has_resolved_details) {
+    // Each fallback path can call this helper, but only the first missing field
+    // queries storage. Fully resolved model JSON skips DB defaults entirely.
+    auto ensure_db_loaded = [&]() {
+        if (!db_loaded) {
+            std::tie(db_model, db_provider, db_model_args) = GetQueriedModel(model_details_.model_name);
+            db_loaded = true;
+        }
+    };
+
+    if (model_json.contains("model")) {
         model_details_.model = model_json.at("model").get<std::string>();
-        model_details_.provider_name = model_json.at("provider").get<std::string>();
-        model_details_.secret = model_json["secret"].get<std::unordered_map<std::string, std::string>>();
-        model_details_.tuple_format = model_json.at("tuple_format").get<std::string>();
-        model_details_.batch_size = model_json.at("batch_size").get<int>();
-
-        if (model_json.contains("model_parameters")) {
-            auto& mp = model_json.at("model_parameters");
-            model_details_.model_parameters = mp.is_string() ? nlohmann::json::parse(mp.get<std::string>()) : mp;
-        } else {
-            model_details_.model_parameters = nlohmann::json::object();
-        }
     } else {
-        auto [db_model, db_provider, db_args] = GetQueriedModel(model_details_.model_name);
-        model_details_.model = model_json.contains("model") ? model_json.at("model").get<std::string>() : db_model;
-        model_details_.provider_name = model_json.contains("provider") ? model_json.at("provider").get<std::string>() : db_provider;
-        db_model_args = db_args;
+        ensure_db_loaded();
+        model_details_.model = db_model;
+    }
 
-        if (model_json.contains("secret")) {
-            model_details_.secret = model_json["secret"].get<std::unordered_map<std::string, std::string>>();
-        } else {
-            auto secret_name = "__default_" + model_details_.provider_name;
-            if (model_details_.provider_name == AZURE) {
-                secret_name += "_llm";
-            }
-            if (model_json.contains("secret_name")) {
-                secret_name = model_json["secret_name"].get<std::string>();
-            }
-            model_details_.secret = SecretManager::GetSecret(secret_name);
-        }
+    if (model_json.contains("provider")) {
+        model_details_.provider_name = model_json.at("provider").get<std::string>();
+    } else {
+        ensure_db_loaded();
+        model_details_.provider_name = db_provider;
+    }
 
-        if (model_json.contains("model_parameters")) {
-            auto& mp = model_json.at("model_parameters");
-            model_details_.model_parameters = mp.is_string() ? nlohmann::json::parse(mp.get<std::string>()) : mp;
-        } else if (db_model_args.contains("model_parameters")) {
+    if (model_json.contains("secret")) {
+        model_details_.secret = model_json["secret"].get<std::unordered_map<std::string, std::string>>();
+    } else {
+        model_details_.secret = SecretManager::GetSecret(ResolveDefaultSecretName(model_details_.provider_name, model_json));
+    }
+
+    if (model_json.contains("model_parameters")) {
+        model_details_.model_parameters = ParseModelParametersField(model_json);
+    } else if (is_fully_resolved) {
+        model_details_.model_parameters = nlohmann::json::object();
+    } else {
+        ensure_db_loaded();
+        if (db_model_args.contains("model_parameters")) {
             model_details_.model_parameters = db_model_args["model_parameters"];
         } else {
             model_details_.model_parameters = nlohmann::json::object();
         }
+    }
 
-        if (model_json.contains("tuple_format")) {
-            model_details_.tuple_format = model_json.at("tuple_format").get<std::string>();
-        } else if (db_model_args.contains("tuple_format")) {
+    if (model_json.contains("tuple_format")) {
+        model_details_.tuple_format = model_json.at("tuple_format").get<std::string>();
+    } else {
+        ensure_db_loaded();
+        if (db_model_args.contains("tuple_format")) {
             model_details_.tuple_format = db_model_args.at("tuple_format").get<std::string>();
         } else {
             model_details_.tuple_format = "XML";
         }
+    }
 
-        if (model_json.contains("batch_size")) {
-            model_details_.batch_size = model_json.at("batch_size").get<int>();
-        } else if (db_model_args.contains("batch_size")) {
+    if (model_json.contains("batch_size")) {
+        model_details_.batch_size = model_json.at("batch_size").get<int>();
+    } else {
+        ensure_db_loaded();
+        if (db_model_args.contains("batch_size")) {
             model_details_.batch_size = db_model_args.at("batch_size").get<int>();
         } else {
             model_details_.batch_size = DEFAULT_BATCH_SIZE;
