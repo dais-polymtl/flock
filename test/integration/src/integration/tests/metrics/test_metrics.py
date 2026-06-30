@@ -60,9 +60,7 @@ def test_metrics_after_llm_complete(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-metrics-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_complete and get_metrics in the same query
@@ -95,9 +93,7 @@ def test_metrics_after_llm_complete(integration_setup, model_config):
     assert len(metrics) > 0
 
     # Check that we have llm_complete_1 with proper structure
-    assert "llm_complete_1" in metrics, (
-        f"Expected llm_complete_1 in metrics, got: {list(metrics.keys())}"
-    )
+    assert "llm_complete_1" in metrics, f"Expected llm_complete_1 in metrics, got: {list(metrics.keys())}"
     llm_complete_1 = metrics["llm_complete_1"]
 
     assert "api_calls" in llm_complete_1
@@ -118,9 +114,7 @@ def test_metrics_reset_clears_counters(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-reset-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # First query: execute llm_complete and get metrics in the same query
@@ -148,9 +142,7 @@ def test_metrics_reset_clears_counters(integration_setup, model_config):
     assert "llm_complete_1" in metrics1, "Should have llm_complete_1 after first call"
 
     # Second query: reset metrics and get metrics in the same query
-    query2 = (
-        "SELECT flock_reset_metrics() AS reset_result, flock_get_metrics() AS metrics;"
-    )
+    query2 = "SELECT flock_reset_metrics() AS reset_result, flock_get_metrics() AS metrics;"
     result2 = run_cli(duckdb_cli_path, db_path, query2)
     assert result2.returncode == 0
 
@@ -173,9 +165,7 @@ def test_sequential_numbering_multiple_calls(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-sequential-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Make three calls to llm_complete in the same query
@@ -217,15 +207,11 @@ def test_sequential_numbering_multiple_calls(integration_setup, model_config):
 
     # Should have llm_complete_1, llm_complete_2, llm_complete_3
     assert isinstance(metrics, dict)
-    assert len(metrics) >= 3, (
-        f"Expected at least 3 metrics, got {len(metrics)}: {list(metrics.keys())}"
-    )
+    assert len(metrics) >= 3, f"Expected at least 3 metrics, got {len(metrics)}: {list(metrics.keys())}"
 
     # Check that we have sequential numbering
     found_keys = [key for key in metrics.keys() if key.startswith("llm_complete_")]
-    assert len(found_keys) >= 3, (
-        f"Expected at least 3 llm_complete entries, got: {found_keys}"
-    )
+    assert len(found_keys) >= 3, f"Expected at least 3 llm_complete entries, got: {found_keys}"
 
     # Verify each has the expected structure
     for key in found_keys:
@@ -240,9 +226,7 @@ def test_sequential_numbering_multiple_calls(integration_setup, model_config):
 # ============================================================================
 
 
-def test_flock_get_debug_metrics_returns_nested_structure(
-    integration_setup, model_config
-):
+def test_flock_get_debug_metrics_returns_nested_structure(integration_setup, model_config):
     """Test that flock_get_debug_metrics returns the nested structure"""
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
@@ -250,9 +234,7 @@ def test_flock_get_debug_metrics_returns_nested_structure(
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-debug-metrics-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_complete and get debug metrics
@@ -312,9 +294,7 @@ def test_debug_metrics_registration_order(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-reg-order-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Make multiple calls
@@ -375,9 +355,7 @@ def test_aggregate_function_metrics_tracking(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-aggregate-metrics-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_reduce and get metrics
@@ -436,9 +414,7 @@ def test_aggregate_function_metrics_tracking(integration_setup, model_config):
     assert found_reduce, f"llm_reduce metrics not found in: {list(metrics.keys())}"
 
 
-def test_aggregate_function_metrics_merging_with_group_by(
-    integration_setup, model_config
-):
+def test_aggregate_function_metrics_merging_with_group_by(integration_setup, model_config):
     """Test that metrics from multiple states in a single aggregate call are merged into one entry"""
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
@@ -446,9 +422,7 @@ def test_aggregate_function_metrics_merging_with_group_by(
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-merge-metrics-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_reduce with GROUP BY that will process multiple states
@@ -490,9 +464,9 @@ def test_aggregate_function_metrics_merging_with_group_by(
 
     # Check for llm_reduce metrics - should have ONLY ONE entry (merged)
     found_reduce_keys = [key for key in metrics.keys() if key.startswith("llm_reduce_")]
-    assert len(found_reduce_keys) == 1, (
-        f"Expected exactly 1 llm_reduce metrics entry (merged), got {len(found_reduce_keys)}: {found_reduce_keys}"
-    )
+    assert (
+        len(found_reduce_keys) == 1
+    ), f"Expected exactly 1 llm_reduce metrics entry (merged), got {len(found_reduce_keys)}: {found_reduce_keys}"
 
     # Verify the merged metrics have the expected structure
     reduce_metrics = metrics[found_reduce_keys[0]]
@@ -508,9 +482,7 @@ def test_aggregate_function_metrics_merging_with_group_by(
     assert reduce_metrics["provider"] == provider
 
 
-def test_aggregate_function_metrics_merging_multiple_groups(
-    integration_setup, model_config
-):
+def test_aggregate_function_metrics_merging_multiple_groups(integration_setup, model_config):
     """Test that each GROUP BY group produces one merged metrics entry"""
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
@@ -518,9 +490,7 @@ def test_aggregate_function_metrics_merging_multiple_groups(
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-merge-groups-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_reduce with multiple GROUP BY groups
@@ -561,14 +531,12 @@ def test_aggregate_function_metrics_merging_multiple_groups(
     # Note: In a GROUP BY query, each group processes independently, so we expect one entry per group
     # But since we're checking the last row, we should see at least one merged entry
     found_reduce_keys = [key for key in metrics.keys() if key.startswith("llm_reduce_")]
-    assert len(found_reduce_keys) >= 1, (
-        f"Expected at least 1 llm_reduce metrics entry, got {len(found_reduce_keys)}: {found_reduce_keys}"
-    )
+    assert (
+        len(found_reduce_keys) >= 1
+    ), f"Expected at least 1 llm_reduce metrics entry, got {len(found_reduce_keys)}: {found_reduce_keys}"
 
 
-def test_multiple_aggregate_functions_sequential_numbering(
-    integration_setup, model_config
-):
+def test_multiple_aggregate_functions_sequential_numbering(integration_setup, model_config):
     """Test that multiple aggregate function calls get sequential numbering"""
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
@@ -576,9 +544,7 @@ def test_multiple_aggregate_functions_sequential_numbering(
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-sequential-aggregate-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Call llm_reduce twice in the same query
@@ -617,9 +583,7 @@ def test_multiple_aggregate_functions_sequential_numbering(
 
     # Should have llm_reduce_1 and llm_reduce_2
     found_keys = [key for key in metrics.keys() if key.startswith("llm_reduce_")]
-    assert len(found_keys) >= 2, (
-        f"Expected at least 2 llm_reduce entries, got: {found_keys}"
-    )
+    assert len(found_keys) >= 2, f"Expected at least 2 llm_reduce entries, got: {found_keys}"
 
     # Verify sequential numbering
     numbers = []
@@ -641,9 +605,7 @@ def test_aggregate_function_debug_metrics(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-debug-aggregate-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
@@ -701,9 +663,7 @@ def test_llm_rerank_metrics(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-rerank-metrics-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
@@ -755,9 +715,7 @@ def test_llm_first_metrics(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-first-metrics-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
@@ -813,9 +771,7 @@ def test_mixed_scalar_and_aggregate_metrics(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, "SELECT flock_reset_metrics();")
 
     test_model_name = f"test-mixed-metrics-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (

@@ -27,9 +27,7 @@ def test_llm_filter_basic_functionality(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-filter-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -74,9 +72,7 @@ def test_llm_filter_without_context_columns(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-filter-no-context_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     query = (
@@ -100,9 +96,7 @@ def test_llm_filter_batch_processing(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-batch-filter_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -172,11 +166,7 @@ def test_llm_filter_error_handling_invalid_model(integration_setup):
             """
     result = run_cli(duckdb_cli_path, db_path, query)
 
-    assert (
-        result.returncode != 0
-        or "error" in result.stderr.lower()
-        or "Error" in result.stdout
-    )
+    assert result.returncode != 0 or "error" in result.stderr.lower() or "Error" in result.stdout
 
 
 def test_llm_filter_error_handling_empty_prompt(integration_setup, model_config):
@@ -184,9 +174,7 @@ def test_llm_filter_error_handling_empty_prompt(integration_setup, model_config)
     model_name, provider = model_config
 
     test_model_name = f"test-empty-filter_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -224,9 +212,7 @@ def test_llm_filter_with_special_characters(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-unicode-filter_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -270,9 +256,7 @@ def test_llm_filter_with_model_params(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-params-filter_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -313,9 +297,7 @@ def test_llm_filter_with_structured_output(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-structured-filter_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -378,9 +360,7 @@ def test_llm_filter_error_handling_missing_arguments(integration_setup, model_co
     model_name, provider = model_config
 
     test_model_name = f"test-missing-args_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Test with only 1 argument (should fail since llm_filter requires 2)
@@ -404,9 +384,7 @@ def _test_llm_filter_performance_large_dataset(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-perf-filter_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -436,9 +414,7 @@ def _test_llm_filter_performance_large_dataset(integration_setup, model_config):
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 11, (
-        f"Expected at least 11 lines (header + 10 data), got {len(lines)}"
-    )
+    assert len(lines) >= 11, f"Expected at least 11 lines (header + 10 data), got {len(lines)}"
     assert "true" in result.stdout.lower() or "false" in result.stdout.lower()
 
 
@@ -448,9 +424,7 @@ def test_llm_filter_with_image_integration(integration_setup, model_config_image
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-filter-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -518,9 +492,7 @@ def test_llm_filter_image_batch_processing(integration_setup, model_config_image
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-batch-filter_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -580,9 +552,7 @@ def test_llm_filter_image_batch_processing(integration_setup, model_config_image
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 4, (
-        f"Expected at least 4 lines (header + 3 data), got {len(lines)}"
-    )
+    assert len(lines) >= 4, f"Expected at least 4 lines (header + 3 data), got {len(lines)}"
     assert "is_appetizing" in result.stdout.lower()
 
 
@@ -592,9 +562,7 @@ def test_llm_filter_image_with_text_context(integration_setup, model_config_imag
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-text-filter_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -678,10 +646,10 @@ def test_llm_filter_with_audio_transcription(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     transcription_model_name = f"test-transcription-filter_{model_name}"
-    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
-    run_cli(
-        duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False
+    create_transcription_model_query = (
+        f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
     )
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
 
     # Get audio file path
     audio_path = get_audio_file_path()
@@ -716,9 +684,7 @@ def test_llm_filter_with_audio_transcription(integration_setup, model_config):
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     # The audio mentions DuckDB, so the filter should return true
     result_lower = result.stdout.lower()
-    assert "true" in result_lower, (
-        f"Expected 'true' since audio mentions DuckDB. Got: {result.stdout}"
-    )
+    assert "true" in result_lower, f"Expected 'true' since audio mentions DuckDB. Got: {result.stdout}"
 
 
 def test_llm_filter_audio_ollama_error(integration_setup):
@@ -726,18 +692,12 @@ def test_llm_filter_audio_ollama_error(integration_setup):
     duckdb_cli_path, db_path = integration_setup
 
     test_model_name = "test-ollama-filter-audio"
-    create_model_query = (
-        "CREATE MODEL('test-ollama-filter-audio', 'gemma3:1b', 'ollama');"
-    )
+    create_model_query = "CREATE MODEL('test-ollama-filter-audio', 'gemma3:1b', 'ollama');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     transcription_model_name = "test-ollama-filter-transcription"
-    create_transcription_model_query = (
-        "CREATE MODEL('test-ollama-filter-transcription', 'gemma3:1b', 'ollama');"
-    )
-    run_cli(
-        duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False
-    )
+    create_transcription_model_query = "CREATE MODEL('test-ollama-filter-transcription', 'gemma3:1b', 'ollama');"
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
 
     query = """
         SELECT llm_filter(

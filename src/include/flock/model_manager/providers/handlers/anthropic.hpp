@@ -61,10 +61,9 @@ protected:
 
     std::vector<std::string> getExtraHeaders() const override {
         return {
-            "x-api-key: " + _api_key,
-            "anthropic-version: " + _api_version,
-            "anthropic-beta: structured-outputs-2025-11-13"
-        };
+                "x-api-key: " + _api_key,
+                "anthropic-version: " + _api_version,
+                "anthropic-beta: structured-outputs-2025-11-13"};
     }
 
     void checkProviderSpecificResponse(const nlohmann::json& response, RequestType request_type) override {
@@ -96,7 +95,7 @@ protected:
         const auto& content = response["content"];
 
         // First, check for tool_use blocks (Claude 3.x fallback)
-        for (const auto& block : content) {
+        for (const auto& block: content) {
             if (block.contains("type") && block["type"] == "tool_use" && block.contains("input")) {
                 auto input = block["input"];
                 if (input.contains("items") && !input["items"].is_array()) {
@@ -107,7 +106,7 @@ protected:
         }
 
         // Then, check for text blocks (Claude 4.x with output_format)
-        for (const auto& block : content) {
+        for (const auto& block: content) {
             if (block.contains("type") && block["type"] == "text" && block.contains("text")) {
                 std::string text = block["text"].get<std::string>();
                 try {
@@ -129,7 +128,7 @@ protected:
     }
 
     nlohmann::json ExtractTranscriptionOutput(const nlohmann::json& response) const override {
-        (void)response;
+        (void) response;
         throw std::runtime_error("Anthropic does not support audio transcription.");
     }
 

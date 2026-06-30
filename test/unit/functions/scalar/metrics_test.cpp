@@ -1,7 +1,7 @@
 #include "flock/core/config.hpp"
 #include "flock/metrics/manager.hpp"
-#include <gtest/gtest.h>
 #include <cstdint>
+#include <gtest/gtest.h>
 #include <thread>
 #include <vector>
 

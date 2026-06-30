@@ -28,9 +28,7 @@ def test_llm_reduce_basic_functionality(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -78,9 +76,7 @@ def test_llm_reduce_with_group_by(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-group_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -138,9 +134,7 @@ def test_llm_reduce_multiple_columns(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-multi_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -188,9 +182,7 @@ def test_llm_reduce_with_batch_processing(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-batch_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -237,9 +229,7 @@ def test_llm_reduce_with_model_parameters(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-params_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -282,9 +272,7 @@ def test_llm_reduce_empty_table(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-empty_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -341,11 +329,7 @@ def test_llm_reduce_error_handling_invalid_model(integration_setup):
             """
     result = run_cli(duckdb_cli_path, db_path, query)
 
-    assert (
-        result.returncode != 0
-        or "error" in result.stderr.lower()
-        or "Error" in result.stdout
-    )
+    assert result.returncode != 0 or "error" in result.stderr.lower() or "Error" in result.stdout
 
 
 def test_llm_reduce_error_handling_empty_prompt(integration_setup, model_config):
@@ -354,9 +338,7 @@ def test_llm_reduce_error_handling_empty_prompt(integration_setup, model_config)
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-empty-prompt_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -395,9 +377,7 @@ def test_llm_reduce_error_handling_missing_arguments(integration_setup, model_co
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-missing-args_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Test with only 1 argument (should fail since llm_reduce requires 2)
@@ -421,9 +401,7 @@ def test_llm_reduce_with_special_characters(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-unicode_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -465,9 +443,7 @@ def test_llm_reduce_with_structured_output(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-structured_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -530,9 +506,7 @@ def _test_llm_reduce_performance_large_dataset(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-reduce-perf_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -563,9 +537,7 @@ def _test_llm_reduce_performance_large_dataset(integration_setup, model_config):
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 4, (
-        f"Expected at least 4 lines (header + 3 categories), got {len(lines)}"
-    )
+    assert len(lines) >= 4, f"Expected at least 4 lines (header + 3 categories), got {len(lines)}"
     assert "category" in result.stdout.lower()
 
 
@@ -575,9 +547,7 @@ def test_llm_reduce_with_image_integration(integration_setup, model_config_image
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-reduce-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -643,9 +613,7 @@ def test_llm_reduce_image_with_group_by(integration_setup, model_config_image):
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-group-reduce_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -661,9 +629,7 @@ def test_llm_reduce_image_with_group_by(integration_setup, model_config_image):
 
     # Image URLs
     chair_url = "https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400"
-    smartphone_url = (
-        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400"
-    )
+    smartphone_url = "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400"
     coffee_url = "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=400"
     laptop_url = "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400"
     lamp_url = "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400"
@@ -716,9 +682,7 @@ def test_llm_reduce_image_with_group_by(integration_setup, model_config_image):
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 4, (
-        f"Expected at least 4 lines (header + 3 categories), got {len(lines)}"
-    )
+    assert len(lines) >= 4, f"Expected at least 4 lines (header + 3 categories), got {len(lines)}"
     assert "category_analysis" in result.stdout.lower()
 
 
@@ -728,9 +692,7 @@ def test_llm_reduce_image_batch_processing(integration_setup, model_config_image
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-batch-reduce_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -818,10 +780,10 @@ def test_llm_reduce_with_audio_transcription(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     transcription_model_name = f"test-transcription-reduce_{model_name}"
-    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
-    run_cli(
-        duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False
+    create_transcription_model_query = (
+        f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
     )
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
 
     # Get audio file path
     audio_path = get_audio_file_path()
@@ -872,9 +834,9 @@ def test_llm_reduce_with_audio_transcription(integration_setup, model_config):
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     # The summary should mention Flock, DuckDB, database, or related terms from the audio
     result_lower = result.stdout.lower()
-    assert any(kw in result_lower for kw in AUDIO_EXPECTED_KEYWORDS), (
-        f"Expected summary to contain keywords from audio content {AUDIO_EXPECTED_KEYWORDS}. Got: {result.stdout}"
-    )
+    assert any(
+        kw in result_lower for kw in AUDIO_EXPECTED_KEYWORDS
+    ), f"Expected summary to contain keywords from audio content {AUDIO_EXPECTED_KEYWORDS}. Got: {result.stdout}"
 
 
 def test_llm_reduce_audio_ollama_error(integration_setup):
@@ -887,9 +849,7 @@ def test_llm_reduce_audio_ollama_error(integration_setup):
 
     transcription_model_name = "test-ollama-reduce-transcription"
     create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gemma3:1b', 'ollama');"
-    run_cli(
-        duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False
-    )
+    run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
 
     create_table_query = """
     CREATE OR REPLACE TABLE test_audio (
@@ -906,22 +866,28 @@ def test_llm_reduce_audio_ollama_error(integration_setup):
     """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+        """
         SELECT llm_reduce(
-            {'model_name': '""" + test_model_name + """'},
+            {'model_name': '"""
+        + test_model_name
+        + """'},
             {
                 'prompt': 'Summarize this audio',
                 'context_columns': [
                     {
                         'data': audio_url,
                         'type': 'audio',
-                        'transcription_model': '""" + transcription_model_name + """'
+                        'transcription_model': '"""
+        + transcription_model_name
+        + """'
                     }
                 ]
             }
         ) AS result
         FROM test_audio;
         """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode != 0

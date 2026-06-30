@@ -24,7 +24,7 @@ public:
     ModelDetails model_details_;
     std::unique_ptr<IModelProviderHandler> model_handler_;
 
-    explicit IProvider(const ModelDetails& model_details) : model_details_(model_details) {};
+    explicit IProvider(const ModelDetails& model_details) : model_details_(model_details){};
     virtual ~IProvider() = default;
 
     virtual void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) = 0;

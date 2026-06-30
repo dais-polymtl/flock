@@ -171,9 +171,7 @@ def test_create_prompt_without_semicolon(integration_setup):
 
 def test_create_prompt_with_comment(integration_setup):
     duckdb_cli_path, db_path = integration_setup
-    create_query = (
-        "CREATE PROMPT('comment-prompt', 'Test content'); -- This is a comment"
-    )
+    create_query = "CREATE PROMPT('comment-prompt', 'Test content'); -- This is a comment"
     run_cli(duckdb_cli_path, db_path, create_query, with_secrets=False)
     get_query = "GET PROMPT 'comment-prompt';"
     result = run_cli(duckdb_cli_path, db_path, get_query, with_secrets=False)

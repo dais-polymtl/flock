@@ -31,9 +31,7 @@ def test_llm_first_basic_functionality(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-first-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     r = run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     assert r.returncode == 0, f"Query failed with error: {create_model_query} {r.stderr}"
@@ -80,9 +78,7 @@ def test_llm_first_with_group_by(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-first-group_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -127,9 +123,7 @@ def test_llm_first_with_group_by(integration_setup, model_config):
     lines = result.stdout.strip().split("\n")
     # Should have header + 2 department groups (Engineering, Marketing)
     assert len(lines) >= 3, f"Expected at least 3 lines, got {len(lines)}"
-    assert (
-        "engineering" in result.stdout.lower() or "marketing" in result.stdout.lower()
-    )
+    assert "engineering" in result.stdout.lower() or "marketing" in result.stdout.lower()
 
 
 def test_llm_first_with_batch_processing(integration_setup, model_config):
@@ -138,9 +132,7 @@ def test_llm_first_with_batch_processing(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-first-batch_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -187,9 +179,7 @@ def test_llm_first_with_model_parameters(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-first-params_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -239,9 +229,7 @@ def test_llm_first_multiple_criteria(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-first-multi_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -289,9 +277,7 @@ def test_llm_first_empty_table(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-first-empty_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -348,11 +334,7 @@ def test_llm_first_error_handling_invalid_model(integration_setup):
             """
     result = run_cli(duckdb_cli_path, db_path, query)
 
-    assert (
-        result.returncode != 0
-        or "error" in result.stderr.lower()
-        or "Error" in result.stdout
-    )
+    assert result.returncode != 0 or "error" in result.stderr.lower() or "Error" in result.stdout
 
 
 def test_llm_first_error_handling_empty_prompt(integration_setup, model_config):
@@ -361,9 +343,7 @@ def test_llm_first_error_handling_empty_prompt(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-first-empty-prompt_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -402,9 +382,7 @@ def test_llm_first_error_handling_missing_arguments(integration_setup, model_con
     model_name, provider = model_config
 
     test_model_name = f"test-first-missing-args_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     # Test with only 1 argument (should fail since llm_first requires 2)
@@ -428,9 +406,7 @@ def test_llm_first_with_special_characters(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-first-unicode_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -477,9 +453,7 @@ def _test_llm_first_performance_large_dataset(integration_setup, model_config):
     model_name, provider = model_config
 
     test_model_name = f"test-first-perf_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -511,9 +485,7 @@ def _test_llm_first_performance_large_dataset(integration_setup, model_config):
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 4, (
-        f"Expected at least 4 lines (header + 3 categories), got {len(lines)}"
-    )
+    assert len(lines) >= 4, f"Expected at least 4 lines (header + 3 categories), got {len(lines)}"
     assert "category" in result.stdout.lower()
 
 
@@ -523,9 +495,7 @@ def test_llm_first_with_image_integration(integration_setup, model_config_image)
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-first-model_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -592,9 +562,7 @@ def test_llm_first_image_with_group_by(integration_setup, model_config_image):
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-group-first_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -660,13 +628,9 @@ def test_llm_first_image_with_group_by(integration_setup, model_config_image):
     )
     result = run_cli(duckdb_cli_path, db_path, query)
 
-    assert result.returncode == 0, (
-        f"Query failed with error: {result.stdout} {result.stderr}"
-    )
+    assert result.returncode == 0, f"Query failed with error: {result.stdout} {result.stderr}"
     lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 4, (
-        f"Expected at least 4 lines (header + 3 styles), got {len(lines)}"
-    )
+    assert len(lines) >= 4, f"Expected at least 4 lines (header + 3 styles), got {len(lines)}"
     assert "most_recent_artwork" in result.stdout.lower()
 
 
@@ -676,9 +640,7 @@ def test_llm_first_image_batch_processing(integration_setup, model_config_image)
     model_name, provider = model_config_image
 
     test_model_name = f"test-image-batch-first_{model_name}"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', '{model_name}', '{provider}');"
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     create_table_query = """
@@ -694,9 +656,7 @@ def test_llm_first_image_batch_processing(integration_setup, model_config_image)
     run_cli(duckdb_cli_path, db_path, create_table_query)
 
     # Image URLs
-    skyscraper_url = (
-        "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400"
-    )
+    skyscraper_url = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400"
     office_url = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400"
     modern_url = "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=400"
     corporate_url = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400"
@@ -748,9 +708,7 @@ def test_llm_first_image_batch_processing(integration_setup, model_config_image)
 
     assert result.returncode == 0, f"Query failed with error: {result.stderr}"
     lines = result.stdout.strip().split("\n")
-    assert len(lines) >= 4, (
-        f"Expected at least 4 lines (header + 3 cities), got {len(lines)}"
-    )
+    assert len(lines) >= 4, f"Expected at least 4 lines (header + 3 cities), got {len(lines)}"
     assert "tallest_building" in result.stdout.lower()
 
 
@@ -767,7 +725,9 @@ def test_llm_first_with_audio_transcription(integration_setup, model_config):
     run_cli(duckdb_cli_path, db_path, create_model_query, with_secrets=False)
 
     transcription_model_name = f"test-transcription-first_{model_name}"
-    create_transcription_model_query = f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
+    create_transcription_model_query = (
+        f"CREATE MODEL('{transcription_model_name}', 'gpt-4o-mini-transcribe', 'openai');"
+    )
     run_cli(duckdb_cli_path, db_path, create_transcription_model_query, with_secrets=False)
 
     # Get audio file path
@@ -830,9 +790,7 @@ def test_llm_first_with_audio_transcription(integration_setup, model_config):
 
     # Parse the JSON result which contains the tuple data
     result_json = json.loads(row["selected_id"])
-    assert isinstance(result_json, list), (
-        f"Expected list of tuples, got: {type(result_json)}"
-    )
+    assert isinstance(result_json, list), f"Expected list of tuples, got: {type(result_json)}"
     assert len(result_json) > 0, "Expected at least one tuple in result"
 
 
@@ -863,22 +821,28 @@ def test_llm_first_audio_ollama_error(integration_setup):
     """
     run_cli(duckdb_cli_path, db_path, insert_data_query)
 
-    query = """
+    query = (
+        """
         SELECT llm_first(
-            {'model_name': '""" + test_model_name + """'},
+            {'model_name': '"""
+        + test_model_name
+        + """'},
             {
                 'prompt': 'Select the best audio. Return ID only.',
                 'context_columns': [
                     {
                         'data': audio_url,
                         'type': 'audio',
-                        'transcription_model': '""" + transcription_model_name + """'
+                        'transcription_model': '"""
+        + transcription_model_name
+        + """'
                     }
                 ]
             }
         ) AS result
         FROM test_audio;
         """
+    )
     result = run_cli(duckdb_cli_path, db_path, query)
 
     assert result.returncode != 0

@@ -1,6 +1,8 @@
 repos:
+  # Pin clang-format to v11 to match CI (duckdb/extension-ci-tools installs
+  # clang-format-11 / clang_format==11.0.1 in _extension_code_quality.yml).
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v18.1.8  # You can check for the latest version or use a specific version you need
+    rev: v11.0.1
     hooks:
       - id: clang-format
         types_or: [c, c++, cuda]  # Correctly specify file types

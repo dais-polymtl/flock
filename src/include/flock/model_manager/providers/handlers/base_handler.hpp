@@ -349,7 +349,7 @@ protected:
 
     bool isJson(const std::string& data) {
         try {
-            (void)nlohmann::json::parse(data);
+            (void) nlohmann::json::parse(data);
         } catch (...) {
             return false;
         }

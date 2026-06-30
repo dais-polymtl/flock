@@ -16,9 +16,7 @@ def test_anthropic_embedding_error(integration_setup):
     duckdb_cli_path, db_path = integration_setup
 
     test_model_name = "test-anthropic-embedding-error"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', 'claude-3-haiku-20240307', 'anthropic');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'claude-3-haiku-20240307', 'anthropic');"
     result = run_cli(duckdb_cli_path, db_path, create_model_query)
 
     # Skip if Anthropic is not configured
@@ -37,8 +35,7 @@ def test_anthropic_embedding_error(integration_setup):
     assert result.returncode != 0 or "error" in result.stderr.lower()
     output = (result.stderr + result.stdout).lower()
     assert any(
-        keyword in output
-        for keyword in ["embedding", "not support", "anthropic", "claude"]
+        keyword in output for keyword in ["embedding", "not support", "anthropic", "claude"]
     ), f"Expected embedding error message, got: {output}"
 
 
@@ -47,9 +44,7 @@ def test_anthropic_completion_basic(integration_setup):
     duckdb_cli_path, db_path = integration_setup
 
     test_model_name = "test-anthropic-basic"
-    create_model_query = (
-        f"CREATE MODEL('{test_model_name}', 'claude-3-haiku-20240307', 'anthropic');"
-    )
+    create_model_query = f"CREATE MODEL('{test_model_name}', 'claude-3-haiku-20240307', 'anthropic');"
     result = run_cli(duckdb_cli_path, db_path, create_model_query)
 
     # Skip if Anthropic is not configured

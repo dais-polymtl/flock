@@ -22,7 +22,7 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
 
     // Process image columns - supports URLs, file paths, and base64
     if (media_data.contains("image") && !media_data["image"].empty() && media_data["image"].is_array()) {
-        for (const auto& column : media_data["image"]) {
+        for (const auto& column: media_data["image"]) {
             auto image_type = column.contains("type") ? column["type"].get<std::string>() : "image/png";
             auto media_type = std::string("image/");
             if (size_t pos = image_type.find("/"); pos != std::string::npos) {
@@ -32,7 +32,7 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
             }
 
             if (column.contains("data") && column["data"].is_array()) {
-                for (const auto& image : column["data"]) {
+                for (const auto& image: column["data"]) {
                     if (image.is_null()) {
                         continue;
                     }
@@ -51,10 +51,8 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
                         base64_data = image_str;
                     }
 
-                    message_content.push_back({
-                        {"type", "image"},
-                        {"source", {{"type", "base64"}, {"media_type", media_type}, {"data", base64_data}}}
-                    });
+                    message_content.push_back({{"type", "image"},
+                                               {"source", {{"type", "base64"}, {"media_type", media_type}, {"data", base64_data}}}});
                 }
             }
         }
@@ -88,14 +86,9 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
     } else {
         // Claude 3.x: Fall back to tool_use for structured output
         nlohmann::json flock_tool = {
-            {"name", "flock_response"},
-            {"description", "Return the structured response"},
-            {"input_schema", {
-                {"type", "object"},
-                {"properties", {{"items", {{"type", "array"}, {"items", item_schema}}}}},
-                {"required", nlohmann::json::array({"items"})}
-            }}
-        };
+                {"name", "flock_response"},
+                {"description", "Return the structured response"},
+                {"input_schema", {{"type", "object"}, {"properties", {{"items", {{"type", "array"}, {"items", item_schema}}}}}, {"required", nlohmann::json::array({"items"})}}}};
         request_payload["tools"] = nlohmann::json::array({flock_tool});
         request_payload["tool_choice"] = {{"type", "tool"}, {"name", "flock_response"}};
     }
@@ -108,7 +101,7 @@ void AnthropicProvider::AddEmbeddingRequest(const std::vector<std::string>& inpu
 }
 
 void AnthropicProvider::AddTranscriptionRequest(const nlohmann::json& audio_files) {
-    (void)audio_files;
+    (void) audio_files;
     throw std::runtime_error("Anthropic does not support audio transcription. Use OpenAI or Azure.");
 }
 
