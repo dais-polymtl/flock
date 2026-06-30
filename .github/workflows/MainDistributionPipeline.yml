@@ -10,6 +10,7 @@ on:
       - dev
     paths:
       - .github/workflows/MainDistributionPipeline.yml
+      - .github/workflows/_extension_code_quality.yml
       - duckdb/**
       - extension-ci-tools/**
       - src/**
@@ -25,54 +26,17 @@ concurrency:
 jobs:
   duckdb-stable-build:
     name: Build extension binaries
-    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.5.3
+    uses: duckdb/extension-ci-tools/.github/workflows/_extension_distribution.yml@v1.5.4
     with:
-      duckdb_version: v1.5.3
-      ci_tools_version: v1.5.3
+      duckdb_version: v1.5.4
+      ci_tools_version: v1.5.4
       extension_name: flock
 
   code-quality-check:
     name: Code Quality Check
-    uses: duckdb/extension-ci-tools/.github/workflows/_extension_code_quality.yml@v1.5.3
+    uses: ./.github/workflows/_extension_code_quality.yml
     with:
-      duckdb_version: v1.5.3
-      ci_tools_version: v1.5.3
+      duckdb_version: v1.5.4
+      ci_tools_version: v1.5.4
       extension_name: flock
-      format_checks: "format"
-
-  tidy-check:
-    name: Tidy Check
-    runs-on: ubuntu-24.04
-    env:
-      CC: gcc
-      CXX: g++
-      GEN: ninja
-      TIDY_THREADS: 4
-      VCPKG_TOOLCHAIN_PATH: ${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          submodules: recursive
-
-      - uses: actions/checkout@v4
-        name: Checkout Extension CI tools
-        with:
-          path: extension-ci-tools
-          ref: v1.5.3
-          repository: duckdb/extension-ci-tools
-
-      - name: Install build dependencies
-        shell: bash
-        run: |
-          sudo apt-get update -y -qq
-          sudo apt-get install -y -qq ninja-build clang-tidy
-          sudo pip3 install pybind11[global] --break-system-packages
-
-      - name: Setup vcpkg
-        shell: bash
-        run: bash scripts/setup_vcpkg.sh
-
-      - name: Tidy Check
-        shell: bash
-        run: make tidy-check
+      format_checks: "format;tidy"
