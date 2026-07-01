@@ -66,7 +66,7 @@ void WriteBatchResponseToResults(const nlohmann::json& batch_response,
                                  int expected_size,
                                  nlohmann::json& responses) {
     const auto& items = batch_response["items"];
-    const auto count = std::min(static_cast<int>(items.size()), expected_size);
+    const auto count = std::min<int>(static_cast<int>(items.size()), expected_size);
     for (int j = 0; j < count; j++) {
         responses[start_index + j] = items[j];
     }
@@ -185,7 +185,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
                                                         const std::string& user_prompt,
                                                         const ScalarFunctionType function_type, Model& model) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
-    const int configured = std::min(model.GetModelDetails().batch_size, row_count);
+    const int configured = std::min<int>(model.GetModelDetails().batch_size, row_count);
     auto batch_size = configured;
 
     auto responses = nlohmann::json::array();
@@ -207,7 +207,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
             batch_size = batch_size / 2;
             if (batch_size <= 0) {
                 const int remaining = row_count - start_index;
-                const int rows_to_null = std::min(attempted_batch_size, remaining);
+                const int rows_to_null = std::min<int>(attempted_batch_size, remaining);
                 for (int i = 0; i < rows_to_null; i++) {
                     responses.push_back(nullptr);
                 }
@@ -225,13 +225,13 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
                                                          const std::string& user_prompt,
                                                          const ScalarFunctionType function_type, Model& model) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
-    const int configured = std::min(model.GetModelDetails().batch_size, row_count);
+    const int configured = std::min<int>(model.GetModelDetails().batch_size, row_count);
 
     auto responses = BuildNullResponsesForRowCount(row_count);
     std::vector<AsyncBatchWork> pending;
 
     for (int start_index = 0; start_index < row_count; start_index += configured) {
-        pending.push_back({start_index, std::min(configured, row_count - start_index)});
+        pending.push_back({start_index, std::min<int>(configured, row_count - start_index)});
     }
 
     while (!pending.empty()) {
