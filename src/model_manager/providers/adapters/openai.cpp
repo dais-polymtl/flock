@@ -67,13 +67,13 @@ void OpenAIProvider::AddCompletionRequest(const std::string& prompt, const int n
     nlohmann::json request_payload = {{"model", model_details_.model},
                                       {"messages", {{{"role", "user"}, {"content", message_content}}}}};
 
-    if (!model_details_.model_params.empty()) {
-        request_payload.update(model_details_.model_params);
+    if (!model_details_.model_parameters.empty()) {
+        request_payload.update(model_details_.model_parameters);
     }
 
-    if (model_details_.model_params.contains("response_format")) {
-        auto schema = model_details_.model_params["response_format"]["json_schema"]["schema"];
-        auto strict = model_details_.model_params["response_format"]["strict"];
+    if (model_details_.model_parameters.contains("response_format")) {
+        auto schema = model_details_.model_parameters["response_format"]["json_schema"]["schema"];
+        auto strict = model_details_.model_parameters["response_format"]["strict"];
         request_payload["response_format"] = {
                 {"type", "json_schema"},
                 {"json_schema",

@@ -13,12 +13,12 @@ namespace flock {
 namespace {
 
 bool IsAllowedModelArgKey(const std::string& key) {
-    return key == "tuple_format" || key == "batch_size" || key == "model_params" || key == "is_async";
+    return key == "tuple_format" || key == "batch_size" || key == "model_parameters" || key == "is_async";
 }
 
 void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
     if (!IsAllowedModelArgKey(key)) {
-        throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, model_params, and is_async are allowed.");
+        throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, model_parameters, and is_async are allowed.");
     }
 
     if (key == "batch_size") {
@@ -40,9 +40,9 @@ void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& ke
         return;
     }
 
-    if (key == "model_params") {
+    if (key == "model_parameters") {
         if (!value.is_object()) {
-            throw std::runtime_error("Expected 'model_params' to be a JSON object.");
+            throw std::runtime_error("Expected 'model_parameters' to be a JSON object.");
         }
         model_args[key] = value;
         return;

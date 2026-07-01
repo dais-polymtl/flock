@@ -280,7 +280,7 @@ def test_llm_filter_with_model_params(integration_setup, model_config):
             llm_filter(
                 {'model_name': '"""
         + test_model_name
-        + """', 'tuple_format': 'Markdown', 'batch_size': 1, 'model_params': '{"temperature": 0}'},
+        + """', 'tuple_format': 'Markdown', 'batch_size': 1, 'model_parameters': '{"temperature": 0}'},
                     {'prompt': 'Is this text expressing positive sentiment?', 'context_columns': [{'data': text}]}
         ) AS is_positive
     FROM test_data;
@@ -323,7 +323,7 @@ def test_llm_filter_with_structured_output(integration_setup, model_config):
                 {'model_name': '"""
         + test_model_name
         + """',
-                'model_params': '{
+                'model_parameters': '{
                     "response_format": {
                         "type": "json_schema",
                         "json_schema": {

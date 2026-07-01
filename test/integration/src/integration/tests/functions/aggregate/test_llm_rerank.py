@@ -220,7 +220,7 @@ def test_llm_rerank_with_model_params(integration_setup, model_config):
                        {'model_name': '"""
         + test_model_name
         + """', 'tuple_format': 'Markdown',
-                                                            'model_params': '{"temperature": 0.1}'},
+                                                            'model_parameters': '{"temperature": 0.1}'},
             {'prompt': 'Rank these restaurants for a casual dinner considering rating, price, and distance. Prioritize nearby options with good value.', 'context_columns': [{'data': name}, {'data': cuisine}, {'data': rating::VARCHAR}, {'data': price_range}, {'data': distance_km::VARCHAR}]}
         ) AS ranked_restaurants
             FROM restaurant_options; \

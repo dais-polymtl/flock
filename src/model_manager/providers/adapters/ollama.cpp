@@ -41,12 +41,12 @@ void OllamaProvider::AddCompletionRequest(const std::string& prompt, const int n
                                       {"messages", nlohmann::json::array({message})},
                                       {"stream", false}};
 
-    if (!model_details_.model_params.empty()) {
-        request_payload.update(model_details_.model_params);
+    if (!model_details_.model_parameters.empty()) {
+        request_payload.update(model_details_.model_parameters);
     }
 
-    if (model_details_.model_params.contains("format")) {
-        auto schema = model_details_.model_params["format"];
+    if (model_details_.model_parameters.contains("format")) {
+        auto schema = model_details_.model_parameters["format"];
         request_payload["format"] = {
                 {"type", "object"},
                 {"properties", {{"items", {{"type", "array"}, {"minItems", num_output_tuples}, {"maxItems", num_output_tuples}, {"items", schema}}}}},

@@ -24,7 +24,7 @@ struct ModelDetails {
     std::unordered_map<std::string, std::string> secret;
     TupleFormat tuple_format = TupleFormat::XML;
     int batch_size;
-    nlohmann::json model_params;
+    nlohmann::json model_parameters;
     bool is_async = true;
 };
 

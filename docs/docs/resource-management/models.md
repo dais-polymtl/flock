@@ -23,7 +23,7 @@ Models are stored in a table with the following structure:
 | **Model Name**      | Unique identifier for the model                                                                                                                                                                                                                   |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                                                                                                                                                                                     |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`)                                                                                                                                                                                           |
-| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `model_params`, and `is_async` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **batch_size** must be greater than 0. **model_params** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. |
+| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `model_parameters`, and `is_async` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **batch_size** must be greater than 0. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. |
 
 ### `is_async`
 
@@ -65,7 +65,7 @@ MODEL 'model_name';
 - Create a new user-defined model
 
 ```sql
--- User-defined model (only tuple_format, batch_size, model_params, and is_async allowed in JSON)
+-- User-defined model (only tuple_format, batch_size, model_parameters, and is_async allowed in JSON)
 -- tuple_format can be "JSON", "XML", or "Markdown"
 CREATE
 MODEL(
@@ -75,7 +75,7 @@ MODEL(
     {
         "tuple_format": "JSON",
         "batch_size": 8,
-        "model_params": {
+        "model_parameters": {
             "temperature": 0.2,
             "top_p": 0.95
         },
@@ -90,7 +90,7 @@ MODEL(
     {
         "tuple_format": "XML",
         "batch_size": 8,
-        "model_params": {
+        "model_parameters": {
             "n": 3,
             "frequency_penalty": 0.1
         }
@@ -125,7 +125,7 @@ UPDATE MODEL(
     {
         "tuple_format": "JSON",
         "batch_size": 8,
-        "model_params": {
+        "model_parameters": {
             "temperature": 0.2,
             "top_p": 0.95
         },
@@ -139,7 +139,7 @@ UPDATE MODEL(
     {
         "tuple_format": "XML",
         "batch_size": 8,
-        "model_params": {
+        "model_parameters": {
             "n": 3,
             "frequency_penalty": 0.1
         }
@@ -183,7 +183,7 @@ CREATE GLOBAL MODEL
     :
     "JSON",
     "batch_size": 8,
-    "model_params": {
+    "model_parameters": {
             "temperature": 0.2,
     "top_p": 0.95
         }
@@ -215,7 +215,7 @@ CREATE LOCAL MODEL(
     {
         "tuple_format": "JSON",
         "batch_size": 8,
-        "model_params": {
+        "model_parameters": {
             "temperature": 0.2
         }
     }
@@ -226,7 +226,7 @@ CREATE LOCAL MODEL
     {
         "tuple_format": "XML",
         "batch_size": 8,
-        "model_params": {
+        "model_parameters": {
             "n": 3
         }
     }
@@ -237,7 +237,7 @@ CREATE LOCAL MODEL
     {
         "tuple_format": "Markdown",
         "batch_size": 8,
-        "model_params": {
+        "model_parameters": {
             "top_p": 0.95
         }
     }
@@ -256,7 +256,7 @@ MODEL(
     {
         "tuple_format": "JSON",
         "batch_size": 8,
-        "model_params": {
+        "model_parameters": {
             "temperature": 0.2
         }
     }
@@ -269,7 +269,7 @@ MODEL(
     {
         "tuple_format": "XML",
         "batch_size": 8,
-        "model_params": {
+        "model_parameters": {
             "n": 3
         }
     }
@@ -282,7 +282,7 @@ MODEL(
     {
         "tuple_format": "Markdown",
         "batch_size": 8,
-        "model_params": {
+        "model_parameters": {
             "top_p": 0.95
         }
     }

@@ -89,7 +89,7 @@ def test_update_model_with_args(integration_setup):
     duckdb_cli_path, db_path = integration_setup
     create_query = "CREATE MODEL('update-args-model', 'gpt-4o', 'openai');"
     run_cli(duckdb_cli_path, db_path, create_query, with_secrets=False)
-    update_query = "UPDATE MODEL('update-args-model', 'gpt-4o', 'openai', '{\"batch_size\": 5, \"model_params\": {\"temperature\": 0.7}}');"
+    update_query = "UPDATE MODEL('update-args-model', 'gpt-4o', 'openai', '{\"batch_size\": 5, \"model_parameters\": {\"temperature\": 0.7}}');"
     run_cli(duckdb_cli_path, db_path, update_query, with_secrets=False)
     get_query = "GET MODEL 'update-args-model';"
     result = run_cli(duckdb_cli_path, db_path, get_query, with_secrets=False)
@@ -241,8 +241,8 @@ def test_get_model_vs_get_models(integration_setup):
 def test_model_args_allowed_parameters(integration_setup):
     duckdb_cli_path, db_path = integration_setup
 
-    # Test valid parameters: tuple_format, batch_size, model_params
-    valid_query = 'CREATE MODEL(\'valid-args-model\', \'gpt-4o\', \'openai\', \'{"tuple_format": "json", "batch_size": 5, "model_params": {"temperature": 0.8}}\');'
+    # Test valid parameters: tuple_format, batch_size, model_parameters
+    valid_query = 'CREATE MODEL(\'valid-args-model\', \'gpt-4o\', \'openai\', \'{"tuple_format": "json", "batch_size": 5, "model_parameters": {"temperature": 0.8}}\');'
     result = run_cli(duckdb_cli_path, db_path, valid_query, with_secrets=False)
     assert result.returncode == 0
 

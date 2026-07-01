@@ -11,8 +11,8 @@ namespace flock {
 
 namespace {
 
-nlohmann::json ParseModelParamsField(const nlohmann::json& model_json) {
-    const auto& mp = model_json.at("model_params");
+nlohmann::json ParseModelParametersField(const nlohmann::json& model_json) {
+    const auto& mp = model_json.at("model_parameters");
     return mp.is_string() ? nlohmann::json::parse(mp.get<std::string>()) : mp;
 }
 
@@ -92,16 +92,16 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         model_details_.secret = SecretManager::GetSecret(ResolveDefaultSecretName(model_details_.provider_name, model_json));
     }
 
-    if (model_json.contains("model_params")) {
-        model_details_.model_params = ParseModelParamsField(model_json);
+    if (model_json.contains("model_parameters")) {
+        model_details_.model_parameters = ParseModelParametersField(model_json);
     } else if (is_fully_resolved) {
-        model_details_.model_params = nlohmann::json::object();
+        model_details_.model_parameters = nlohmann::json::object();
     } else {
         ensure_db_loaded();
-        if (db_model_args.contains("model_params")) {
-            model_details_.model_params = db_model_args["model_params"];
+        if (db_model_args.contains("model_parameters")) {
+            model_details_.model_parameters = db_model_args["model_parameters"];
         } else {
-            model_details_.model_params = nlohmann::json::object();
+            model_details_.model_parameters = nlohmann::json::object();
         }
     }
 
@@ -220,8 +220,8 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["batch_size"] = model_details_.batch_size;
     result["is_async"] = model_details_.is_async;
     result["secret"] = model_details_.secret;
-    if (!model_details_.model_params.empty()) {
-        result["model_params"] = model_details_.model_params;
+    if (!model_details_.model_parameters.empty()) {
+        result["model_parameters"] = model_details_.model_parameters;
     }
     return result;
 }

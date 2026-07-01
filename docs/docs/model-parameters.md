@@ -5,7 +5,7 @@ sidebar_position: 9
 
 # Model Parameters in Flock
 
-Flock allows you to configure model behavior through the `model_params` field in LLM function calls. This provides
+Flock allows you to configure model behavior through the `model_parameters` field in LLM function calls. This provides
 fine-grained control over how models generate responses, enabling you to optimize performance for specific use cases.
 
 import TOCInline from '@theme/TOCInline';
@@ -14,7 +14,7 @@ import TOCInline from '@theme/TOCInline';
 
 ## Overview
 
-Model parameters are passed within the `model_params` field—either in `CREATE MODEL` / `UPDATE MODEL` statements or inline in LLM function calls. Different
+Model parameters are passed within the `model_parameters` field—either in `CREATE MODEL` / `UPDATE MODEL` statements or inline in LLM function calls. Different
 providers support different parameters, allowing you to customize temperature, token limits, sampling methods, and more.
 
 For model configuration options such as `batch_size` and `is_async`, see [Models Management](/docs/resource-management/models).
@@ -32,7 +32,7 @@ reference, see [OpenAI Chat Completions API](https://platform.openai.com/docs/ap
 ```sql
 {
   'model_name': 'gpt-4o',
-  'model_params': '{
+  'model_parameters': '{
     "temperature": 0.7,
     "max_tokens": 1000,
     "top_p": 1.0,
@@ -50,7 +50,7 @@ reference, see [OpenAI Chat Completions API](https://platform.openai.com/docs/ap
 SELECT llm_complete(
   {
     'model_name': 'gpt-4o',
-    'model_params': '{
+    'model_parameters': '{
         "temperature": 0.7,
         "max_tokens": 1000,
         "top_p": 1.0,
@@ -75,7 +75,7 @@ see [Ollama Chat Completions API](https://github.com/ollama/ollama/blob/main/doc
 ```sql
 {
   'model_name': 'llama3.1',
-  'model_params': '{
+  'model_parameters': '{
     "temperature": 0.7,
     "num_predict": 1000,
     "top_p": 0.9,
@@ -92,7 +92,7 @@ see [Ollama Chat Completions API](https://github.com/ollama/ollama/blob/main/doc
 SELECT llm_complete(
   {
     'model_name': 'llama3.1',
-    'model_params': '{
+    'model_parameters': '{
       "temperature": 0.3,
       "num_predict": 300
     }'
@@ -112,7 +112,7 @@ see [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference
 ```sql
 {
   'model_name': 'gpt-4o',
-  'model_params': '{
+  'model_parameters': '{
     "temperature": 0.7,
     "max_tokens": 1000,
     "top_p": 1.0,
@@ -131,7 +131,7 @@ see [OpenAI Chat Completions API](https://platform.openai.com/docs/api-reference
 SELECT llm_complete(
   {
     'model_name': 'gpt-4o',
-    'model_params': '{
+    'model_parameters': '{
       "temperature": 0.0,
       "max_tokens": 500
     }'
@@ -147,7 +147,7 @@ SELECT llm_complete(
 SELECT llm_complete(
   {
     'model_name': 'gpt-4o',
-    'model_params': '{
+    'model_parameters': '{
       "temperature": 0.9,
       "top_p": 0.95,
       "presence_penalty": 0.5,
@@ -165,7 +165,7 @@ SELECT llm_complete(
 SELECT llm_complete(
   {
     'model_name': 'gpt-4o',
-    'model_params': '{
+    'model_parameters': '{
       "temperature": 0.0,
       "max_tokens": 300,
       "stop": ["\\n\\n", "```"]

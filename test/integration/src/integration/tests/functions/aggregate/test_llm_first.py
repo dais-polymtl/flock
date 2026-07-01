@@ -211,7 +211,7 @@ def test_llm_first_with_model_params(integration_setup, model_config):
                            {'model_name': '"""
         + test_model_name
         + """', 'tuple_format': 'Markdown',
-                                                           'model_params': '{"temperature": 0.1}'},
+                                                           'model_parameters': '{"temperature": 0.1}'},
             {'prompt': 'Which startup has the most promising business model for investment? Return the ID number only.', 'context_columns': [{'data': company_name}, {'data': sector}, {'data': funding_request::VARCHAR}, {'data': team_size::VARCHAR}, {'data': description}]}
         ) AS most_promising_startup
             FROM startup_pitches; \

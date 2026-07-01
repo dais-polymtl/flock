@@ -41,7 +41,7 @@ CREATE MODEL(
    'ClaudeModel',
    'claude-sonnet-4-5',
    'anthropic',
-   {"tuple_format": "json", "batch_size": 32, "model_params": {"temperature": 0.7, "max_tokens": 1024}}
+   {"tuple_format": "json", "batch_size": 32, "model_parameters": {"temperature": 0.7, "max_tokens": 1024}}
 );
 ```
 
@@ -78,7 +78,7 @@ CREATE MODEL(
    'claude-sonnet-4-5',
    'anthropic',
    {
-     "model_params": {
+     "model_parameters": {
        "temperature": 0.5,
        "max_tokens": 2048,
        "system": "You are a helpful data analyst assistant."
@@ -107,7 +107,7 @@ CREATE MODEL(
    'claude-sonnet-4-5',
    'anthropic',
    {
-     "model_params": {
+     "model_parameters": {
        "system": "You are an expert data analyst. Always provide structured, actionable insights.",
        "max_tokens": 1024
      }
@@ -154,7 +154,7 @@ For Claude 4.x models, you can specify a custom JSON schema:
 ```sql
 SELECT llm_complete(
     {'model_name': 'ClaudeModel',
-     'model_params': '{
+     'model_parameters': '{
        "output_format": {
          "type": "json_schema",
          "schema": {

@@ -61,8 +61,8 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
     nlohmann::json request_payload = {{"model", model_details_.model},
                                       {"messages", {{{"role", "user"}, {"content", message_content}}}}};
 
-    if (!model_details_.model_params.empty()) {
-        request_payload.update(model_details_.model_params);
+    if (!model_details_.model_parameters.empty()) {
+        request_payload.update(model_details_.model_parameters);
     }
 
     // Anthropic API requires max_tokens; use fallback when not specified
@@ -72,8 +72,8 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
 
     // Build the schema for structured output
     nlohmann::json item_schema;
-    if (model_details_.model_params.contains("output_format")) {
-        item_schema = model_details_.model_params["output_format"]["schema"];
+    if (model_details_.model_parameters.contains("output_format")) {
+        item_schema = model_details_.model_parameters["output_format"]["schema"];
     } else {
         item_schema = {{"type", GetOutputTypeString(output_type)}};
     }

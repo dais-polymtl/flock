@@ -254,7 +254,7 @@ def test_llm_reduce_with_model_params(integration_setup, model_config):
                        {'model_name': '"""
         + test_model_name
         + """', 'tuple_format': 'Markdown',
-                                                            'model_params': '{"temperature": 0.1}'},
+                                                            'model_parameters': '{"temperature": 0.1}'},
                     {'prompt': 'Summarize in 3 words', 'context_columns': [{'data': headline}, {'data': summary}]}
         ) AS news_summary
             FROM news_items; \
@@ -467,7 +467,7 @@ def test_llm_reduce_with_structured_output(integration_setup, model_config):
             SELECT llm_reduce(
                        {'model_name': '"""
         + test_model_name
-        + """', 'model_params': '{
+        + """', 'model_parameters': '{
                     "response_format": {
                         "type": "json_schema",
                         "json_schema": {

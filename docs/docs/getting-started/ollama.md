@@ -39,7 +39,7 @@ CREATE MODEL(
    'QuackingModel',
    'llama3.2',
    'ollama',
-   {"tuple_format": "json", "batch_size": 32, "model_params": {"temperature": 0.7}}
+   {"tuple_format": "json", "batch_size": 32, "model_parameters": {"temperature": 0.7}}
 );
 ```
 
