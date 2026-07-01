@@ -1,5 +1,6 @@
 #include "flock/custom_parser/query/model_parser.hpp"
 #include "flock/custom_parser/tokenizer.hpp"
+#include "flock/prompt_manager/repository.hpp"
 #include "gtest/gtest.h"
 #include <memory>
 
@@ -84,7 +85,7 @@ TEST(ModelParserTest, ParseCreateGlobalModel) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "flock_storage.");
@@ -100,7 +101,7 @@ TEST(ModelParserTest, ParseCreateGlobalModelWithSemicolon) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "flock_storage.");
@@ -116,7 +117,7 @@ TEST(ModelParserTest, ParseCreateGlobalModelWithComment) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "flock_storage.");
@@ -132,7 +133,7 @@ TEST(ModelParserTest, ParseCreateLocalModel) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "");
@@ -148,7 +149,7 @@ TEST(ModelParserTest, ParseCreateLocalModelWithSemicolon) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "");
@@ -164,7 +165,7 @@ TEST(ModelParserTest, ParseCreateLocalModelWithComment) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "");
@@ -180,7 +181,7 @@ TEST(ModelParserTest, ParseCreateModelWithArgs) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
 }
@@ -195,7 +196,7 @@ TEST(ModelParserTest, ParseCreateModelWithArgsWithSemicolon) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
 }
@@ -210,7 +211,7 @@ TEST(ModelParserTest, ParseCreateModelWithArgsWithComment) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
 }
@@ -225,7 +226,7 @@ TEST(ModelParserTest, ParseCreateModelWithArgsWithCommentBefore) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
 }
@@ -252,6 +253,24 @@ TEST(ModelParserTest, ParseStringBatchSizeCreateModelWithComment) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
     EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": \"32\", \"model_parameters\": {\"param1\": \"value1\"}}) -- Invalid batch size", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseInvalidTupleFormatCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"csv\", \"batch_size\": 32})", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseStringTupleFormatCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": 123, \"batch_size\": 32})", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseInvalidModelParametersCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": \"not-an-object\"})", statement), std::runtime_error);
 }
 
 TEST(ModelParserTest, ParseCreateModelWithInvalidArgs) {
@@ -385,7 +404,7 @@ TEST(ModelParserTest, ParseUpdateModel) {
     EXPECT_EQ(update_stmt->model_name, "test_model");
     EXPECT_EQ(update_stmt->new_model, "new_model_data");
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
-    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], "xml");
+    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
     EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
 }
@@ -400,7 +419,7 @@ TEST(ModelParserTest, ParseUpdateModelWithSemicolon) {
     EXPECT_EQ(update_stmt->model_name, "test_model");
     EXPECT_EQ(update_stmt->new_model, "new_model_data");
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
-    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], "xml");
+    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
     EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
 }
@@ -415,7 +434,7 @@ TEST(ModelParserTest, ParseUpdateModelWithComment) {
     EXPECT_EQ(update_stmt->model_name, "test_model");
     EXPECT_EQ(update_stmt->new_model, "new_model_data");
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
-    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], "xml");
+    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
     EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
 }
@@ -430,7 +449,7 @@ TEST(ModelParserTest, ParseUpdateModelWithCommentBefore) {
     EXPECT_EQ(update_stmt->model_name, "test_model");
     EXPECT_EQ(update_stmt->new_model, "new_model_data");
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
-    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], "xml");
+    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
     EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
 }
@@ -511,7 +530,7 @@ TEST(ModelParserTest, ParseUpdateModelWithArgs) {
     EXPECT_EQ(update_stmt->model_name, "test_model");
     EXPECT_EQ(update_stmt->new_model, "new_model_data");
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
-    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], "xml");
+    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
     EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
 }
@@ -526,7 +545,7 @@ TEST(ModelParserTest, ParseUpdateModelWithArgsWithSemicolon) {
     EXPECT_EQ(update_stmt->model_name, "test_model");
     EXPECT_EQ(update_stmt->new_model, "new_model_data");
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
-    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], "xml");
+    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
     EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
 }
@@ -541,7 +560,7 @@ TEST(ModelParserTest, ParseUpdateModelWithArgsWithComment) {
     EXPECT_EQ(update_stmt->model_name, "test_model");
     EXPECT_EQ(update_stmt->new_model, "new_model_data");
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
-    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], "xml");
+    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
     EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
 }
@@ -699,7 +718,7 @@ TEST(ModelParserTest, ParseCreateModelWithMultipleComments) {
     EXPECT_EQ(create_stmt->model_name, "test_model");
     EXPECT_EQ(create_stmt->model, "model_data");
     EXPECT_EQ(create_stmt->provider_name, "provider");
-    EXPECT_EQ(create_stmt->model_args["tuple_format"], "json");
+    EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
     EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
 }
@@ -714,7 +733,7 @@ TEST(ModelParserTest, ParseUpdateModelWithInlineComment) {
     EXPECT_EQ(update_stmt->model_name, "test_model");
     EXPECT_EQ(update_stmt->new_model, "new_model_data");
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
-    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], "xml");
+    EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
     EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
 }

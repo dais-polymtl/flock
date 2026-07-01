@@ -1,6 +1,7 @@
 #pragma once
 
 #include "flock/core/common.hpp"
+#include "flock/prompt_manager/repository.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <nlohmann/json.hpp>
@@ -15,7 +16,7 @@ struct ModelDetails {
     std::string model_name;
     std::string model;
     std::unordered_map<std::string, std::string> secret;
-    std::string tuple_format;
+    TupleFormat tuple_format = TupleFormat::XML;
     int batch_size;
     nlohmann::json model_parameters;
 };
