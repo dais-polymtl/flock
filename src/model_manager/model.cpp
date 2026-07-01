@@ -1,4 +1,5 @@
 #include "flock/model_manager/model.hpp"
+#include "flock/prompt_manager/repository.hpp"
 #include "flock/secret_manager/secret_manager.hpp"
 #include <stdexcept>
 #include <string>
@@ -24,6 +25,14 @@ std::string ResolveDefaultSecretName(const std::string& provider_name, const nlo
         secret_name = model_json.at("secret_name").get<std::string>();
     }
     return secret_name;
+}
+
+void NormalizeStoredModelArgs(nlohmann::json& model_args) {
+    if (!model_args.contains("tuple_format") || !model_args.at("tuple_format").is_string()) {
+        return;
+    }
+    model_args["tuple_format"] =
+            static_cast<int>(stringToTupleFormat(model_args.at("tuple_format").get<std::string>()));
 }
 
 }// namespace
@@ -97,13 +106,18 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     }
 
     if (model_json.contains("tuple_format")) {
-        model_details_.tuple_format = model_json.at("tuple_format").get<std::string>();
+        const auto& tuple_format_value = model_json.at("tuple_format");
+        if (tuple_format_value.is_string()) {
+            model_details_.tuple_format = stringToTupleFormat(tuple_format_value.get<std::string>());
+        } else {
+            model_details_.tuple_format = tupleFormatFromStoredValue(tuple_format_value);
+        }
     } else {
         ensure_db_loaded();
         if (db_model_args.contains("tuple_format")) {
-            model_details_.tuple_format = db_model_args.at("tuple_format").get<std::string>();
+            model_details_.tuple_format = tupleFormatFromStoredValue(db_model_args.at("tuple_format"));
         } else {
-            model_details_.tuple_format = "XML";
+            model_details_.tuple_format = TupleFormat::XML;
         }
     }
 
@@ -149,6 +163,7 @@ std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedMo
     auto model = query_result->GetValue(0, 0).ToString();
     auto provider_name = query_result->GetValue(1, 0).ToString();
     auto model_args = nlohmann::json::parse(query_result->GetValue(2, 0).ToString());
+    NormalizeStoredModelArgs(model_args);
 
     return {model, provider_name, model_args};
 }
@@ -188,7 +203,7 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["model_name"] = model_details_.model_name;
     result["model"] = model_details_.model;
     result["provider"] = model_details_.provider_name;
-    result["tuple_format"] = model_details_.tuple_format;
+    result["tuple_format"] = static_cast<int>(model_details_.tuple_format);
     result["batch_size"] = model_details_.batch_size;
     result["secret"] = model_details_.secret;
     if (!model_details_.model_parameters.empty()) {

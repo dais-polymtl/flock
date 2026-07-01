@@ -36,7 +36,7 @@ public:
 
     static std::string ConstructNumTuples(int num_tuples);
 
-    static std::string ConstructInputTuplesHeader(const nlohmann::json& columns, const std::string& tuple_format = "XML");
+    static std::string ConstructInputTuplesHeader(const nlohmann::json& columns, TupleFormat tuple_format);
     static std::string ConstructInputTuplesHeaderXML(const nlohmann::json& columns);
     static std::string ConstructInputTuplesHeaderMarkdown(const nlohmann::json& columns);
 
@@ -44,7 +44,7 @@ public:
     static std::string ConstructInputTuplesMarkdown(const nlohmann::json& columns);
     static std::string ConstructInputTuplesJSON(const nlohmann::json& columns);
 
-    static std::string ConstructInputTuples(const nlohmann::json& columns, const std::string& tuple_format = "XML");
+    static std::string ConstructInputTuples(const nlohmann::json& columns, TupleFormat tuple_format);
 
     // Helper function to transcribe audio column and create transcription text column
     static nlohmann::json TranscribeAudioColumn(const nlohmann::json& audio_column);
@@ -52,7 +52,7 @@ public:
 public:
     template<typename FunctionType>
     static std::tuple<std::string, nlohmann::json> Render(const std::string& user_prompt, const nlohmann::json& columns, FunctionType option,
-                                                          const std::string& tuple_format = "XML") {
+                                                          TupleFormat tuple_format) {
         auto image_data = nlohmann::json::array();
         auto tabular_data = nlohmann::json::array();
 

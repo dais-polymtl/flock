@@ -3,6 +3,7 @@
 #include "flock/core/common.hpp"
 #include "flock/core/config.hpp"
 #include "flock/custom_parser/query_parser.hpp"
+#include "flock/prompt_manager/repository.hpp"
 #include <sstream>
 #include <stdexcept>
 
@@ -24,6 +25,22 @@ void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& ke
             throw std::runtime_error("Expected 'batch_size' to be an integer.");
         }
         model_args[key] = value.get<int>();
+        return;
+    }
+
+    if (key == "tuple_format") {
+        if (!value.is_string()) {
+            throw std::runtime_error("Expected 'tuple_format' to be a string.");
+        }
+        model_args[key] = static_cast<int>(stringToTupleFormat(value.get<std::string>()));
+        return;
+    }
+
+    if (key == "model_parameters") {
+        if (!value.is_object()) {
+            throw std::runtime_error("Expected 'model_parameters' to be a JSON object.");
+        }
+        model_args[key] = value;
         return;
     }
 

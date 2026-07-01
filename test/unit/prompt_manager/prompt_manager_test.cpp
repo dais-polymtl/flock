@@ -71,19 +71,16 @@ TEST(PromptManager, ConstructInputTuplesHeader) {
     tuple.push_back({{"name", "Header 2"}});
 
     // XML
-    auto xml_header = PromptManager::ConstructInputTuplesHeader(tuple, "xml");
+    auto xml_header = PromptManager::ConstructInputTuplesHeader(tuple, TupleFormat::XML);
     EXPECT_EQ(xml_header, "<header><column>Header 1</column><column>Header 2</column></header>\n");
 
     // Markdown
-    auto md_header = PromptManager::ConstructInputTuplesHeader(tuple, "markdown");
+    auto md_header = PromptManager::ConstructInputTuplesHeader(tuple, TupleFormat::Markdown);
     EXPECT_EQ(md_header, " | COLUMN_Header 1 | COLUMN_Header 2 | \n | -------- | -------- | \n");
 
     // JSON (should be empty)
-    auto json_header = PromptManager::ConstructInputTuplesHeader(tuple, "json");
+    auto json_header = PromptManager::ConstructInputTuplesHeader(tuple, TupleFormat::JSON);
     EXPECT_EQ(json_header, "");
-
-    // Invalid format
-    EXPECT_THROW(PromptManager::ConstructInputTuplesHeader(tuple, "invalid_format"), std::runtime_error);
 }
 
 TEST(PromptManager, ConstructInputTuplesHeaderEmpty) {
@@ -92,19 +89,16 @@ TEST(PromptManager, ConstructInputTuplesHeaderEmpty) {
     tuple.push_back({{"data", {}}});
 
     // XML
-    auto xml_header = PromptManager::ConstructInputTuplesHeader(tuple, "xml");
+    auto xml_header = PromptManager::ConstructInputTuplesHeader(tuple, TupleFormat::XML);
     EXPECT_EQ(xml_header, "<header><column>COLUMN 1</column><column>COLUMN 2</column></header>\n");
 
     // Markdown
-    auto md_header = PromptManager::ConstructInputTuplesHeader(tuple, "markdown");
+    auto md_header = PromptManager::ConstructInputTuplesHeader(tuple, TupleFormat::Markdown);
     EXPECT_EQ(md_header, " | COLUMN 1 | COLUMN 2 | \n | -------- | -------- | \n");
 
     // JSON (should be empty)
-    auto json_header = PromptManager::ConstructInputTuplesHeader(tuple, "json");
+    auto json_header = PromptManager::ConstructInputTuplesHeader(tuple, TupleFormat::JSON);
     EXPECT_EQ(json_header, "");
-
-    // Invalid format
-    EXPECT_THROW(PromptManager::ConstructInputTuplesHeader(tuple, "invalid_format"), std::runtime_error);
 }
 
 // Test cases for PromptManager::ConstructNumTuples
@@ -125,14 +119,14 @@ TEST(PromptManager, ConstructInputTuples) {
     xml_expected += "<header><column>COLUMN 1</column><column>COLUMN 2</column></header>\n";
     xml_expected += "<row><column>row1A</column><column>1</column></row>\n";
     xml_expected += "<row><column>row2A</column><column>2</column></row>\n";
-    EXPECT_EQ(PromptManager::ConstructInputTuples(tuples, "xml"), xml_expected);
+    EXPECT_EQ(PromptManager::ConstructInputTuples(tuples, TupleFormat::XML), xml_expected);
 
     // Markdown
     auto md_expected = std::string("- The Number of Tuples to Generate Responses for: 2\n\n");
     md_expected += " | COLUMN 1 | COLUMN 2 | \n | -------- | -------- | \n";
     md_expected += " | \"row1A\" | \"1\" | \n";
     md_expected += " | \"row2A\" | \"2\" | \n";
-    EXPECT_EQ(PromptManager::ConstructInputTuples(tuples, "markdown"), md_expected);
+    EXPECT_EQ(PromptManager::ConstructInputTuples(tuples, TupleFormat::Markdown), md_expected);
 
     // JSON
     auto json_expected = std::string("- The Number of Tuples to Generate Responses for: 2\n\n");
@@ -145,10 +139,7 @@ TEST(PromptManager, ConstructInputTuples) {
 
     json_expected += expected_tuples_json.dump(4);
     json_expected += "\n";
-    EXPECT_EQ(PromptManager::ConstructInputTuples(tuples, "json"), json_expected);
-
-    // Invalid format
-    EXPECT_THROW(PromptManager::ConstructInputTuples(tuples, "invalid_format"), std::runtime_error);
+    EXPECT_EQ(PromptManager::ConstructInputTuples(tuples, TupleFormat::JSON), json_expected);
 }
 
 // Test case for an empty tuples array
@@ -158,16 +149,16 @@ TEST(PromptManager, ConstructInputTuplesEmpty) {
     // Empty tuples - XML
     auto xml_expected = std::string("- The Number of Tuples to Generate Responses for: 0\n\n");
     xml_expected += "<header></header>\n<row></row>\n";
-    EXPECT_EQ(PromptManager::ConstructInputTuples(empty_tuples, "xml"), xml_expected);
+    EXPECT_EQ(PromptManager::ConstructInputTuples(empty_tuples, TupleFormat::XML), xml_expected);
 
     // Empty tuples - Markdown
     auto md_expected = std::string("- The Number of Tuples to Generate Responses for: 0\n\n");
     md_expected += " | Empty | \n | ----- | \n";
-    EXPECT_EQ(PromptManager::ConstructInputTuples(empty_tuples, "markdown"), md_expected);
+    EXPECT_EQ(PromptManager::ConstructInputTuples(empty_tuples, TupleFormat::Markdown), md_expected);
 
     // Empty tuples - JSON
     auto json_expected = "- The Number of Tuples to Generate Responses for: 0\n\n{}\n";
-    EXPECT_EQ(PromptManager::ConstructInputTuples(empty_tuples, "json"), json_expected);
+    EXPECT_EQ(PromptManager::ConstructInputTuples(empty_tuples, TupleFormat::JSON), json_expected);
 }
 
 TEST(PromptManager, CreatePromptDetailsLiteralPrompt) {
