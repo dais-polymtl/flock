@@ -1,6 +1,7 @@
 #pragma once
 
 #include "flock/core/common.hpp"
+#include <nlohmann/json.hpp>
 #include <unordered_map>
 
 namespace flock {
@@ -28,6 +29,8 @@ inline std::unordered_map<std::string, TupleFormat> TUPLE_FORMAT = {
         {"MARKDOWN", TupleFormat::Markdown}};
 
 TupleFormat stringToTupleFormat(const std::string& format);
+TupleFormat tupleFormatFromStoredValue(const nlohmann::json& value);
+std::string tupleFormatToString(TupleFormat format);
 
 constexpr auto META_PROMPT =
         "# System Setup\n"
