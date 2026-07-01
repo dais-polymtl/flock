@@ -46,7 +46,7 @@ TEST_F(ModelManagerTest, ModelInitialization) {
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
         EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
-        EXPECT_EQ(details.tuple_format, "json");
+        EXPECT_EQ(details.tuple_format, TupleFormat::JSON);
         EXPECT_EQ(details.batch_size, 32);
     });
 }
@@ -138,7 +138,7 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.model, "gpt-4o");
     EXPECT_EQ(details.provider_name, "openai");
     EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
-    EXPECT_EQ(details.tuple_format, "XML");
+    EXPECT_EQ(details.tuple_format, TupleFormat::XML);
     EXPECT_EQ(details.batch_size, 10);
 }
 

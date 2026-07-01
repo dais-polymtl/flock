@@ -39,10 +39,19 @@ def test_create_local_model_explicit(integration_setup):
     assert "local" in result.stdout
 
 
-def test_create_model_with_args(integration_setup):
+def test_create_model_with_invalid_tuple_format(integration_setup):
     duckdb_cli_path, db_path = integration_setup
     create_query = (
         "CREATE MODEL('model-with-args', 'gpt-4o', 'openai', '{\"batch_size\": 10, \"tuple_format\": \"csv\"}');"
+    )
+    result = run_cli(duckdb_cli_path, db_path, create_query, with_secrets=False)
+    assert result.returncode != 0
+
+
+def test_create_model_with_args(integration_setup):
+    duckdb_cli_path, db_path = integration_setup
+    create_query = (
+        "CREATE MODEL('model-with-args', 'gpt-4o', 'openai', '{\"batch_size\": 10, \"tuple_format\": \"json\"}');"
     )
     run_cli(duckdb_cli_path, db_path, create_query, with_secrets=False)
     get_query = "GET MODEL 'model-with-args';"

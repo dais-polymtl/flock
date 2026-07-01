@@ -37,17 +37,14 @@ std::string PromptManager::ReplaceSection(const std::string& prompt_template, co
     return prompt;
 }
 
-std::string PromptManager::ConstructInputTuplesHeader(const nlohmann::json& columns,
-                                                      const std::string& tuple_format) {
-    switch (stringToTupleFormat(tuple_format)) {
+std::string PromptManager::ConstructInputTuplesHeader(const nlohmann::json& columns, const TupleFormat tuple_format) {
+    switch (tuple_format) {
         case TupleFormat::XML:
             return ConstructInputTuplesHeaderXML(columns);
         case TupleFormat::Markdown:
             return ConstructInputTuplesHeaderMarkdown(columns);
         case TupleFormat::JSON:
             return "";
-        default:
-            throw std::runtime_error("Invalid tuple format provided `" + tuple_format + "`");
     }
 }
 
@@ -160,21 +157,19 @@ std::string PromptManager::ConstructNumTuples(const int num_tuples) {
     return "- The Number of Tuples to Generate Responses for: " + std::to_string(num_tuples) + "\n\n";
 }
 
-std::string PromptManager::ConstructInputTuples(const nlohmann::json& columns, const std::string& tuple_format) {
+std::string PromptManager::ConstructInputTuples(const nlohmann::json& columns, const TupleFormat tuple_format) {
     auto tuples_str = std::string("");
     const auto num_tuples = columns.size() > 0 ? static_cast<int>(columns[0]["data"].size()) : 0;
 
     tuples_str += PromptManager::ConstructNumTuples(num_tuples);
     tuples_str += PromptManager::ConstructInputTuplesHeader(columns, tuple_format);
-    switch (const auto format = stringToTupleFormat(tuple_format)) {
+    switch (tuple_format) {
         case TupleFormat::XML:
             return tuples_str + ConstructInputTuplesXML(columns);
         case TupleFormat::Markdown:
             return tuples_str + ConstructInputTuplesMarkdown(columns);
         case TupleFormat::JSON:
             return tuples_str + ConstructInputTuplesJSON(columns);
-        default:
-            throw std::runtime_error("Invalid tuple format provided `" + tuple_format + "`");
     }
 }
 
