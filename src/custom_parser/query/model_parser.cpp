@@ -3,6 +3,7 @@
 #include "flock/core/common.hpp"
 #include "flock/core/config.hpp"
 #include "flock/custom_parser/query_parser.hpp"
+#include "flock/model_manager/repository.hpp"
 #include "flock/prompt_manager/repository.hpp"
 #include <sstream>
 #include <stdexcept>

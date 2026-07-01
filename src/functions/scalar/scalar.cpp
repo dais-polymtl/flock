@@ -56,33 +56,46 @@ nlohmann::json BuildNullResponsesForRowCount(int row_count) {
     return responses;
 }
 
-nlohmann::json BatchAndCompleteAsyncWithBatchSize(const nlohmann::json& tuples,
-                                                  const std::string& user_prompt,
-                                                  ScalarFunctionType function_type,
-                                                  Model& model,
-                                                  int batch_size) {
-    const auto row_count = static_cast<int>(tuples[0]["data"].size());
-    auto batch_sizes = std::vector<size_t>();
+struct AsyncBatchWork {
+    int start_index;
+    int batch_size;
+};
 
-    for (auto start_index = 0; start_index < row_count; start_index += batch_size) {
-        auto batch_tuples = BuildBatchTuples(tuples, start_index, batch_size);
-        batch_sizes.push_back(batch_tuples[0]["data"].size());
-        ScalarFunctionBase::QueueCompletion(batch_tuples, user_prompt, function_type, model);
+void WriteBatchResponseToResults(const nlohmann::json& batch_response,
+                                 int start_index,
+                                 int expected_size,
+                                 nlohmann::json& responses) {
+    const auto& items = batch_response["items"];
+    const auto count = std::min(static_cast<int>(items.size()), expected_size);
+    for (int j = 0; j < count; j++) {
+        responses[start_index + j] = items[j];
+    }
+    for (int j = count; j < expected_size; j++) {
+        responses[start_index + j] = nullptr;
+    }
+}
+
+void NullBatchRows(int start_index, int row_count, int rows_to_null, nlohmann::json& responses) {
+    for (int j = 0; j < rows_to_null && start_index + j < row_count; j++) {
+        responses[start_index + j] = nullptr;
+    }
+}
+
+void RequeueOrNullFailedBatch(const AsyncBatchWork& work,
+                              int row_count,
+                              std::vector<AsyncBatchWork>& pending,
+                              nlohmann::json& responses) {
+    const int new_batch_size = work.batch_size / 2;
+    if (new_batch_size <= 0) {
+        NullBatchRows(work.start_index, row_count, work.batch_size, responses);
+        return;
     }
 
-    auto batch_responses = model.CollectCompletions();
-    if (batch_responses.size() != batch_sizes.size()) {
-        throw std::runtime_error(
-                duckdb_fmt::format("Expected {} completion batch responses, got {}",
-                                   batch_sizes.size(), batch_responses.size()));
+    pending.push_back({work.start_index, new_batch_size});
+    const int remainder = work.batch_size - new_batch_size;
+    if (remainder > 0) {
+        pending.push_back({work.start_index + new_batch_size, remainder});
     }
-
-    auto responses = nlohmann::json::array();
-    for (size_t i = 0; i < batch_responses.size(); i++) {
-        NormalizeAndAppendBatchResponse(batch_responses[i]["items"], batch_sizes[i], responses);
-    }
-
-    return responses;
 }
 
 }// namespace
@@ -213,28 +226,63 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
                                                          const ScalarFunctionType function_type, Model& model) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
     const int configured = std::min(model.GetModelDetails().batch_size, row_count);
-    return BatchAndCompleteAsyncWithBatchSize(tuples, user_prompt, function_type, model, configured);
+
+    auto responses = BuildNullResponsesForRowCount(row_count);
+    std::vector<AsyncBatchWork> pending;
+
+    for (int start_index = 0; start_index < row_count; start_index += configured) {
+        pending.push_back({start_index, std::min(configured, row_count - start_index)});
+    }
+
+    while (!pending.empty()) {
+        auto attempt_model = Model(model.GetModelDetailsAsJson());
+        const auto current_round = std::move(pending);
+        pending.clear();
+
+        for (const auto& work: current_round) {
+            auto batch_tuples = BuildBatchTuples(tuples, work.start_index, work.batch_size);
+            QueueCompletion(batch_tuples, user_prompt, function_type, attempt_model);
+        }
+
+        std::vector<nlohmann::json> batch_responses;
+        bool collect_threw_token_error = false;
+        try {
+            batch_responses = attempt_model.CollectCompletions();
+        } catch (const ExceededMaxOutputTokensError&) {
+            collect_threw_token_error = true;
+        }
+
+        if (collect_threw_token_error) {
+            for (const auto& work: current_round) {
+                RequeueOrNullFailedBatch(work, row_count, pending, responses);
+            }
+            continue;
+        }
+
+        if (batch_responses.size() != current_round.size()) {
+            throw std::runtime_error(
+                    duckdb_fmt::format("Expected {} completion batch responses, got {}",
+                                       current_round.size(), batch_responses.size()));
+        }
+
+        for (size_t i = 0; i < current_round.size(); i++) {
+            const auto& work = current_round[i];
+            if (IsExceededMaxOutputTokensMarker(batch_responses[i])) {
+                RequeueOrNullFailedBatch(work, row_count, pending, responses);
+            } else {
+                WriteBatchResponseToResults(batch_responses[i], work.start_index, work.batch_size, responses);
+            }
+        }
+    }
+
+    return responses;
 }
 
 nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples,
                                                     const std::string& user_prompt,
                                                     const ScalarFunctionType function_type, Model& model) {
     if (model.GetModelDetails().is_async) {
-        const int row_count = static_cast<int>(tuples[0]["data"].size());
-        const int configured = std::min(model.GetModelDetails().batch_size, row_count);
-        auto batch_size = configured;
-
-        while (true) {
-            auto attempt_model = Model(model.GetModelDetailsAsJson());
-            try {
-                return BatchAndCompleteAsyncWithBatchSize(tuples, user_prompt, function_type, attempt_model, batch_size);
-            } catch (const ExceededMaxOutputTokensError&) {
-                batch_size = batch_size / 2;
-                if (batch_size <= 0) {
-                    return BuildNullResponsesForRowCount(row_count);
-                }
-            }
-        }
+        return BatchAndCompleteAsync(tuples, user_prompt, function_type, model);
     }
 
     return BatchAndCompleteSync(tuples, user_prompt, function_type, model);

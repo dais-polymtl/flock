@@ -3,6 +3,7 @@
 #include "flock/core/common.hpp"
 #include "flock/metrics/manager.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
+#include "flock/model_manager/providers/provider.hpp"
 #include "session.hpp"
 #include <cstdio>
 #include <curl/curl.h>
@@ -86,6 +87,12 @@ protected:
                         results[i] = ExtractCompletionOutput(parsed);
                     } else {
                         results[i] = ExtractEmbeddingVector(parsed);
+                    }
+                } catch (const ExceededMaxOutputTokensError&) {
+                    if (is_completion) {
+                        results[i] = ExceededMaxOutputTokensMarker();
+                    } else {
+                        throw;
                     }
                 } catch (const std::exception& e) {
                     trigger_error(std::string("JSON parse error: ") + e.what());
@@ -244,6 +251,12 @@ protected:
                             throw;
                         }
                         trigger_error(std::string("Output extraction error: ") + msg);
+                    }
+                } catch (const ExceededMaxOutputTokensError&) {
+                    if (is_completion) {
+                        results[i] = ExceededMaxOutputTokensMarker();
+                    } else {
+                        throw;
                     }
                 } catch (const std::exception& e) {
                     std::string msg = e.what();

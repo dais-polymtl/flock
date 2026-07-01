@@ -215,18 +215,34 @@ TEST_F(LLMCompleteTest, Operation_AsyncLargeInputSet_CollectsOnceAndPreservesOrd
 
 TEST_F(LLMCompleteTest, Operation_AsyncRetriesWithSmallerBatchOnTokenOverflow) {
     constexpr size_t input_count = 100;
-    constexpr size_t retry_batch_size = DEFAULT_BATCH_SIZE / 2;
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
+    const auto first_attempt_batches = (input_count + DEFAULT_BATCH_SIZE - 1) / DEFAULT_BATCH_SIZE;
+    const auto retry_batch_count = first_attempt_batches * 2;
+
     std::vector<nlohmann::json> retry_batch_responses;
-    for (size_t start_index = 0; start_index < input_count; start_index += retry_batch_size) {
-        const auto batch_count = std::min<size_t>(retry_batch_size, input_count - start_index);
+    const std::vector<std::pair<size_t, size_t>> retry_batches = {
+            {0, 8},
+            {8, 8},
+            {16, 8},
+            {24, 8},
+            {32, 8},
+            {40, 8},
+            {48, 8},
+            {56, 8},
+            {64, 8},
+            {72, 8},
+            {80, 8},
+            {88, 8},
+            {96, 2},
+            {98, 2},
+    };
+    for (const auto& [start_index, batch_count]: retry_batches) {
         retry_batch_responses.push_back(PrepareExpectedResponseRange(start_index, batch_count));
     }
 
-    const auto first_attempt_batches = (input_count + DEFAULT_BATCH_SIZE - 1) / DEFAULT_BATCH_SIZE;
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-            .Times(static_cast<int>(first_attempt_batches + retry_batch_responses.size()));
+            .Times(static_cast<int>(first_attempt_batches + retry_batch_count));
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(2)
             .WillOnce(::testing::Throw(ExceededMaxOutputTokensError()))
@@ -255,12 +271,14 @@ TEST_F(LLMCompleteTest, Operation_SyncNullsRowAndContinuesAfterTokenOverflowExha
 
     {
         ::testing::InSequence sequence;
-        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_))
-                .Times(3);
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_));
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-                .Times(3)
-                .WillOnce(::testing::Throw(ExceededMaxOutputTokensError()))
-                .WillOnce(::testing::Throw(ExceededMaxOutputTokensError()))
+                .WillOnce(::testing::Throw(ExceededMaxOutputTokensError()));
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_));
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Throw(ExceededMaxOutputTokensError()));
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_));
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
                 .WillOnce(::testing::Return(std::vector<nlohmann::json>{success_response}));
     }
 
@@ -330,6 +348,41 @@ TEST_F(LLMCompleteTest, Operation_AsyncReturnsNullWhenTokenOverflowCannotRetry) 
     ASSERT_EQ(results->RowCount(), 2);
     EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "null");
     EXPECT_EQ(results->GetValue(0, 1).GetValue<std::string>(), "null");
+}
+
+TEST_F(LLMCompleteTest, Operation_AsyncRetriesOnlyFailedBatchesOnTokenOverflow) {
+    const nlohmann::json first_batch = {{"items", {"response 0", "response 1"}}};
+    const nlohmann::json row2_response = {{"items", {"response 2"}}};
+    const nlohmann::json row3_response = {{"items", {"response 3"}}};
+
+    {
+        ::testing::InSequence sequence;
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 2, ::testing::_, ::testing::_))
+                .Times(2);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .Times(1)
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{
+                        first_batch,
+                        ExceededMaxOutputTokensMarker()}));
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_))
+                .Times(2);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .Times(1)
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{row2_response, row3_response}));
+    }
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() + "("
+                                            "{'model_name': 'gpt-4o', 'batch_size': 2, 'is_async': true}, "
+                                            "{'prompt': 'Summarize', 'context_columns': [{'data': content}]}"
+                                            ") AS result FROM unnest(['row-0', 'row-1', 'row-2', 'row-3']) AS tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 4);
+    for (size_t i = 0; i < 4; i++) {
+        EXPECT_EQ(results->GetValue(0, i).GetValue<std::string>(), "response " + std::to_string(i));
+    }
 }
 
 // Test llm_complete with audio transcription

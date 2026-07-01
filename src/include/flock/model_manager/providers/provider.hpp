@@ -64,4 +64,15 @@ public:
     }
 };
 
+inline constexpr const char* EXCEEDED_MAX_OUTPUT_TOKENS_KEY = "_flock_exceeded_max_output_tokens";
+
+inline nlohmann::json ExceededMaxOutputTokensMarker() {
+    return nlohmann::json{{EXCEEDED_MAX_OUTPUT_TOKENS_KEY, true}};
+}
+
+inline bool IsExceededMaxOutputTokensMarker(const nlohmann::json& response) {
+    return response.is_object() && response.contains(EXCEEDED_MAX_OUTPUT_TOKENS_KEY) &&
+           response[EXCEEDED_MAX_OUTPUT_TOKENS_KEY].get<bool>();
+}
+
 }// namespace flock
