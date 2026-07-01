@@ -201,7 +201,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
             auto response = Complete(batch_tuples, user_prompt, function_type, model);
             NormalizeAndAppendBatchResponse(response, batch_tuples[0]["data"].size(), responses);
             batch_size = configured;
-        } catch (const ExceededMaxOutputTokensError&) {
+        } catch (const TokenLimitExceededError&) {
             start_index -= batch_size;
             const int attempted_batch_size = batch_size;
             batch_size = batch_size / 2;
@@ -248,7 +248,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
         bool collect_threw_token_error = false;
         try {
             batch_responses = attempt_model.CollectCompletions();
-        } catch (const ExceededMaxOutputTokensError&) {
+        } catch (const TokenLimitExceededError&) {
             collect_threw_token_error = true;
         }
 
@@ -267,7 +267,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
 
         for (size_t i = 0; i < current_round.size(); i++) {
             const auto& work = current_round[i];
-            if (IsExceededMaxOutputTokensMarker(batch_responses[i])) {
+            if (IsTokenLimitExceededMarker(batch_responses[i])) {
                 RequeueOrNullFailedBatch(work, row_count, pending, responses);
             } else {
                 WriteBatchResponseToResults(batch_responses[i], work.start_index, work.batch_size, responses);

@@ -125,7 +125,7 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
                     }
                 }
             }
-        } catch (const ExceededMaxOutputTokensError&) {
+        } catch (const TokenLimitExceededError&) {
             start_index -= batch_size;
             batch_size = static_cast<int>(batch_size * 0.9);
             if (batch_size <= 0) {

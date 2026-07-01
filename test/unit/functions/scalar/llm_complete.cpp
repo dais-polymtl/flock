@@ -245,7 +245,7 @@ TEST_F(LLMCompleteTest, Operation_AsyncRetriesWithSmallerBatchOnTokenOverflow) {
             .Times(static_cast<int>(first_attempt_batches + retry_batch_count));
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(2)
-            .WillOnce(::testing::Throw(ExceededMaxOutputTokensError()))
+            .WillOnce(::testing::Throw(TokenLimitExceededError()))
             .WillOnce(::testing::Return(retry_batch_responses));
 
     auto con = Config::GetConnection();
@@ -273,10 +273,10 @@ TEST_F(LLMCompleteTest, Operation_SyncNullsRowAndContinuesAfterTokenOverflowExha
         ::testing::InSequence sequence;
         EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_));
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-                .WillOnce(::testing::Throw(ExceededMaxOutputTokensError()));
+                .WillOnce(::testing::Throw(TokenLimitExceededError()));
         EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_));
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-                .WillOnce(::testing::Throw(ExceededMaxOutputTokensError()));
+                .WillOnce(::testing::Throw(TokenLimitExceededError()));
         EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_));
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
                 .WillOnce(::testing::Return(std::vector<nlohmann::json>{success_response}));
@@ -305,7 +305,7 @@ TEST_F(LLMCompleteTest, Operation_SyncHalvesBatchAndRetriesBeforeSuccess) {
         EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 4, ::testing::_, ::testing::_))
                 .Times(1);
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-                .WillOnce(::testing::Throw(ExceededMaxOutputTokensError()));
+                .WillOnce(::testing::Throw(TokenLimitExceededError()));
         EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 2, ::testing::_, ::testing::_))
                 .Times(1);
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
@@ -335,7 +335,7 @@ TEST_F(LLMCompleteTest, Operation_AsyncReturnsNullWhenTokenOverflowCannotRetry) 
             .Times(2);
     EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
             .Times(1)
-            .WillOnce(::testing::Throw(ExceededMaxOutputTokensError()));
+            .WillOnce(::testing::Throw(TokenLimitExceededError()));
 
     auto con = Config::GetConnection();
     const auto results = con.Query(
@@ -363,7 +363,7 @@ TEST_F(LLMCompleteTest, Operation_AsyncRetriesOnlyFailedBatchesOnTokenOverflow) 
                 .Times(1)
                 .WillOnce(::testing::Return(std::vector<nlohmann::json>{
                         first_batch,
-                        ExceededMaxOutputTokensMarker()}));
+                        TokenLimitExceededMarker()}));
         EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_))
                 .Times(2);
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))

@@ -217,7 +217,7 @@ nlohmann::json LlmRerank::SlidingWindow(nlohmann::json& tuples) {
                 carry_forward_tuples.clear();
             }
 
-        } catch (const ExceededMaxOutputTokensError&) {
+        } catch (const TokenLimitExceededError&) {
             // Retry the current batch with reduced size
             batch_size = static_cast<int>(batch_size * 0.9);
             if (batch_size <= 0) {

@@ -56,7 +56,7 @@ nlohmann::json LlmReduce::ReduceLoop(const nlohmann::json& tuples,
             auto response = ReduceBatch(batch_tuples, function_type, summary);
             batch_tuples.clear();
             summary = nlohmann::json::object({{"Previous Batch Summary", response}});
-        } catch (const ExceededMaxOutputTokensError&) {
+        } catch (const TokenLimitExceededError&) {
             start_index -= batch_size;// Retry the current batch with reduced size
             batch_size = static_cast<int>(batch_size * 0.9);
             if (batch_size <= 0) {
