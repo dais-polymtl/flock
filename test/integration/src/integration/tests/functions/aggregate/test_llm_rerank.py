@@ -184,7 +184,7 @@ def test_llm_rerank_with_batch_processing(integration_setup, model_config):
     assert "ranked_candidates" in result.stdout.lower()
 
 
-def test_llm_rerank_with_model_parameters(integration_setup, model_config):
+def test_llm_rerank_with_model_params(integration_setup, model_config):
     """Test llm_rerank with custom model parameters."""
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
@@ -220,7 +220,7 @@ def test_llm_rerank_with_model_parameters(integration_setup, model_config):
                        {'model_name': '"""
         + test_model_name
         + """', 'tuple_format': 'Markdown',
-                                                            'model_parameters': '{"temperature": 0.1}'},
+                                                            'model_params': '{"temperature": 0.1}'},
             {'prompt': 'Rank these restaurants for a casual dinner considering rating, price, and distance. Prioritize nearby options with good value.', 'context_columns': [{'data': name}, {'data': cuisine}, {'data': rating::VARCHAR}, {'data': price_range}, {'data': distance_km::VARCHAR}]}
         ) AS ranked_restaurants
             FROM restaurant_options; \

@@ -254,7 +254,7 @@ def test_llm_complete_with_model_params(integration_setup, model_config):
         SELECT llm_complete(
             {'model_name': '"""
         + test_model_name
-        + """', 'tuple_format': 'Markdown', 'batch_size': 1, 'model_parameters': '{"temperature": 0}'},
+        + """', 'tuple_format': 'Markdown', 'batch_size': 1, 'model_params': '{"temperature": 0}'},
         {'prompt': 'Briefly, what is the capital of France?'}
     ) AS result;
     """
@@ -322,7 +322,7 @@ def test_llm_complete_with_structured_output_without_table(integration_setup, mo
                 {'model_name': '"""
         + test_model_name
         + """',
-            'model_parameters': '{"""
+            'model_params': '{"""
         + response_format
         + """}'
             },
@@ -418,7 +418,7 @@ def test_llm_complete_with_structured_output_with_table(integration_setup, model
                        llm_complete(
                            {'model_name': '"""
         + test_model_name
-        + """', 'model_parameters': '{"""
+        + """', 'model_params': '{"""
         + response_format
         + """}' },
             {'prompt': 'What is the capital of each country?', 'context_columns': [{'data': name}]}

@@ -11,6 +11,12 @@ namespace flock {
 
 inline constexpr int DEFAULT_BATCH_SIZE = 16;
 
+inline void ValidateBatchSize(int batch_size) {
+    if (batch_size <= 0) {
+        throw std::runtime_error("'batch_size' must be larger than 0");
+    }
+}
+
 struct ModelDetails {
     std::string provider_name;
     std::string model_name;
@@ -18,7 +24,8 @@ struct ModelDetails {
     std::unordered_map<std::string, std::string> secret;
     TupleFormat tuple_format = TupleFormat::XML;
     int batch_size;
-    nlohmann::json model_parameters;
+    nlohmann::json model_params;
+    bool is_async = true;
 };
 
 const std::string OLLAMA = "ollama";

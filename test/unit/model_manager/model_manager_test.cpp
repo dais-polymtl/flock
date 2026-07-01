@@ -37,7 +37,7 @@ TEST_F(ModelManagerTest, ModelInitialization) {
             {"provider", "openai"},
             {"tuple_format", "json"},
             {"batch_size", 32},
-            {"model_parameters", "{\"temperature\": 0.7}"}};
+            {"model_params", "{\"temperature\": 0.7}"}};
 
     EXPECT_NO_THROW({
         Model model(model_config);
@@ -45,9 +45,46 @@ TEST_F(ModelManagerTest, ModelInitialization) {
         EXPECT_EQ(details.model_name, "gpt-4o-test");
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
-        EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
+        EXPECT_EQ(details.model_params, nlohmann::json::parse("{\"temperature\": 0.7}"));
         EXPECT_EQ(details.tuple_format, TupleFormat::JSON);
         EXPECT_EQ(details.batch_size, 32);
+        EXPECT_TRUE(details.is_async);
+    });
+}
+
+TEST_F(ModelManagerTest, ModelInitializationParsesInlineIsAsync) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"model_params", nlohmann::json::object()},
+            {"is_async", true}};
+
+    EXPECT_NO_THROW({
+        Model model(model_config);
+        ModelDetails details = model.GetModelDetails();
+        EXPECT_TRUE(details.is_async);
+        EXPECT_EQ(model.GetModelDetailsAsJson()["is_async"], true);
+    });
+}
+
+TEST_F(ModelManagerTest, ModelInitializationParsesInlineSyncMode) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"model_params", nlohmann::json::object()},
+            {"is_async", false}};
+
+    EXPECT_NO_THROW({
+        Model model(model_config);
+        ModelDetails details = model.GetModelDetails();
+        EXPECT_FALSE(details.is_async);
+        EXPECT_EQ(model.GetModelDetailsAsJson()["is_async"], false);
     });
 }
 
@@ -127,7 +164,7 @@ TEST_F(ModelManagerTest, GetModelDetails) {
             {"model_name", "gpt-4o-test"},
             {"model", "gpt-4o"},
             {"provider", "openai"},
-            {"model_parameters", "{\"temperature\": 0.7}"},
+            {"model_params", "{\"temperature\": 0.7}"},
             {"tuple_format", "XML"},
             {"batch_size", 10}};
 
@@ -137,7 +174,7 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.model_name, "gpt-4o-test");
     EXPECT_EQ(details.model, "gpt-4o");
     EXPECT_EQ(details.provider_name, "openai");
-    EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
+    EXPECT_EQ(details.model_params, nlohmann::json::parse("{\"temperature\": 0.7}"));
     EXPECT_EQ(details.tuple_format, TupleFormat::XML);
     EXPECT_EQ(details.batch_size, 10);
 }

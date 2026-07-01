@@ -174,7 +174,7 @@ def test_llm_last_with_batch_processing(integration_setup, model_config):
     assert "worst_service_provider" in result.stdout.lower()
 
 
-def test_llm_last_with_model_parameters(integration_setup, model_config):
+def test_llm_last_with_model_params(integration_setup, model_config):
     """Test llm_last with custom model parameters."""
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config
@@ -212,7 +212,7 @@ def test_llm_last_with_model_parameters(integration_setup, model_config):
                            {'model_name': '"""
         + test_model_name
         + """', 'tuple_format': 'Markdown',
-                                                          'model_parameters': '{"temperature": 0.1}'},
+                                                          'model_params': '{"temperature": 0.1}'},
             {'prompt': 'Which movie was the biggest disappointment considering its budget and reviews? Return the ID number only.', 'context_columns': [{'data': title}, {'data': genre}, {'data': rating::VARCHAR}, {'data': review}, {'data': box_office::VARCHAR}]}
         ) AS biggest_disappointment
             FROM movie_reviews; \

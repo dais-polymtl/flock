@@ -11,8 +11,8 @@ namespace flock {
 
 namespace {
 
-nlohmann::json ParseModelParametersField(const nlohmann::json& model_json) {
-    const auto& mp = model_json.at("model_parameters");
+nlohmann::json ParseModelParamsField(const nlohmann::json& model_json) {
+    const auto& mp = model_json.at("model_params");
     return mp.is_string() ? nlohmann::json::parse(mp.get<std::string>()) : mp;
 }
 
@@ -92,16 +92,16 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         model_details_.secret = SecretManager::GetSecret(ResolveDefaultSecretName(model_details_.provider_name, model_json));
     }
 
-    if (model_json.contains("model_parameters")) {
-        model_details_.model_parameters = ParseModelParametersField(model_json);
+    if (model_json.contains("model_params")) {
+        model_details_.model_params = ParseModelParamsField(model_json);
     } else if (is_fully_resolved) {
-        model_details_.model_parameters = nlohmann::json::object();
+        model_details_.model_params = nlohmann::json::object();
     } else {
         ensure_db_loaded();
-        if (db_model_args.contains("model_parameters")) {
-            model_details_.model_parameters = db_model_args["model_parameters"];
+        if (db_model_args.contains("model_params")) {
+            model_details_.model_params = db_model_args["model_params"];
         } else {
-            model_details_.model_parameters = nlohmann::json::object();
+            model_details_.model_params = nlohmann::json::object();
         }
     }
 
@@ -129,6 +129,19 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
             model_details_.batch_size = db_model_args.at("batch_size").get<int>();
         } else {
             model_details_.batch_size = DEFAULT_BATCH_SIZE;
+        }
+    }
+
+    if (model_json.contains("is_async")) {
+        model_details_.is_async = model_json.at("is_async").get<bool>();
+    } else if (is_fully_resolved) {
+        model_details_.is_async = true;
+    } else {
+        ensure_db_loaded();
+        if (db_model_args.contains("is_async")) {
+            model_details_.is_async = db_model_args.at("is_async").get<bool>();
+        } else {
+            model_details_.is_async = true;
         }
     }
 }
@@ -205,9 +218,10 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["provider"] = model_details_.provider_name;
     result["tuple_format"] = static_cast<int>(model_details_.tuple_format);
     result["batch_size"] = model_details_.batch_size;
+    result["is_async"] = model_details_.is_async;
     result["secret"] = model_details_.secret;
-    if (!model_details_.model_parameters.empty()) {
-        result["model_parameters"] = model_details_.model_parameters;
+    if (!model_details_.model_params.empty()) {
+        result["model_params"] = model_details_.model_params;
     }
     return result;
 }

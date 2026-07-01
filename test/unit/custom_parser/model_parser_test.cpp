@@ -78,7 +78,7 @@ TEST(ModelParserTest, ParseCreateModelWithoutModelArgsWithCommentAndSemicolon) {
 TEST(ModelParserTest, ParseCreateGlobalModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE GLOBAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}})", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE GLOBAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}})", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -87,14 +87,14 @@ TEST(ModelParserTest, ParseCreateGlobalModel) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "flock_storage.");
 }
 
 TEST(ModelParserTest, ParseCreateGlobalModelWithSemicolon) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE GLOBAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}});", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE GLOBAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}});", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -103,14 +103,14 @@ TEST(ModelParserTest, ParseCreateGlobalModelWithSemicolon) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "flock_storage.");
 }
 
 TEST(ModelParserTest, ParseCreateGlobalModelWithComment) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE GLOBAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}}) -- Global model with args", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE GLOBAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}}) -- Global model with args", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -119,14 +119,14 @@ TEST(ModelParserTest, ParseCreateGlobalModelWithComment) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "flock_storage.");
 }
 
 TEST(ModelParserTest, ParseCreateLocalModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE LOCAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}})", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE LOCAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}})", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -135,14 +135,14 @@ TEST(ModelParserTest, ParseCreateLocalModel) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "");
 }
 
 TEST(ModelParserTest, ParseCreateLocalModelWithSemicolon) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE LOCAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}});", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE LOCAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}});", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -151,14 +151,14 @@ TEST(ModelParserTest, ParseCreateLocalModelWithSemicolon) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "");
 }
 
 TEST(ModelParserTest, ParseCreateLocalModelWithComment) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE LOCAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}}) -- Local model with args", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE LOCAL MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}}) -- Local model with args", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -167,14 +167,14 @@ TEST(ModelParserTest, ParseCreateLocalModelWithComment) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
     EXPECT_EQ(create_stmt->catalog, "");
 }
 
 TEST(ModelParserTest, ParseCreateModelWithArgs) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}})", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}})", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -183,13 +183,13 @@ TEST(ModelParserTest, ParseCreateModelWithArgs) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
 }
 
 TEST(ModelParserTest, ParseCreateModelWithArgsWithSemicolon) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}});", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}});", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -198,13 +198,13 @@ TEST(ModelParserTest, ParseCreateModelWithArgsWithSemicolon) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
 }
 
 TEST(ModelParserTest, ParseCreateModelWithArgsWithComment) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}}) -- Model with parameters", statement));
+    EXPECT_NO_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}}) -- Model with parameters", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -213,13 +213,13 @@ TEST(ModelParserTest, ParseCreateModelWithArgsWithComment) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
 }
 
 TEST(ModelParserTest, ParseCreateModelWithArgsWithCommentBefore) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("-- Create model with configuration\nCREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}})", statement));
+    EXPECT_NO_THROW(parser.Parse("-- Create model with configuration\nCREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}})", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -228,7 +228,7 @@ TEST(ModelParserTest, ParseCreateModelWithArgsWithCommentBefore) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
 }
 
 TEST(ModelParserTest, ParseInvalidCreateModel) {
@@ -246,13 +246,25 @@ TEST(ModelParserTest, ParseInvalidCreateModelWithComment) {
 TEST(ModelParserTest, ParseStringBatchSizeCreateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": \"32\", \"model_parameters\": {\"param1\": \"value1\"}})", statement), std::runtime_error);
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": \"32\", \"model_params\": {\"param1\": \"value1\"}})", statement), std::runtime_error);
 }
 
 TEST(ModelParserTest, ParseStringBatchSizeCreateModelWithComment) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": \"32\", \"model_parameters\": {\"param1\": \"value1\"}}) -- Invalid batch size", statement), std::runtime_error);
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": \"32\", \"model_params\": {\"param1\": \"value1\"}}) -- Invalid batch size", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseZeroBatchSizeCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 0})", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseNegativeBatchSizeCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": -1})", statement), std::runtime_error);
 }
 
 TEST(ModelParserTest, ParseInvalidTupleFormatCreateModel) {
@@ -270,7 +282,7 @@ TEST(ModelParserTest, ParseStringTupleFormatCreateModel) {
 TEST(ModelParserTest, ParseInvalidModelParametersCreateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": \"not-an-object\"})", statement), std::runtime_error);
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": \"not-an-object\"})", statement), std::runtime_error);
 }
 
 TEST(ModelParserTest, ParseCreateModelWithInvalidArgs) {
@@ -397,7 +409,7 @@ TEST(ModelParserTest, ParseUpdateModelWithoutModelArgsWithComment) {
 TEST(ModelParserTest, ParseUpdateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_parameters\": {\"param2\": \"value2\"}})", statement));
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_params\": {\"param2\": \"value2\"}})", statement));
     ASSERT_NE(statement, nullptr);
     const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
@@ -406,13 +418,24 @@ TEST(ModelParserTest, ParseUpdateModel) {
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
     EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
-    EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
+    EXPECT_EQ(update_stmt->new_model_args["model_params"].at("param2"), "value2");
+}
+
+TEST(ModelParserTest, ParseUpdateModelWithIsAsync) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"batch_size\": 16, \"is_async\": true})", statement));
+    ASSERT_NE(statement, nullptr);
+    const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
+    ASSERT_NE(update_stmt, nullptr);
+    EXPECT_EQ(update_stmt->new_model_args["batch_size"], 16);
+    EXPECT_EQ(update_stmt->new_model_args["is_async"], true);
 }
 
 TEST(ModelParserTest, ParseUpdateModelWithSemicolon) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_parameters\": {\"param2\": \"value2\"}});", statement));
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_params\": {\"param2\": \"value2\"}});", statement));
     ASSERT_NE(statement, nullptr);
     const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
@@ -421,13 +444,13 @@ TEST(ModelParserTest, ParseUpdateModelWithSemicolon) {
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
     EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
-    EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
+    EXPECT_EQ(update_stmt->new_model_args["model_params"].at("param2"), "value2");
 }
 
 TEST(ModelParserTest, ParseUpdateModelWithComment) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_parameters\": {\"param2\": \"value2\"}}) -- Update with new args", statement));
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_params\": {\"param2\": \"value2\"}}) -- Update with new args", statement));
     ASSERT_NE(statement, nullptr);
     const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
@@ -436,13 +459,13 @@ TEST(ModelParserTest, ParseUpdateModelWithComment) {
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
     EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
-    EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
+    EXPECT_EQ(update_stmt->new_model_args["model_params"].at("param2"), "value2");
 }
 
 TEST(ModelParserTest, ParseUpdateModelWithCommentBefore) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("-- Update model with new configuration\nUPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_parameters\": {\"param2\": \"value2\"}})", statement));
+    EXPECT_NO_THROW(parser.Parse("-- Update model with new configuration\nUPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_params\": {\"param2\": \"value2\"}})", statement));
     ASSERT_NE(statement, nullptr);
     const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
@@ -451,7 +474,7 @@ TEST(ModelParserTest, ParseUpdateModelWithCommentBefore) {
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
     EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
-    EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
+    EXPECT_EQ(update_stmt->new_model_args["model_params"].at("param2"), "value2");
 }
 
 TEST(ModelParserTest, ParseUpdateModelScopeToGlobal) {
@@ -523,7 +546,7 @@ TEST(ModelParserTest, ParseUpdateModelScopeToLocalWithComment) {
 TEST(ModelParserTest, ParseUpdateModelWithArgs) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_parameters\": {\"param2\": \"value2\"}})", statement));
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_params\": {\"param2\": \"value2\"}})", statement));
     ASSERT_NE(statement, nullptr);
     const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
@@ -532,13 +555,13 @@ TEST(ModelParserTest, ParseUpdateModelWithArgs) {
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
     EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
-    EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
+    EXPECT_EQ(update_stmt->new_model_args["model_params"].at("param2"), "value2");
 }
 
 TEST(ModelParserTest, ParseUpdateModelWithArgsWithSemicolon) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_parameters\": {\"param2\": \"value2\"}});", statement));
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_params\": {\"param2\": \"value2\"}});", statement));
     ASSERT_NE(statement, nullptr);
     const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
@@ -547,13 +570,13 @@ TEST(ModelParserTest, ParseUpdateModelWithArgsWithSemicolon) {
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
     EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
-    EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
+    EXPECT_EQ(update_stmt->new_model_args["model_params"].at("param2"), "value2");
 }
 
 TEST(ModelParserTest, ParseUpdateModelWithArgsWithComment) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_parameters\": {\"param2\": \"value2\"}}) -- Update with args", statement));
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_params\": {\"param2\": \"value2\"}}) -- Update with args", statement));
     ASSERT_NE(statement, nullptr);
     const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
@@ -562,7 +585,7 @@ TEST(ModelParserTest, ParseUpdateModelWithArgsWithComment) {
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
     EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
-    EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
+    EXPECT_EQ(update_stmt->new_model_args["model_params"].at("param2"), "value2");
 }
 
 TEST(ModelParserTest, ParseInvalidUpdateModel) {
@@ -580,13 +603,13 @@ TEST(ModelParserTest, ParseInvalidUpdateModelWithComment) {
 TEST(ModelParserTest, ParseStringBatchSizeUpdateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": \"64\", \"model_parameters\": {\"param2\": \"value2\"}})", statement), std::runtime_error);
+    EXPECT_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": \"64\", \"model_params\": {\"param2\": \"value2\"}})", statement), std::runtime_error);
 }
 
 TEST(ModelParserTest, ParseStringBatchSizeUpdateModelWithComment) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": \"64\", \"model_parameters\": {\"param2\": \"value2\"}}) -- Invalid batch size", statement), std::runtime_error);
+    EXPECT_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": \"64\", \"model_params\": {\"param2\": \"value2\"}}) -- Invalid batch size", statement), std::runtime_error);
 }
 
 /**************************************************
@@ -711,7 +734,7 @@ TEST(ModelParserTest, ParseGetAllModelsWithCommentWithoutSemicolon) {
 TEST(ModelParserTest, ParseCreateModelWithMultipleComments) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("-- Create a new model\n-- This is a test model with configuration\nCREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_parameters\": {\"param1\": \"value1\"}}) -- End comment", statement));
+    EXPECT_NO_THROW(parser.Parse("-- Create a new model\n-- This is a test model with configuration\nCREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 32, \"model_params\": {\"param1\": \"value1\"}}) -- End comment", statement));
     ASSERT_NE(statement, nullptr);
     auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
     ASSERT_NE(create_stmt, nullptr);
@@ -720,13 +743,13 @@ TEST(ModelParserTest, ParseCreateModelWithMultipleComments) {
     EXPECT_EQ(create_stmt->provider_name, "provider");
     EXPECT_EQ(create_stmt->model_args["tuple_format"], static_cast<int>(TupleFormat::JSON));
     EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
-    EXPECT_EQ(create_stmt->model_args["model_parameters"].at("param1"), "value1");
+    EXPECT_EQ(create_stmt->model_args["model_params"].at("param1"), "value1");
 }
 
 TEST(ModelParserTest, ParseUpdateModelWithInlineComment) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
-    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_parameters\": {\"param2\": \"value2\"}}) -- Update with new configuration", statement));
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"tuple_format\": \"xml\", \"batch_size\": 64, \"model_params\": {\"param2\": \"value2\"}}) -- Update with new configuration", statement));
     ASSERT_NE(statement, nullptr);
     const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
     ASSERT_NE(update_stmt, nullptr);
@@ -735,7 +758,7 @@ TEST(ModelParserTest, ParseUpdateModelWithInlineComment) {
     EXPECT_EQ(update_stmt->provider_name, "new_provider");
     EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
-    EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
+    EXPECT_EQ(update_stmt->new_model_args["model_params"].at("param2"), "value2");
 }
 
 TEST(ModelParserTest, ParseDeleteModelWithDetailedComment) {

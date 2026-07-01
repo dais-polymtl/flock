@@ -48,7 +48,7 @@ more details check [OpenAI Structured Output](https://platform.openai.com/docs/g
 ```sql
 {
   'model_name': 'your-model-name',
-  'model_parameters': '{
+  'model_params': '{
     "response_format": {
       "type": "json_schema",
       "json_schema": {
@@ -74,7 +74,7 @@ more details check [OpenAI Structured Output](https://platform.openai.com/docs/g
 SELECT llm_complete(
   {
     'model_name': 'gpt-4o',
-    'model_parameters': '{
+    'model_params': '{
       "response_format": {
         "type": "json_schema",
         "json_schema": {
@@ -108,7 +108,7 @@ WITH product_analysis AS (
     llm_complete(
       {
         'model_name': 'gpt-4o',
-        'model_parameters': '{
+        'model_params': '{
           "response_format": {
             "type": "json_schema",
             "json_schema": {
@@ -158,7 +158,7 @@ Ollama uses the `format` field with an object schema definition to structure res
 ```sql
 {
   'model_name': 'your-model-name',
-  'model_parameters': '{
+  'model_params': '{
     "format": {
       "type": "object",
       "properties": {
@@ -177,7 +177,7 @@ Ollama uses the `format` field with an object schema definition to structure res
 SELECT llm_complete(
   {
     'model_name': 'llama3.1',
-    'model_parameters': '{
+    'model_params': '{
       "format": {
         "type": "object",
         "properties": {
@@ -205,7 +205,7 @@ WITH content_generation AS (
     llm_complete(
       {
         'model_name': 'ollama-writer',
-        'model_parameters': '{
+        'model_params': '{
           "format": {
             "type": "object",
             "properties": {
@@ -247,7 +247,7 @@ Structured output works with aggregate functions like `llm_reduce`:
 SELECT llm_reduce(
   {
     'model_name': 'gpt-4o',
-    'model_parameters': '{
+    'model_params': '{
       "response_format": {
         "type": "json_schema",
         "json_schema": {

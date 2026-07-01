@@ -1,6 +1,7 @@
 #include "flock/functions/input_parser.hpp"
 
 #include "duckdb/common/operator/cast_operators.hpp"
+#include "flock/model_manager/repository.hpp"
 
 namespace flock {
 
@@ -81,7 +82,14 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
                 if (value.GetTypeMutable() != duckdb::LogicalType::INTEGER) {
                     throw std::runtime_error("Expected 'batch_size' to be an integer.");
                 }
-                struct_json[key] = value.GetValue<int>();
+                const int batch_size = value.GetValue<int>();
+                ValidateBatchSize(batch_size);
+                struct_json[key] = batch_size;
+            } else if (key == "is_async") {
+                if (value.GetTypeMutable().id() != duckdb::LogicalTypeId::BOOLEAN) {
+                    throw std::runtime_error("Expected 'is_async' to be a boolean.");
+                }
+                struct_json[key] = value.GetValue<bool>();
             } else {
                 struct_json[key] = value.ToString();
             }
@@ -111,7 +119,13 @@ nlohmann::json CastValueToJson(const duckdb::Value& value) {
                 if (child_value.type().id() == duckdb::LogicalTypeId::STRUCT) {
                     result[key] = CastValueToJson(child_value);
                 } else if (child_value.type().id() == duckdb::LogicalTypeId::INTEGER) {
-                    result[key] = child_value.GetValue<int>();
+                    const int int_value = child_value.GetValue<int>();
+                    if (key == "batch_size") {
+                        ValidateBatchSize(int_value);
+                    }
+                    result[key] = int_value;
+                } else if (child_value.type().id() == duckdb::LogicalTypeId::BOOLEAN) {
+                    result[key] = child_value.GetValue<bool>();
                 } else {
                     result[key] = child_value.ToString();
                 }

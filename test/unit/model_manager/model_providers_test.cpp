@@ -17,7 +17,7 @@ TEST(ModelProvidersTest, OpenAIProviderTest) {
     model_details.model_name = "test_model";
     model_details.model = "gpt-4";
     model_details.provider_name = "openai";
-    model_details.model_parameters = {{"temperature", 0.7}};
+    model_details.model_params = {{"temperature", 0.7}};
     model_details.secret = {{"api_key", "test_api_key"}};
 
     // Create a mock provider
@@ -59,7 +59,7 @@ TEST(ModelProvidersTest, AzureProviderTest) {
     model_details.model_name = "test_model";
     model_details.model = "gpt-4";
     model_details.provider_name = "azure";
-    model_details.model_parameters = {{"temperature", 0.7}};
+    model_details.model_params = {{"temperature", 0.7}};
     model_details.secret = {
             {"api_key", "test_api_key"},
             {"resource_name", "test_resource"},
@@ -104,7 +104,7 @@ TEST(ModelProvidersTest, OllamaProviderTest) {
     model_details.model_name = "test_model";
     model_details.model = "gemma3:4b";
     model_details.provider_name = "ollama";
-    model_details.model_parameters = {{"temperature", 0.7}};
+    model_details.model_params = {{"temperature", 0.7}};
     model_details.secret = {{"api_url", "http://localhost:11434"}};
 
     // Create a mock provider
@@ -161,7 +161,7 @@ TEST(ModelProvidersTest, OllamaProviderTranscriptionError) {
     model_details.model_name = "test_model";
     model_details.model = "gemma3:4b";
     model_details.provider_name = "ollama";
-    model_details.model_parameters = {{"temperature", 0.7}};
+    model_details.model_params = {{"temperature", 0.7}};
     model_details.secret = {{"api_url", "http://localhost:11434"}};
 
     OllamaProvider provider(model_details);
@@ -177,7 +177,7 @@ TEST(ModelProvidersTest, TranscriptionWithMultipleFiles) {
     model_details.model_name = "test_model";
     model_details.model = "gpt-4o-transcribe";
     model_details.provider_name = "openai";
-    model_details.model_parameters = {};
+    model_details.model_params = {};
     model_details.secret = {{"api_key", "test_api_key"}};
 
     MockProvider mock_provider(model_details);
@@ -209,7 +209,7 @@ TEST(ModelProvidersTest, AnthropicProviderTest) {
     model_details.model_name = "test_model";
     model_details.model = "claude-3-haiku-20240307";
     model_details.provider_name = "anthropic";
-    model_details.model_parameters = {{"temperature", 0.7}, {"max_tokens", 1024}};
+    model_details.model_params = {{"temperature", 0.7}, {"max_tokens", 1024}};
     model_details.secret = {{"api_key", "test_api_key"}, {"api_version", ANTHROPIC_DEFAULT_API_VERSION}};
 
     // Create a mock provider
@@ -237,7 +237,7 @@ TEST(ModelProvidersTest, AnthropicProviderEmbeddingErrorTest) {
     model_details.model_name = "test_model";
     model_details.model = "claude-3-haiku-20240307";
     model_details.provider_name = "anthropic";
-    model_details.model_parameters = {{"temperature", 0.7}, {"max_tokens", 1024}};
+    model_details.model_params = {{"temperature", 0.7}, {"max_tokens", 1024}};
     model_details.secret = {{"api_key", "test_api_key"}, {"api_version", ANTHROPIC_DEFAULT_API_VERSION}};
 
     // Create actual provider (not mock) to test embedding error

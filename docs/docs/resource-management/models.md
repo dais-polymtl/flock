@@ -23,7 +23,28 @@ Models are stored in a table with the following structure:
 | **Model Name**      | Unique identifier for the model                                                                                                                                                                                                                   |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                                                                                                                                                                                     |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`)                                                                                                                                                                                           |
-| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, and `model_parameters` (which itself is a JSON object for all model params) are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. |
+| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `model_params`, and `is_async` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **batch_size** must be greater than 0. **model_params** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. |
+
+### `is_async`
+
+`is_async` applies to `llm_complete` and `llm_filter`. When `true` (the default), all batches are queued in parallel and responses are collected in a single call. When `false`, batches are processed one at a time synchronously.
+
+```sql
+-- Default: async batching
+CREATE MODEL('async-model', 'gpt-4o', 'openai', {"batch_size": 16});
+
+-- Explicit synchronous batching
+CREATE MODEL('sync-model', 'gpt-4o', 'openai', {"batch_size": 16, "is_async": false});
+```
+
+You can also pass `is_async` inline when calling a function:
+
+```sql
+SELECT llm_complete(
+    {'model_name': 'gpt-4o', 'is_async': false},
+    {'prompt': 'Summarize', 'context_columns': [{'data': text}]}
+) FROM my_table;
+```
 
 ## 2. Management Commands
 
@@ -44,7 +65,7 @@ MODEL 'model_name';
 - Create a new user-defined model
 
 ```sql
--- User-defined model (only tuple_format, batch_size, and model_parameters allowed in JSON)
+-- User-defined model (only tuple_format, batch_size, model_params, and is_async allowed in JSON)
 -- tuple_format can be "JSON", "XML", or "Markdown"
 CREATE
 MODEL(
@@ -54,10 +75,11 @@ MODEL(
     {
         "tuple_format": "JSON",
         "batch_size": 8,
-        "model_parameters": {
+        "model_params": {
             "temperature": 0.2,
             "top_p": 0.95
-        }
+        },
+        "is_async": true
     }
 );
 CREATE
@@ -68,7 +90,7 @@ MODEL(
     {
         "tuple_format": "XML",
         "batch_size": 8,
-        "model_parameters": {
+        "model_params": {
             "n": 3,
             "frequency_penalty": 0.1
         }
@@ -103,10 +125,11 @@ UPDATE MODEL(
     {
         "tuple_format": "JSON",
         "batch_size": 8,
-        "model_parameters": {
+        "model_params": {
             "temperature": 0.2,
             "top_p": 0.95
-        }
+        },
+        "is_async": true
     }
 );
 UPDATE MODEL(
@@ -116,7 +139,7 @@ UPDATE MODEL(
     {
         "tuple_format": "XML",
         "batch_size": 8,
-        "model_parameters": {
+        "model_params": {
             "n": 3,
             "frequency_penalty": 0.1
         }
@@ -160,7 +183,7 @@ CREATE GLOBAL MODEL
     :
     "JSON",
     "batch_size": 8,
-    "model_parameters": {
+    "model_params": {
             "temperature": 0.2,
     "top_p": 0.95
         }
@@ -192,7 +215,7 @@ CREATE LOCAL MODEL(
     {
         "tuple_format": "JSON",
         "batch_size": 8,
-        "model_parameters": {
+        "model_params": {
             "temperature": 0.2
         }
     }
@@ -203,7 +226,7 @@ CREATE LOCAL MODEL
     {
         "tuple_format": "XML",
         "batch_size": 8,
-        "model_parameters": {
+        "model_params": {
             "n": 3
         }
     }
@@ -214,7 +237,7 @@ CREATE LOCAL MODEL
     {
         "tuple_format": "Markdown",
         "batch_size": 8,
-        "model_parameters": {
+        "model_params": {
             "top_p": 0.95
         }
     }
@@ -233,7 +256,7 @@ MODEL(
     {
         "tuple_format": "JSON",
         "batch_size": 8,
-        "model_parameters": {
+        "model_params": {
             "temperature": 0.2
         }
     }
@@ -246,7 +269,7 @@ MODEL(
     {
         "tuple_format": "XML",
         "batch_size": 8,
-        "model_parameters": {
+        "model_params": {
             "n": 3
         }
     }
@@ -259,7 +282,7 @@ MODEL(
     {
         "tuple_format": "Markdown",
         "batch_size": 8,
-        "model_parameters": {
+        "model_params": {
             "top_p": 0.95
         }
     }

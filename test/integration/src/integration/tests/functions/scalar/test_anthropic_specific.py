@@ -73,7 +73,7 @@ def test_anthropic_with_system_prompt(integration_setup):
         '{test_model_name}',
         'claude-3-haiku-20240307',
         'anthropic',
-        {{'model_parameters': {{'system': 'You are a helpful math tutor.', 'max_tokens': 100}}}}
+        {{'model_params': {{'system': 'You are a helpful math tutor.', 'max_tokens': 100}}}}
     );
     """
     result = run_cli(duckdb_cli_path, db_path, create_model_query)
@@ -94,7 +94,7 @@ def test_anthropic_with_system_prompt(integration_setup):
     assert "4" in result.stdout
 
 
-def test_anthropic_model_parameters(integration_setup):
+def test_anthropic_model_params(integration_setup):
     """Test Anthropic completion with custom model parameters."""
     duckdb_cli_path, db_path = integration_setup
 
@@ -104,7 +104,7 @@ def test_anthropic_model_parameters(integration_setup):
         '{test_model_name}',
         'claude-3-haiku-20240307',
         'anthropic',
-        {{'model_parameters': {{'temperature': 0, 'max_tokens': 50}}}}
+        {{'model_params': {{'temperature': 0, 'max_tokens': 50}}}}
     );
     """
     result = run_cli(duckdb_cli_path, db_path, create_model_query)
@@ -134,7 +134,7 @@ def test_anthropic_image_with_url(integration_setup):
         '{test_model_name}',
         'claude-3-haiku-20240307',
         'anthropic',
-        {{'model_parameters': {{'max_tokens': 256}}}}
+        {{'model_params': {{'max_tokens': 256}}}}
     );
     """
     result = run_cli(duckdb_cli_path, db_path, create_model_query)
