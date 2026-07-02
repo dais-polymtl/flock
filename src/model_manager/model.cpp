@@ -131,6 +131,22 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
             model_details_.batch_size = DEFAULT_BATCH_SIZE;
         }
     }
+    if (model_details_.batch_size <= 0) {
+        throw std::runtime_error("'batch_size' must be larger than 0");
+    }
+
+    if (model_json.contains("is_async")) {
+        model_details_.is_async = model_json.at("is_async").get<bool>();
+    } else if (is_fully_resolved) {
+        model_details_.is_async = true;
+    } else {
+        ensure_db_loaded();
+        if (db_model_args.contains("is_async")) {
+            model_details_.is_async = db_model_args.at("is_async").get<bool>();
+        } else {
+            model_details_.is_async = true;
+        }
+    }
 }
 
 std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedModel(const std::string& model_name) {
@@ -205,6 +221,7 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["provider"] = model_details_.provider_name;
     result["tuple_format"] = static_cast<int>(model_details_.tuple_format);
     result["batch_size"] = model_details_.batch_size;
+    result["is_async"] = model_details_.is_async;
     result["secret"] = model_details_.secret;
     if (!model_details_.model_parameters.empty()) {
         result["model_parameters"] = model_details_.model_parameters;

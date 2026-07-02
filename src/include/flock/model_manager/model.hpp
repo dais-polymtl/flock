@@ -17,10 +17,6 @@
 
 namespace flock {
 
-enum class ExecutionMode {
-    SYNC,
-    ASYNC
-};
 
 class Model {
 public:

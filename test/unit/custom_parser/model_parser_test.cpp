@@ -255,6 +255,18 @@ TEST(ModelParserTest, ParseStringBatchSizeCreateModelWithComment) {
     EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": \"32\", \"model_parameters\": {\"param1\": \"value1\"}}) -- Invalid batch size", statement), std::runtime_error);
 }
 
+TEST(ModelParserTest, ParseZeroBatchSizeCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": 0})", statement), std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseNegativeBatchSizeCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": -1})", statement), std::runtime_error);
+}
+
 TEST(ModelParserTest, ParseInvalidTupleFormatCreateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
@@ -407,6 +419,17 @@ TEST(ModelParserTest, ParseUpdateModel) {
     EXPECT_EQ(update_stmt->new_model_args["tuple_format"], static_cast<int>(TupleFormat::XML));
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
     EXPECT_EQ(update_stmt->new_model_args["model_parameters"].at("param2"), "value2");
+}
+
+TEST(ModelParserTest, ParseUpdateModelWithIsAsync) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse("UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"batch_size\": 16, \"is_async\": true})", statement));
+    ASSERT_NE(statement, nullptr);
+    const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
+    ASSERT_NE(update_stmt, nullptr);
+    EXPECT_EQ(update_stmt->new_model_args["batch_size"], 16);
+    EXPECT_EQ(update_stmt->new_model_args["is_async"], true);
 }
 
 TEST(ModelParserTest, ParseUpdateModelWithSemicolon) {

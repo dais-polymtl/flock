@@ -174,7 +174,7 @@ def test_llm_last_with_batch_processing(integration_setup, model_config):
     assert "worst_service_provider" in result.stdout.lower()
 
 
-def test_llm_last_with_model_parameters(integration_setup, model_config):
+def test_llm_last_with_model_params(integration_setup, model_config):
     """Test llm_last with custom model parameters."""
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config

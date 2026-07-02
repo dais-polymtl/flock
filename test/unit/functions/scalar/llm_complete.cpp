@@ -160,7 +160,7 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     // Generate a large dataset using DuckDB's range function
     auto query = "SELECT " + GetFunctionName() +
-                 "({'model_name': 'gpt-4o'}, " +
+                 "({'model_name': 'gpt-4o', 'is_async': false}, " +
                  "{'prompt': 'Summarize the following text', " +
                  " 'context_columns': [{'data': 'Input text ' || i::VARCHAR}]}) AS result " +
                  "FROM range(" + std::to_string(input_count) + ") AS t(i);";
@@ -175,6 +175,234 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
         auto result_value = results->GetValue(0, i).GetValue<std::string>();
         auto expected_value = expected_response["items"][i].get<std::string>();
         EXPECT_EQ(result_value, expected_value);
+    }
+}
+
+TEST_F(LLMCompleteTest, Operation_AsyncLargeInputSet_CollectsOnceAndPreservesOrder) {
+    constexpr size_t input_count = 100;
+
+    const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
+    std::vector<nlohmann::json> batch_responses;
+    for (size_t start_index = 0; start_index < input_count; start_index += DEFAULT_BATCH_SIZE) {
+        const auto batch_count = std::min<size_t>(DEFAULT_BATCH_SIZE, input_count - start_index);
+        batch_responses.push_back(PrepareExpectedResponseRange(start_index, batch_count));
+    }
+
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(static_cast<int>(batch_responses.size()));
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .Times(1)
+            .WillOnce(::testing::Return(batch_responses));
+
+    auto con = Config::GetConnection();
+    auto query = "SELECT " + GetFunctionName() +
+                 "({'model_name': 'gpt-4o', 'is_async': true}, " +
+                 "{'prompt': 'Summarize the following text', " +
+                 " 'context_columns': [{'data': 'Input text ' || i::VARCHAR}]}) AS result " +
+                 "FROM range(" + std::to_string(input_count) + ") AS t(i);";
+
+    const auto results = con.Query(query);
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), input_count);
+
+    for (size_t i = 0; i < input_count; i++) {
+        auto result_value = results->GetValue(0, i).GetValue<std::string>();
+        auto expected_value = expected_response["items"][i].get<std::string>();
+        EXPECT_EQ(result_value, expected_value);
+    }
+}
+
+TEST_F(LLMCompleteTest, Operation_AsyncRetriesWithSmallerBatchOnTokenOverflow) {
+    constexpr size_t input_count = 100;
+
+    const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
+    const auto first_attempt_batches = (input_count + DEFAULT_BATCH_SIZE - 1) / DEFAULT_BATCH_SIZE;
+    const auto retry_batch_count = first_attempt_batches * 2;
+
+    std::vector<nlohmann::json> retry_batch_responses;
+    const std::vector<std::pair<size_t, size_t>> retry_batches = {
+            {0, 8},
+            {8, 8},
+            {16, 8},
+            {24, 8},
+            {32, 8},
+            {40, 8},
+            {48, 8},
+            {56, 8},
+            {64, 8},
+            {72, 8},
+            {80, 8},
+            {88, 8},
+            {96, 2},
+            {98, 2},
+    };
+    for (const auto& [start_index, batch_count]: retry_batches) {
+        retry_batch_responses.push_back(PrepareExpectedResponseRange(start_index, batch_count));
+    }
+
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(static_cast<int>(first_attempt_batches + retry_batch_count));
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .Times(2)
+            .WillOnce(::testing::Throw(TokenLimitExceededError()))
+            .WillOnce(::testing::Return(retry_batch_responses));
+
+    auto con = Config::GetConnection();
+    auto query = "SELECT " + GetFunctionName() +
+                 "({'model_name': 'gpt-4o', 'is_async': true}, " +
+                 "{'prompt': 'Summarize the following text', " +
+                 " 'context_columns': [{'data': 'Input text ' || i::VARCHAR}]}) AS result " +
+                 "FROM range(" + std::to_string(input_count) + ") AS t(i);";
+
+    const auto results = con.Query(query);
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), input_count);
+    for (size_t i = 0; i < input_count; i++) {
+        auto result_value = results->GetValue(0, i).GetValue<std::string>();
+        auto expected_value = expected_response["items"][i].get<std::string>();
+        EXPECT_EQ(result_value, expected_value);
+    }
+}
+
+TEST_F(LLMCompleteTest, Operation_SyncNullsRowAndContinuesAfterTokenOverflowExhaustion) {
+    const nlohmann::json success_response = {{"items", {"response 2"}}};
+
+    {
+        ::testing::InSequence sequence;
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_));
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Throw(TokenLimitExceededError()));
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_));
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Throw(TokenLimitExceededError()));
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_));
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{success_response}));
+    }
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() + "("
+                                            "{'model_name': 'gpt-4o', 'batch_size': 1, 'is_async': false}, "
+                                            "{'prompt': 'Summarize', 'context_columns': [{'data': content}]}"
+                                            ") AS result FROM unnest(['row-0', 'row-1', 'row-2']) AS tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 3);
+    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "null");
+    EXPECT_EQ(results->GetValue(0, 1).GetValue<std::string>(), "null");
+    EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "response 2");
+}
+
+TEST_F(LLMCompleteTest, Operation_SyncHalvesBatchAndRetriesBeforeSuccess) {
+    nlohmann::json first_half_response = {{"items", {"response 0", "response 1"}}};
+    nlohmann::json second_half_response = {{"items", {"response 2", "response 3"}}};
+
+    {
+        ::testing::InSequence sequence;
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 4, ::testing::_, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Throw(TokenLimitExceededError()));
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 2, ::testing::_, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{first_half_response}));
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 2, ::testing::_, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{second_half_response}));
+    }
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() + "("
+                                            "{'model_name': 'gpt-4o', 'batch_size': 4, 'is_async': false}, "
+                                            "{'prompt': 'Summarize', 'context_columns': [{'data': content}]}"
+                                            ") AS result FROM unnest(['row-0', 'row-1', 'row-2', 'row-3']) AS tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 4);
+    for (size_t i = 0; i < 4; i++) {
+        EXPECT_EQ(results->GetValue(0, i).GetValue<std::string>(), "response " + std::to_string(i));
+    }
+}
+
+TEST_F(LLMCompleteTest, Operation_AsyncReturnsNullWhenTokenOverflowCannotRetry) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_))
+            .Times(2);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .Times(1)
+            .WillOnce(::testing::Throw(TokenLimitExceededError()));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() + "("
+                                            "{'model_name': 'gpt-4o', 'batch_size': 1, 'is_async': true}, "
+                                            "{'prompt': 'Summarize', 'context_columns': [{'data': content}]}"
+                                            ") AS result FROM unnest(['row-0', 'row-1']) AS tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 2);
+    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "null");
+    EXPECT_EQ(results->GetValue(0, 1).GetValue<std::string>(), "null");
+}
+
+TEST_F(LLMCompleteTest, Operation_AsyncNullsTailBatchWhenTokenOverflowCannotRetry) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(4);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .Times(2)
+            .WillRepeatedly(::testing::Throw(TokenLimitExceededError()));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() + "("
+                                            "{'model_name': 'gpt-4o', 'batch_size': 2, 'is_async': true}, "
+                                            "{'prompt': 'Summarize', 'context_columns': [{'data': content}]}"
+                                            ") AS result FROM unnest(['row-0', 'row-1', 'row-2']) AS tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 3);
+    for (size_t i = 0; i < 3; i++) {
+        EXPECT_EQ(results->GetValue(0, i).GetValue<std::string>(), "null");
+    }
+}
+
+TEST_F(LLMCompleteTest, Operation_AsyncRetriesOnlyFailedBatchesOnTokenOverflow) {
+    const nlohmann::json first_batch = {{"items", {"response 0", "response 1"}}};
+    const nlohmann::json row2_response = {{"items", {"response 2"}}};
+    const nlohmann::json row3_response = {{"items", {"response 3"}}};
+
+    {
+        ::testing::InSequence sequence;
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 2, ::testing::_, ::testing::_))
+                .Times(2);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .Times(1)
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{
+                        first_batch,
+                        TokenLimitExceededMarker()}));
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 1, ::testing::_, ::testing::_))
+                .Times(2);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .Times(1)
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{row2_response, row3_response}));
+    }
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() + "("
+                                            "{'model_name': 'gpt-4o', 'batch_size': 2, 'is_async': true}, "
+                                            "{'prompt': 'Summarize', 'context_columns': [{'data': content}]}"
+                                            ") AS result FROM unnest(['row-0', 'row-1', 'row-2', 'row-3']) AS tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 4);
+    for (size_t i = 0; i < 4; i++) {
+        EXPECT_EQ(results->GetValue(0, i).GetValue<std::string>(), "response " + std::to_string(i));
     }
 }
 
