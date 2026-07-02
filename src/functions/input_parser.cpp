@@ -1,7 +1,6 @@
 #include "flock/functions/input_parser.hpp"
 
 #include "duckdb/common/operator/cast_operators.hpp"
-#include "flock/model_manager/repository.hpp"
 
 namespace flock {
 
@@ -83,7 +82,9 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
                     throw std::runtime_error("Expected 'batch_size' to be an integer.");
                 }
                 const int batch_size = value.GetValue<int>();
-                ValidateBatchSize(batch_size);
+                if (batch_size <= 0) {
+                    throw std::runtime_error("'batch_size' must be larger than 0");
+                }
                 struct_json[key] = batch_size;
             } else if (key == "is_async") {
                 if (value.GetTypeMutable().id() != duckdb::LogicalTypeId::BOOLEAN) {
@@ -120,8 +121,8 @@ nlohmann::json CastValueToJson(const duckdb::Value& value) {
                     result[key] = CastValueToJson(child_value);
                 } else if (child_value.type().id() == duckdb::LogicalTypeId::INTEGER) {
                     const int int_value = child_value.GetValue<int>();
-                    if (key == "batch_size") {
-                        ValidateBatchSize(int_value);
+                    if (key == "batch_size" && int_value <= 0) {
+                        throw std::runtime_error("'batch_size' must be larger than 0");
                     }
                     result[key] = int_value;
                 } else if (child_value.type().id() == duckdb::LogicalTypeId::BOOLEAN) {

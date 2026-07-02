@@ -205,7 +205,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
             start_index -= batch_size;
             const int attempted_batch_size = batch_size;
             batch_size = batch_size / 2;
-            if (batch_size <= 0) {
+            if (batch_size == 0) {
                 const int remaining = row_count - start_index;
                 const int rows_to_null = std::min<int>(attempted_batch_size, remaining);
                 for (int i = 0; i < rows_to_null; i++) {

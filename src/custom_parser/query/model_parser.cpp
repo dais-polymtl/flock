@@ -3,7 +3,6 @@
 #include "flock/core/common.hpp"
 #include "flock/core/config.hpp"
 #include "flock/custom_parser/query_parser.hpp"
-#include "flock/model_manager/repository.hpp"
 #include "flock/prompt_manager/repository.hpp"
 #include <sstream>
 #include <stdexcept>
@@ -26,7 +25,9 @@ void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& ke
             throw std::runtime_error("Expected 'batch_size' to be an integer.");
         }
         const int batch_size = value.get<int>();
-        ValidateBatchSize(batch_size);
+        if (batch_size <= 0) {
+            throw std::runtime_error("'batch_size' must be larger than 0");
+        }
 
         model_args[key] = batch_size;
         return;
