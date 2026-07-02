@@ -223,7 +223,7 @@ def test_llm_reduce_with_batch_processing(integration_setup, model_config):
     assert len(lines) >= 2, "Expected at least header and one result row"
 
 
-def test_llm_reduce_with_model_parameters(integration_setup, model_config):
+def test_llm_reduce_with_model_params(integration_setup, model_config):
     """Test llm_reduce with custom model parameters."""
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config

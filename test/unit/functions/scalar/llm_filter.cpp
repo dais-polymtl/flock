@@ -154,7 +154,7 @@ TEST_F(LLMFilterTest, Operation_DefaultBatchSizeSplitsLargeInput) {
     auto con = Config::GetConnection();
     const auto results = con.Query(
             "SELECT " + GetFunctionName() + "("
-                                            "{'model_name': 'gpt-4o'}, "
+                                            "{'model_name': 'gpt-4o', 'is_async': false}, "
                                             "{'prompt': 'Is this content relevant?', 'context_columns': [{'data': content}]}"
                                             ") AS result FROM range(" +
             std::to_string(input_count) + ") AS t(i), unnest(['Content item ' || i::VARCHAR]) AS tbl(content);");
@@ -163,6 +163,54 @@ TEST_F(LLMFilterTest, Operation_DefaultBatchSizeSplitsLargeInput) {
     ASSERT_EQ(results->RowCount(), input_count);
     EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
     EXPECT_EQ(results->GetValue(0, DEFAULT_BATCH_SIZE).GetValue<std::string>(), "false");
+}
+
+TEST_F(LLMFilterTest, Operation_AsyncQueuesBooleanBatchesBeforeSingleCollect) {
+    const size_t input_count = (DEFAULT_BATCH_SIZE * 2) + 3;
+
+    std::vector<bool> expected_results;
+    expected_results.reserve(input_count);
+    for (size_t i = 0; i < input_count; i++) {
+        expected_results.push_back(i % 3 == 0);
+    }
+
+    std::vector<nlohmann::json> batch_responses;
+    for (size_t start_index = 0; start_index < input_count; start_index += DEFAULT_BATCH_SIZE) {
+        nlohmann::json batch_response = {{"items", {}}};
+        const auto batch_count = std::min<size_t>(DEFAULT_BATCH_SIZE, input_count - start_index);
+        for (size_t i = 0; i < batch_count; i++) {
+            batch_response["items"].push_back(expected_results[start_index + i]);
+        }
+        batch_responses.push_back(batch_response);
+    }
+
+    {
+        ::testing::InSequence sequence;
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, DEFAULT_BATCH_SIZE, OutputType::BOOL, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, DEFAULT_BATCH_SIZE, OutputType::BOOL, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 3, OutputType::BOOL, ::testing::_))
+                .Times(1);
+        EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+                .Times(1)
+                .WillOnce(::testing::Return(batch_responses));
+    }
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() + "("
+                                            "{'model_name': 'gpt-4o', 'is_async': true}, "
+                                            "{'prompt': 'Is this content relevant?', 'context_columns': [{'data': content}]}"
+                                            ") AS result FROM range(" +
+            std::to_string(input_count) + ") AS t(i), unnest(['Content item ' || i::VARCHAR]) AS tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), input_count);
+    for (size_t i = 0; i < input_count; i++) {
+        const auto expected_value = expected_results[i] ? "true" : "false";
+        EXPECT_EQ(results->GetValue(0, i).GetValue<std::string>(), expected_value);
+    }
 }
 
 // Test llm_filter with audio transcription

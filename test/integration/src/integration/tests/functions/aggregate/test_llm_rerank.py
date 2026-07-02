@@ -184,7 +184,7 @@ def test_llm_rerank_with_batch_processing(integration_setup, model_config):
     assert "ranked_candidates" in result.stdout.lower()
 
 
-def test_llm_rerank_with_model_parameters(integration_setup, model_config):
+def test_llm_rerank_with_model_params(integration_setup, model_config):
     """Test llm_rerank with custom model parameters."""
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config

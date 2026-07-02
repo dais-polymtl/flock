@@ -75,12 +75,13 @@ protected:
             if (response.contains("error") && response["error"].contains("message")) {
                 error_msg = response["error"]["message"].get<std::string>();
             }
+            ThrowIfTokenLimitProviderError(error_msg);
             throw std::runtime_error("Anthropic API error: " + error_msg);
         }
         if (response.contains("stop_reason") && !response["stop_reason"].is_null()) {
             std::string stop_reason = response["stop_reason"].get<std::string>();
             if (stop_reason == "max_tokens") {
-                throw ExceededMaxOutputTokensError();
+                throw TokenLimitExceededError();
             }
             if (stop_reason != "end_turn" && stop_reason != "stop_sequence" && stop_reason != "tool_use") {
                 throw std::runtime_error("Anthropic API unexpected stop_reason: " + stop_reason);
