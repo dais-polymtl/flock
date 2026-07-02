@@ -75,19 +75,19 @@ void WriteBatchResponseToResults(const nlohmann::json& batch_response,
     }
 }
 
-void NullBatchRows(int start_index, int row_count, int rows_to_null, nlohmann::json& responses) {
-    for (int j = 0; j < rows_to_null && start_index + j < row_count; j++) {
-        responses[start_index + j] = nullptr;
+void NullBatchRows(int start_index, int rows_to_null, nlohmann::json& responses) {
+    const int end_index = start_index + rows_to_null;
+    for (int i = start_index; i < end_index; i++) {
+        responses[i] = nullptr;
     }
 }
 
-void RequeueOrNullFailedBatch(const AsyncBatchWork& work,
-                              int row_count,
-                              std::vector<AsyncBatchWork>& pending,
-                              nlohmann::json& responses) {
+void RetryOrSetOutputToNull(const AsyncBatchWork& work,
+                            std::vector<AsyncBatchWork>& pending,
+                            nlohmann::json& responses) {
     const int new_batch_size = work.batch_size / 2;
-    if (new_batch_size <= 0) {
-        NullBatchRows(work.start_index, row_count, work.batch_size, responses);
+    if (new_batch_size == 0) {
+        NullBatchRows(work.start_index, work.batch_size, responses);
         return;
     }
 
@@ -254,7 +254,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
 
         if (collect_threw_token_error) {
             for (const auto& work: current_round) {
-                RequeueOrNullFailedBatch(work, row_count, pending, responses);
+                RetryOrSetOutputToNull(work, pending, responses);
             }
             continue;
         }
@@ -268,7 +268,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
         for (size_t i = 0; i < current_round.size(); i++) {
             const auto& work = current_round[i];
             if (IsTokenLimitExceededMarker(batch_responses[i])) {
-                RequeueOrNullFailedBatch(work, row_count, pending, responses);
+                RetryOrSetOutputToNull(work, pending, responses);
             } else {
                 WriteBatchResponseToResults(batch_responses[i], work.start_index, work.batch_size, responses);
             }

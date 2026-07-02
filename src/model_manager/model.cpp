@@ -131,6 +131,9 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
             model_details_.batch_size = DEFAULT_BATCH_SIZE;
         }
     }
+    if (model_details_.batch_size <= 0) {
+        throw std::runtime_error("'batch_size' must be larger than 0");
+    }
 
     if (model_json.contains("is_async")) {
         model_details_.is_async = model_json.at("is_async").get<bool>();

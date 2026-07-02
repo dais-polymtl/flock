@@ -350,6 +350,27 @@ TEST_F(LLMCompleteTest, Operation_AsyncReturnsNullWhenTokenOverflowCannotRetry) 
     EXPECT_EQ(results->GetValue(0, 1).GetValue<std::string>(), "null");
 }
 
+TEST_F(LLMCompleteTest, Operation_AsyncNullsTailBatchWhenTokenOverflowCannotRetry) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(4);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .Times(2)
+            .WillRepeatedly(::testing::Throw(TokenLimitExceededError()));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query(
+            "SELECT " + GetFunctionName() + "("
+                                            "{'model_name': 'gpt-4o', 'batch_size': 2, 'is_async': true}, "
+                                            "{'prompt': 'Summarize', 'context_columns': [{'data': content}]}"
+                                            ") AS result FROM unnest(['row-0', 'row-1', 'row-2']) AS tbl(content);");
+
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 3);
+    for (size_t i = 0; i < 3; i++) {
+        EXPECT_EQ(results->GetValue(0, i).GetValue<std::string>(), "null");
+    }
+}
+
 TEST_F(LLMCompleteTest, Operation_AsyncRetriesOnlyFailedBatchesOnTokenOverflow) {
     const nlohmann::json first_batch = {{"items", {"response 0", "response 1"}}};
     const nlohmann::json row2_response = {{"items", {"response 2"}}};

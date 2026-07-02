@@ -179,4 +179,21 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.batch_size, 10);
 }
 
+TEST_F(ModelManagerTest, ModelInitializationRejectsNonPositiveBatchSize) {
+    const json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 0}};
+
+    EXPECT_THROW(Model model(model_config), std::runtime_error);
+    EXPECT_THROW(Model({{"model_name", "gpt-4o-test"},
+                        {"model", "gpt-4o"},
+                        {"provider", "openai"},
+                        {"tuple_format", "json"},
+                        {"batch_size", -1}}),
+                 std::runtime_error);
+}
+
 }// namespace flock
