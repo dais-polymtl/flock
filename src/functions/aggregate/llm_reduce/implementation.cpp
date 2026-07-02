@@ -35,10 +35,6 @@ nlohmann::json LlmReduce::ReduceLoop(const nlohmann::json& tuples,
     int num_tuples = static_cast<int>(tuples[0]["data"].size());
     auto batch_size = std::min<int>(model.GetModelDetails().batch_size, num_tuples);
 
-    if (batch_size <= 0) {
-        throw std::runtime_error("Batch size must be greater than zero");
-    }
-
     do {
         for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {
             batch_tuples.push_back(nlohmann::json::object());
@@ -60,7 +56,7 @@ nlohmann::json LlmReduce::ReduceLoop(const nlohmann::json& tuples,
             auto response = ReduceBatch(batch_tuples, function_type, summary);
             batch_tuples.clear();
             summary = nlohmann::json::object({{"Previous Batch Summary", response}});
-        } catch (const ExceededMaxOutputTokensError&) {
+        } catch (const TokenLimitExceededError&) {
             start_index -= batch_size;// Retry the current batch with reduced size
             batch_size = static_cast<int>(batch_size * 0.9);
             if (batch_size <= 0) {

@@ -3,6 +3,7 @@
 #include "flock/core/common.hpp"
 #include "flock/metrics/manager.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
+#include "flock/model_manager/providers/provider.hpp"
 #include "session.hpp"
 #include <cstdio>
 #include <curl/curl.h>
@@ -34,6 +35,7 @@ public:
     std::vector<nlohmann::json> CollectEmbeddings(const std::string& contentType = "application/json") override {
         std::vector<nlohmann::json> embeddings;
         if (!_request_batch.empty()) embeddings = ExecuteBatch(_request_batch, true, contentType, RequestType::Embedding);
+        ThrowOnTokenLimitMarkers(embeddings);
         _request_batch.clear();
         return embeddings;
     }
@@ -51,6 +53,7 @@ public:
 
             if (!transcription_batch.empty()) {
                 transcriptions = ExecuteBatch(transcription_batch, true, contentType, RequestType::Transcription);
+                ThrowOnTokenLimitMarkers(transcriptions);
                 // Remove transcription requests from batch
                 for (size_t i = _request_batch.size(); i > 0; --i) {
                     if (_request_types[i - 1] == RequestType::Transcription) {
@@ -87,6 +90,8 @@ protected:
                     } else {
                         results[i] = ExtractEmbeddingVector(parsed);
                     }
+                } catch (const TokenLimitExceededError&) {
+                    results[i] = TokenLimitExceededMarker();
                 } catch (const std::exception& e) {
                     trigger_error(std::string("JSON parse error: ") + e.what());
                 }
@@ -245,6 +250,8 @@ protected:
                         }
                         trigger_error(std::string("Output extraction error: ") + msg);
                     }
+                } catch (const TokenLimitExceededError&) {
+                    results[i] = TokenLimitExceededMarker();
                 } catch (const std::exception& e) {
                     std::string msg = e.what();
                     if (msg.rfind("[ModelProvider]", 0) == 0) {
@@ -307,6 +314,14 @@ protected:
     }
     virtual std::pair<int64_t, int64_t> ExtractTokenUsage(const nlohmann::json& response) const = 0;
 
+    static void ThrowOnTokenLimitMarkers(const std::vector<nlohmann::json>& results) {
+        for (const auto& result: results) {
+            if (IsTokenLimitExceededMarker(result)) {
+                throw TokenLimitExceededError();
+            }
+        }
+    }
+
     void trigger_error(const std::string& msg) {
         const std::string prefix = "[ModelProvider] ";
         std::string full_message;
@@ -340,6 +355,7 @@ protected:
                 reason = err.dump();
             }
 
+            ThrowIfTokenLimitProviderError(reason);
             trigger_error("Provider error: " + reason);
             std::cerr << ">> response error :\n"
                       << json.dump(2) << "\n";

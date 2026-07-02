@@ -19,6 +19,7 @@ struct ModelDetails {
     TupleFormat tuple_format = TupleFormat::XML;
     int batch_size;
     nlohmann::json model_parameters;
+    bool is_async = true;
 };
 
 const std::string OLLAMA = "ollama";

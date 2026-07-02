@@ -173,7 +173,7 @@ def test_llm_first_with_batch_processing(integration_setup, model_config):
     assert "best_conservative_investment" in result.stdout.lower()
 
 
-def test_llm_first_with_model_parameters(integration_setup, model_config):
+def test_llm_first_with_model_params(integration_setup, model_config):
     """Test llm_first with custom model parameters."""
     duckdb_cli_path, db_path = integration_setup
     model_name, provider = model_config

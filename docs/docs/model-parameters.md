@@ -14,8 +14,10 @@ import TOCInline from '@theme/TOCInline';
 
 ## Overview
 
-Model parameters are passed as JSON strings within the `model_parameters` field of LLM function calls. Different
+Model parameters are passed within the `model_parameters` field—either in `CREATE MODEL` / `UPDATE MODEL` statements or inline in LLM function calls. Different
 providers support different parameters, allowing you to customize temperature, token limits, sampling methods, and more.
+
+For model configuration options such as `batch_size` and `is_async`, see [Models Management](/docs/resource-management/models).
 
 **Compatibility**: Works with all Flock LLM functions - `llm_complete`, `llm_filter`, `llm_embedding`, `llm_reduce`,
 `llm_rerank`, `llm_first`, `llm_last`

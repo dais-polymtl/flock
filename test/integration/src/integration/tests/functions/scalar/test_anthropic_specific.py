@@ -94,7 +94,7 @@ def test_anthropic_with_system_prompt(integration_setup):
     assert "4" in result.stdout
 
 
-def test_anthropic_model_parameters(integration_setup):
+def test_anthropic_model_params(integration_setup):
     """Test Anthropic completion with custom model parameters."""
     duckdb_cli_path, db_path = integration_setup
 

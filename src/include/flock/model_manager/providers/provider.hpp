@@ -1,6 +1,7 @@
 #pragma once
 
 #include "fmt/format.h"
+#include <cctype>
 #include <regex>
 
 #include "flock/core/common.hpp"
@@ -57,11 +58,61 @@ public:
     }
 };
 
-class ExceededMaxOutputTokensError : public std::exception {
+class TokenLimitExceededError : public std::exception {
 public:
     const char* what() const noexcept override {
-        return "The response exceeded the max_output_tokens length; increase your max_output_tokens parameter.";
+        return "The request exceeded a token limit; reduce batch size or increase model token limits.";
     }
 };
+
+inline constexpr const char* TOKEN_LIMIT_EXCEEDED_KEY = "_flock_token_limit_exceeded";
+
+inline nlohmann::json TokenLimitExceededMarker() {
+    return nlohmann::json{{TOKEN_LIMIT_EXCEEDED_KEY, true}};
+}
+
+inline bool IsTokenLimitExceededMarker(const nlohmann::json& response) {
+    return response.is_object() && response.contains(TOKEN_LIMIT_EXCEEDED_KEY) &&
+           response[TOKEN_LIMIT_EXCEEDED_KEY].get<bool>();
+}
+
+inline std::string ToLowerAscii(std::string value) {
+    for (auto& character: value) {
+        character = static_cast<char>(std::tolower(static_cast<unsigned char>(character)));
+    }
+    return value;
+}
+
+inline bool IsTokenLimitErrorMessage(const std::string& reason) {
+    const auto lower = ToLowerAscii(reason);
+    static constexpr const char* patterns[] = {
+            "context length",
+            "context window",
+            "maximum context",
+            "max context",
+            "token limit",
+            "tokens exceed",
+            "exceeds token",
+            "too many tokens",
+            "too long",
+            "prompt is too long",
+            "input is too long",
+            "request too large",
+            "max_tokens",
+            "maximum tokens",
+    };
+    for (const auto* pattern: patterns) {
+        if (lower.find(pattern) != std::string::npos) {
+            return true;
+        }
+    }
+    return false;
+}
+
+inline void ThrowIfTokenLimitProviderError(const std::string& reason) {
+    if (IsTokenLimitErrorMessage(reason)) {
+        throw TokenLimitExceededError();
+    }
+}
 
 }// namespace flock
