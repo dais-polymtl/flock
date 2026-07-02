@@ -267,6 +267,46 @@ TEST(ModelParserTest, ParseNegativeBatchSizeCreateModel) {
     EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": -1})", statement), std::runtime_error);
 }
 
+TEST(ModelParserTest, ParseCreateModelWithRateLimit) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse(
+            "CREATE MODEL ('test_model', 'model_data', 'provider', {\"batch_size\": 32, \"rate_limit\": 30})",
+            statement));
+    ASSERT_NE(statement, nullptr);
+    const auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
+    ASSERT_NE(create_stmt, nullptr);
+    EXPECT_EQ(create_stmt->model_args["batch_size"], 32);
+    EXPECT_EQ(create_stmt->model_args["rate_limit"], 30);
+}
+
+TEST(ModelParserTest, ParseZeroRateLimitCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse(
+                         "CREATE MODEL ('test_model', 'model_data', 'provider', {\"rate_limit\": 0})",
+                         statement),
+                 std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseNegativeRateLimitCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse(
+                         "CREATE MODEL ('test_model', 'model_data', 'provider', {\"rate_limit\": -1})",
+                         statement),
+                 std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseStringRateLimitCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse(
+                         "CREATE MODEL ('test_model', 'model_data', 'provider', {\"rate_limit\": \"30\"})",
+                         statement),
+                 std::runtime_error);
+}
+
 TEST(ModelParserTest, ParseInvalidTupleFormatCreateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;
@@ -430,6 +470,19 @@ TEST(ModelParserTest, ParseUpdateModelWithIsAsync) {
     ASSERT_NE(update_stmt, nullptr);
     EXPECT_EQ(update_stmt->new_model_args["batch_size"], 16);
     EXPECT_EQ(update_stmt->new_model_args["is_async"], true);
+}
+
+TEST(ModelParserTest, ParseUpdateModelWithRateLimit) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse(
+            "UPDATE MODEL ('test_model', 'new_model_data', 'new_provider', {\"batch_size\": 64, \"rate_limit\": 20})",
+            statement));
+    ASSERT_NE(statement, nullptr);
+    const auto update_stmt = dynamic_cast<UpdateModelStatement*>(statement.get());
+    ASSERT_NE(update_stmt, nullptr);
+    EXPECT_EQ(update_stmt->new_model_args["batch_size"], 64);
+    EXPECT_EQ(update_stmt->new_model_args["rate_limit"], 20);
 }
 
 TEST(ModelParserTest, ParseUpdateModelWithSemicolon) {

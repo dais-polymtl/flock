@@ -1,6 +1,7 @@
 #include "flock/model_manager/model.hpp"
 #include "flock/prompt_manager/repository.hpp"
 #include "flock/secret_manager/secret_manager.hpp"
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -147,6 +148,22 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
             model_details_.is_async = true;
         }
     }
+
+    if (model_json.contains("rate_limit")) {
+        model_details_.rate_limit = model_json.at("rate_limit").get<int>();
+    } else {
+        ensure_db_loaded();
+        if (db_model_args.contains("rate_limit")) {
+            model_details_.rate_limit = db_model_args.at("rate_limit").get<int>();
+        }
+    }
+
+    if (model_details_.rate_limit.has_value()) {
+        if (model_details_.rate_limit.value() <= 0) {
+            throw std::runtime_error("'rate_limit' must be larger than 0");
+        }
+        model_details_.batch_size = std::min(model_details_.batch_size, model_details_.rate_limit.value());
+    }
 }
 
 std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedModel(const std::string& model_name) {
@@ -186,7 +203,7 @@ std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedMo
 
 void Model::ConstructProvider() {
     if (mock_provider_factory_) {
-        provider_ = mock_provider_factory_();
+        provider_ = mock_provider_factory_(model_details_);
         return;
     }
     if (mock_provider_) {
@@ -223,6 +240,9 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["batch_size"] = model_details_.batch_size;
     result["is_async"] = model_details_.is_async;
     result["secret"] = model_details_.secret;
+    if (model_details_.rate_limit.has_value()) {
+        result["rate_limit"] = *model_details_.rate_limit;
+    }
     if (!model_details_.model_parameters.empty()) {
         result["model_parameters"] = model_details_.model_parameters;
     }

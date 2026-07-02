@@ -23,7 +23,7 @@ Models are stored in a table with the following structure:
 | **Model Name**      | Unique identifier for the model                                                                                                                                                                                                                   |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                                                                                                                                                                                     |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`)                                                                                                                                                                                           |
-| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `model_parameters`, and `is_async` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **batch_size** must be greater than 0. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. |
+| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `model_parameters`, `is_async`, and `rate_limit` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **batch_size** must be greater than 0. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. **rate_limit** is an optional positive integer for maximum requests per minute, scoped per Flock `model_name`. When set, `batch_size` is capped to `min(batch_size, rate_limit)`. |
 
 ### `is_async`
 
@@ -46,6 +46,30 @@ SELECT llm_complete(
 ) FROM my_table;
 ```
 
+### `rate_limit`
+
+`rate_limit` sets the maximum number of provider requests per minute for a Flock model, keyed by `model_name`. This helps avoid exceeding provider quotas on free or shared API tiers.
+
+When `rate_limit` is set:
+
+- Flock spaces outgoing request batches so the configured requests-per-minute cap is not exceeded.
+- Effective `batch_size` becomes `min(batch_size, rate_limit)`.
+- The limit applies across completions, embeddings, and transcriptions for that model.
+- Sync and async scalar execution both respect the same per-model limit.
+
+```sql
+-- Limit to 30 requests per minute
+CREATE MODEL('limited-gpt4o', 'gpt-4o', 'openai', {"batch_size": 64, "rate_limit": 30});
+
+-- Inline override in a function call
+SELECT llm_complete(
+    {'model_name': 'gpt-4o', 'rate_limit': 30},
+    {'prompt': 'Summarize', 'context_columns': [{'data': text}]}
+) FROM my_table;
+```
+
+If `rate_limit` is omitted, Flock does not apply request-per-minute throttling.
+
 ## 2. Management Commands
 
 - Retrieve all available models
@@ -65,7 +89,7 @@ MODEL 'model_name';
 - Create a new user-defined model
 
 ```sql
--- User-defined model (only tuple_format, batch_size, model_parameters, and is_async allowed in JSON)
+-- User-defined model (only tuple_format, batch_size, model_parameters, is_async, and rate_limit allowed in JSON)
 -- tuple_format can be "JSON", "XML", or "Markdown"
 CREATE
 MODEL(

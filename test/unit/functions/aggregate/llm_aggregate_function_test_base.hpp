@@ -42,7 +42,7 @@ protected:
 
         // Aggregate unit tests share this mock so expectations can be verified.
         // Test connections run single-threaded to avoid concurrent gMock calls.
-        Model::SetMockProviderFactory([this]() {
+        Model::SetMockProviderFactory([this](const ModelDetails&) {
             return mock_provider;
         });
     }

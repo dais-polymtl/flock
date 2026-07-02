@@ -35,7 +35,7 @@ public:
     static nlohmann::json ResolveModelDetailsToJson(const nlohmann::json& user_model_json);
 
     // Factory function type for creating mock providers
-    using MockProviderFactory = std::function<std::shared_ptr<IProvider>()>;
+    using MockProviderFactory = std::function<std::shared_ptr<IProvider>(const ModelDetails&)>;
 
     // Set a factory to create fresh mock providers (each Model gets its own instance)
     static void SetMockProviderFactory(MockProviderFactory factory) {

@@ -12,12 +12,15 @@ namespace flock {
 namespace {
 
 bool IsAllowedModelArgKey(const std::string& key) {
-    return key == "tuple_format" || key == "batch_size" || key == "model_parameters" || key == "is_async";
+    return key == "tuple_format" || key == "batch_size" || key == "model_parameters" || key == "is_async" ||
+           key == "rate_limit";
 }
 
 void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
     if (!IsAllowedModelArgKey(key)) {
-        throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, model_parameters, and is_async are allowed.");
+        throw std::runtime_error(
+                "Unknown model_args parameter: '" + key +
+                "'. Only tuple_format, batch_size, model_parameters, is_async, and rate_limit are allowed.");
     }
 
     if (key == "batch_size") {
@@ -54,6 +57,19 @@ void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& ke
             throw std::runtime_error("Expected 'is_async' to be a boolean.");
         }
         model_args[key] = value.get<bool>();
+        return;
+    }
+
+    if (key == "rate_limit") {
+        if (!value.is_number_integer()) {
+            throw std::runtime_error("Expected 'rate_limit' to be an integer.");
+        }
+        const int rate_limit = value.get<int>();
+        if (rate_limit <= 0) {
+            throw std::runtime_error("'rate_limit' must be larger than 0");
+        }
+
+        model_args[key] = rate_limit;
         return;
     }
 }

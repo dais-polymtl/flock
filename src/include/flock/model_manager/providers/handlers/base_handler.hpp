@@ -4,11 +4,13 @@
 #include "flock/metrics/manager.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "flock/model_manager/providers/provider.hpp"
+#include "flock/model_manager/rate_limiter.hpp"
 #include "session.hpp"
 #include <cstdio>
 #include <curl/curl.h>
 #include <map>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -16,8 +18,9 @@ namespace flock {
 
 class BaseModelProviderHandler : public IModelProviderHandler {
 public:
-    explicit BaseModelProviderHandler(bool throw_exception)
-        : _throw_exception(throw_exception) {}
+    explicit BaseModelProviderHandler(bool throw_exception, const std::string& model_name = "",
+                                      std::optional<int> rate_limit = std::nullopt)
+        : _throw_exception(throw_exception), _model_name(model_name), _rate_limit(rate_limit) {}
     virtual ~BaseModelProviderHandler() = default;
 
     void AddRequest(const nlohmann::json& json, RequestType type = RequestType::Completion) override {
@@ -70,6 +73,11 @@ public:
 public:
 protected:
     std::vector<nlohmann::json> ExecuteBatch(const std::vector<nlohmann::json>& jsons, bool async = true, const std::string& contentType = "application/json", RequestType request_type = RequestType::Completion) {
+        if (_rate_limit.has_value()) {
+            ModelRateLimiter::Instance().WaitForBatch(_model_name, static_cast<int>(jsons.size()),
+                                                      _rate_limit.value());
+        }
+
 #ifdef __EMSCRIPTEN__
         // WASM: Process requests sequentially using emscripten fetch
         std::vector<nlohmann::json> results(jsons.size());
@@ -289,6 +297,8 @@ protected:
 
 protected:
     bool _throw_exception;
+    std::string _model_name;
+    std::optional<int> _rate_limit;
     std::vector<nlohmann::json> _request_batch;
     std::vector<RequestType> _request_types;
 

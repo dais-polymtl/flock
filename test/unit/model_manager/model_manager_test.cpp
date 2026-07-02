@@ -196,4 +196,63 @@ TEST_F(ModelManagerTest, ModelInitializationRejectsNonPositiveBatchSize) {
                  std::runtime_error);
 }
 
+TEST_F(ModelManagerTest, ModelInitializationParsesRateLimit) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"model_parameters", nlohmann::json::object()},
+            {"rate_limit", 30}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    ASSERT_TRUE(details.rate_limit.has_value());
+    EXPECT_EQ(details.rate_limit.value(), 30);
+    EXPECT_EQ(model.GetModelDetailsAsJson()["rate_limit"], 30);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationCapsBatchSizeWithRateLimit) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 64},
+            {"model_parameters", nlohmann::json::object()},
+            {"rate_limit", 10}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    EXPECT_EQ(details.batch_size, 10);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationWithoutRateLimit) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"model_parameters", nlohmann::json::object()}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    EXPECT_FALSE(details.rate_limit.has_value());
+    EXPECT_FALSE(model.GetModelDetailsAsJson().contains("rate_limit"));
+}
+
+TEST_F(ModelManagerTest, ModelInitializationRejectsNonPositiveRateLimit) {
+    const json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"rate_limit", 0}};
+
+    EXPECT_THROW(Model model(model_config), std::runtime_error);
+}
+
 }// namespace flock

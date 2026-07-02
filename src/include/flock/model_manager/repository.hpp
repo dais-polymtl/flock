@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <unordered_map>
 
 namespace flock {
@@ -20,6 +21,7 @@ struct ModelDetails {
     int batch_size;
     nlohmann::json model_parameters;
     bool is_async = true;
+    std::optional<int> rate_limit;
 };
 
 const std::string OLLAMA = "ollama";
