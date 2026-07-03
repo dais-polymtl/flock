@@ -7,9 +7,9 @@ namespace flock {
 
 class AnthropicProvider : public IProvider {
 public:
-    AnthropicProvider(const ModelDetails& model_details, ModelRateLimiter* rate_limiter = nullptr,
-                      ModelUsageLimiter* usage_limiter = nullptr)
-        : IProvider(model_details, rate_limiter, usage_limiter) {
+    AnthropicProvider(const ModelDetails& model_details, std::shared_ptr<ModelRateLimiter> rate_limiter = nullptr,
+                      std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr)
+        : IProvider(model_details, std::move(rate_limiter), std::move(usage_limiter)) {
         auto api_version = ANTHROPIC_DEFAULT_API_VERSION;
         if (const auto it = model_details_.secret.find("api_version");
             it != model_details_.secret.end()) {

@@ -7,9 +7,9 @@ namespace flock {
 
 class OllamaProvider : public IProvider {
 public:
-    OllamaProvider(const ModelDetails& model_details, ModelRateLimiter* rate_limiter = nullptr,
-                   ModelUsageLimiter* usage_limiter = nullptr)
-        : IProvider(model_details, rate_limiter, usage_limiter) {
+    OllamaProvider(const ModelDetails& model_details, std::shared_ptr<ModelRateLimiter> rate_limiter = nullptr,
+                   std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr)
+        : IProvider(model_details, std::move(rate_limiter), std::move(usage_limiter)) {
         model_handler_ = std::make_unique<OllamaModelManager>(model_details_.secret["api_url"], true,
                                                               model_details_.model_name,
                                                               model_details_.rate_limit, model_details_.usage_limit,

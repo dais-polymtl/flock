@@ -7,9 +7,9 @@ namespace flock {
 
 class AzureProvider : public IProvider {
 public:
-    AzureProvider(const ModelDetails& model_details, ModelRateLimiter* rate_limiter = nullptr,
-                  ModelUsageLimiter* usage_limiter = nullptr)
-        : IProvider(model_details, rate_limiter, usage_limiter) {
+    AzureProvider(const ModelDetails& model_details, std::shared_ptr<ModelRateLimiter> rate_limiter = nullptr,
+                  std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr)
+        : IProvider(model_details, std::move(rate_limiter), std::move(usage_limiter)) {
         model_handler_ =
                 std::make_unique<AzureModelManager>(model_details_.secret["api_key"], model_details_.secret["resource_name"],
                                                     model_details_.model, model_details_.secret["api_version"], true,

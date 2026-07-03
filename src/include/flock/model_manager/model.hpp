@@ -2,6 +2,7 @@
 
 #include "fmt/format.h"
 #include <functional>
+#include <memory>
 #include <utility>
 
 #include "duckdb/main/connection.hpp"
@@ -57,16 +58,16 @@ public:
     // Single, process-wide limiter instances. They are created once and shared
     // across every Model/provider so per-model rate and usage accounting stays
     // consistent regardless of how many Model objects are created.
-    static ModelRateLimiter& GetRateLimiter() { return rate_limiter_; }
-    static ModelUsageLimiter& GetUsageLimiter() { return usage_limiter_; }
+    static ModelRateLimiter& GetRateLimiter() { return *rate_limiter_; }
+    static ModelUsageLimiter& GetUsageLimiter() { return *usage_limiter_; }
 
     std::shared_ptr<IProvider>
             provider_;
 
 private:
     ModelDetails model_details_;
-    inline static ModelRateLimiter rate_limiter_{};
-    inline static ModelUsageLimiter usage_limiter_{};
+    inline static std::shared_ptr<ModelRateLimiter> rate_limiter_ = std::make_shared<ModelRateLimiter>();
+    inline static std::shared_ptr<ModelUsageLimiter> usage_limiter_ = std::make_shared<ModelUsageLimiter>();
     inline static std::shared_ptr<IProvider> mock_provider_ = nullptr;
     inline static MockProviderFactory mock_provider_factory_ = nullptr;
     void ConstructProvider();

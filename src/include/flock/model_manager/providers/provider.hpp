@@ -5,6 +5,7 @@
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "flock/model_manager/repository.hpp"
 #include <cctype>
+#include <memory>
 #include <nlohmann/json.hpp>
 #include <regex>
 
@@ -30,17 +31,18 @@ public:
     // Shared, app-lifetime limiters injected by the owner (see Model). They are
     // not owned here; the same instances are reused across every provider so
     // per-model rate/usage accounting is consistent process-wide.
-    ModelRateLimiter* rate_limiter_ = nullptr;
-    ModelUsageLimiter* usage_limiter_ = nullptr;
+    std::shared_ptr<ModelRateLimiter> rate_limiter_ = nullptr;
+    std::shared_ptr<ModelUsageLimiter> usage_limiter_ = nullptr;
 
-    explicit IProvider(const ModelDetails& model_details, ModelRateLimiter* rate_limiter = nullptr,
-                       ModelUsageLimiter* usage_limiter = nullptr)
-        : model_details_(model_details), rate_limiter_(rate_limiter), usage_limiter_(usage_limiter){};
+    explicit IProvider(const ModelDetails& model_details, std::shared_ptr<ModelRateLimiter> rate_limiter = nullptr,
+                       std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr)
+        : model_details_(model_details), rate_limiter_(std::move(rate_limiter)),
+          usage_limiter_(std::move(usage_limiter)){};
     virtual ~IProvider() = default;
 
-    void SetLimiters(ModelRateLimiter* rate_limiter, ModelUsageLimiter* usage_limiter) {
-        rate_limiter_ = rate_limiter;
-        usage_limiter_ = usage_limiter;
+    void SetLimiters(std::shared_ptr<ModelRateLimiter> rate_limiter, std::shared_ptr<ModelUsageLimiter> usage_limiter) {
+        rate_limiter_ = std::move(rate_limiter);
+        usage_limiter_ = std::move(usage_limiter);
     }
 
     virtual void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) = 0;
@@ -73,10 +75,14 @@ public:
     }
 };
 
-class TokenLimitExceededError : public std::exception {
+class TokenLimitExceededError : public duckdb::HTTPException {
 public:
-    const char* what() const noexcept override {
-        return "The response exceeded the max_output_tokens length; increase your max_output_tokens parameter.";
+    TokenLimitExceededError(const std::string& token_type = "output_token", const int64_t token_count = 0, const int64_t token_limit = 0)
+        : duckdb::HTTPException(429, "",
+                                duckdb::unordered_map<duckdb::string, duckdb::string>{},
+                                "token_limit_exceeded",
+                                "%s usage %lld exceeded limit of %lld for this model; increase max_output_tokens or check your model configuration.",
+                                token_type, token_count, token_limit) {
     }
 };
 
@@ -91,6 +97,7 @@ public:
                                 token_type, token_count, token_limit) {
     }
 };
+
 
 inline constexpr const char* TOKEN_LIMIT_EXCEEDED_KEY = "_flock_token_limit_exceeded";
 
