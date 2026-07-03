@@ -52,9 +52,7 @@ def _model_slug(model_name: str) -> str:
     not RUN_SLOW_RATE_LIMIT_TESTS,
     reason="Set RUN_SLOW_RATE_LIMIT_TESTS=1 to run the ~60s throttle wait test.",
 )
-def test_rate_limit_openai_compatible_throttles_over_limit_without_error(
-    integration_setup, openai_compatible_model
-):
+def test_rate_limit_openai_compatible_throttles_over_limit_without_error(integration_setup, openai_compatible_model):
     """End-to-end: one request over the per-minute cap waits for the window to roll, then succeeds.
 
     Unit tests cover limiter math and wiring with mocks; this is the only integration test
