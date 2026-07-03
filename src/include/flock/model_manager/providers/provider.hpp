@@ -1,13 +1,12 @@
 #pragma once
 
-#include "fmt/format.h"
-#include <cctype>
-#include <regex>
-
+#include "duckdb/common/exception/http_exception.hpp"
 #include "flock/core/common.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "flock/model_manager/repository.hpp"
+#include <cctype>
 #include <nlohmann/json.hpp>
+#include <regex>
 
 namespace flock {
 
@@ -61,7 +60,19 @@ public:
 class TokenLimitExceededError : public std::exception {
 public:
     const char* what() const noexcept override {
-        return "The request exceeded a token limit; reduce batch size or increase model token limits.";
+        return "The response exceeded the max_output_tokens length; increase your max_output_tokens parameter.";
+    }
+};
+
+class UsageLimitExceededError : public duckdb::HTTPException {
+public:
+    UsageLimitExceededError(const std::string& token_type, const int64_t token_count, const int64_t token_limit)
+        : duckdb::HTTPException(429, "",
+                                duckdb::unordered_map<duckdb::string, duckdb::string>{},
+                                "usage_limit_exceeded",
+                                "%s usage %lld exceeded limit of %lld for this model; increase usage_limit or "
+                                "reset usage.",
+                                token_type, token_count, token_limit) {
     }
 };
 

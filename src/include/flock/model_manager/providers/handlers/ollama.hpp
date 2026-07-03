@@ -10,8 +10,9 @@ namespace flock {
 class OllamaModelManager : public BaseModelProviderHandler {
 public:
     OllamaModelManager(const std::string& url, const bool throw_exception, const std::string& model_name = "",
-                       std::optional<int> rate_limit = std::nullopt)
-        : BaseModelProviderHandler(throw_exception, model_name, rate_limit), _session("Ollama", throw_exception), _url(url) {}
+                       std::optional<int> rate_limit = std::nullopt,
+                       std::optional<UsageLimit> usage_limit = std::nullopt)
+        : BaseModelProviderHandler(throw_exception, model_name, rate_limit, std::move(usage_limit)), _session("Ollama", throw_exception), _url(url) {}
 
     OllamaModelManager(const OllamaModelManager&) = delete;
     OllamaModelManager& operator=(const OllamaModelManager&) = delete;

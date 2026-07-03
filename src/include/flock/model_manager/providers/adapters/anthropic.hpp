@@ -15,7 +15,7 @@ public:
         }
         model_handler_ = std::make_unique<AnthropicModelManager>(
                 model_details_.secret.at("api_key"), api_version, true, model_details_.model_name,
-                model_details_.rate_limit);
+                model_details_.rate_limit, model_details_.usage_limit);
     }
 
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples,

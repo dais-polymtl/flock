@@ -307,6 +307,47 @@ TEST(ModelParserTest, ParseStringRateLimitCreateModel) {
                  std::runtime_error);
 }
 
+TEST(ModelParserTest, ParseCreateModelWithUsageLimit) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse(
+            "CREATE MODEL ('test_model', 'model_data', 'provider', {\"usage_limit\": {\"prompt_tokens_limit\": 1000, "
+            "\"total_tokens_limit\": 1500}})",
+            statement));
+    ASSERT_NE(statement, nullptr);
+    const auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
+    ASSERT_NE(create_stmt, nullptr);
+    EXPECT_EQ(create_stmt->model_args["usage_limit"]["prompt_tokens_limit"], 1000);
+    EXPECT_EQ(create_stmt->model_args["usage_limit"]["total_tokens_limit"], 1500);
+}
+
+TEST(ModelParserTest, ParseEmptyUsageLimitCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"usage_limit\": {}})", statement),
+                 std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseUnknownUsageLimitFieldCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse(
+                         "CREATE MODEL ('test_model', 'model_data', 'provider', {\"usage_limit\": "
+                         "{\"total_cost_limit\": 10}})",
+                         statement),
+                 std::runtime_error);
+}
+
+TEST(ModelParserTest, ParseNonPositiveUsageLimitCreateModel) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_THROW(parser.Parse(
+                         "CREATE MODEL ('test_model', 'model_data', 'provider', {\"usage_limit\": "
+                         "{\"total_tokens_limit\": 0}})",
+                         statement),
+                 std::runtime_error);
+}
+
 TEST(ModelParserTest, ParseInvalidTupleFormatCreateModel) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;

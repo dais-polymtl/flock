@@ -5,6 +5,7 @@
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "flock/model_manager/providers/provider.hpp"
 #include "flock/model_manager/rate_limiter.hpp"
+#include "flock/model_manager/usage_limiter.hpp"
 #include "session.hpp"
 #include <cstdio>
 #include <curl/curl.h>
@@ -19,8 +20,12 @@ namespace flock {
 class BaseModelProviderHandler : public IModelProviderHandler {
 public:
     explicit BaseModelProviderHandler(bool throw_exception, const std::string& model_name = "",
-                                      std::optional<int> rate_limit = std::nullopt)
-        : _throw_exception(throw_exception), _model_name(model_name), _rate_limit(rate_limit) {}
+                                      std::optional<int> rate_limit = std::nullopt,
+                                      std::optional<UsageLimit> usage_limit = std::nullopt)
+        : _throw_exception(throw_exception),
+          _model_name(model_name),
+          _rate_limit(rate_limit),
+          _usage_limit(std::move(usage_limit)) {}
     virtual ~BaseModelProviderHandler() = default;
 
     void AddRequest(const nlohmann::json& json, RequestType type = RequestType::Completion) override {
@@ -93,11 +98,17 @@ protected:
                 try {
                     nlohmann::json parsed = nlohmann::json::parse(response.text);
                     checkResponse(parsed, request_type);
+                    if (request_type != RequestType::Transcription) {
+                        auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
+                        RecordTokenUsage(input_tokens, output_tokens);
+                    }
                     if (is_completion) {
                         results[i] = ExtractCompletionOutput(parsed);
-                    } else {
+                    } else if (request_type != RequestType::Transcription) {
                         results[i] = ExtractEmbeddingVector(parsed);
                     }
+                } catch (const UsageLimitExceededError&) {
+                    throw;
                 } catch (const TokenLimitExceededError&) {
                     results[i] = TokenLimitExceededMarker();
                 } catch (const std::exception& e) {
@@ -246,6 +257,7 @@ protected:
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
                         batch_input_tokens += input_tokens;
                         batch_output_tokens += output_tokens;
+                        RecordTokenUsage(input_tokens, output_tokens);
                     }
 
                     // Let provider extract output based on request type
@@ -258,6 +270,8 @@ protected:
                         }
                         trigger_error(std::string("Output extraction error: ") + msg);
                     }
+                } catch (const UsageLimitExceededError&) {
+                    throw;
                 } catch (const TokenLimitExceededError&) {
                     results[i] = TokenLimitExceededMarker();
                 } catch (const std::exception& e) {
@@ -299,6 +313,7 @@ protected:
     bool _throw_exception;
     std::string _model_name;
     std::optional<int> _rate_limit;
+    std::optional<UsageLimit> _usage_limit;
     std::vector<nlohmann::json> _request_batch;
     std::vector<RequestType> _request_types;
 
@@ -323,6 +338,12 @@ protected:
         }
     }
     virtual std::pair<int64_t, int64_t> ExtractTokenUsage(const nlohmann::json& response) const = 0;
+
+    void RecordTokenUsage(int64_t prompt_tokens, int64_t completion_tokens) {
+        if (_usage_limit.has_value()) {
+            ModelUsageLimiter::Instance().RecordUsage(_model_name, prompt_tokens, completion_tokens, _usage_limit);
+        }
+    }
 
     static void ThrowOnTokenLimitMarkers(const std::vector<nlohmann::json>& results) {
         for (const auto& result: results) {

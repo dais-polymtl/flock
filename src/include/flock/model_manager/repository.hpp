@@ -12,6 +12,58 @@ namespace flock {
 
 inline constexpr int DEFAULT_BATCH_SIZE = 16;
 
+struct TotalUsage {
+    int64_t prompt_tokens = 0;
+    int64_t completion_tokens = 0;
+
+    int64_t total_tokens() const { return prompt_tokens + completion_tokens; }
+
+    TotalUsage& operator+=(const TotalUsage& other) {
+        prompt_tokens += other.prompt_tokens;
+        completion_tokens += other.completion_tokens;
+        return *this;
+    }
+};
+
+struct UsageLimit {
+    std::optional<int64_t> prompt_tokens_limit;
+    std::optional<int64_t> completion_tokens_limit;
+    std::optional<int64_t> total_tokens_limit;
+
+    bool HasAnyLimit() const {
+        return prompt_tokens_limit.has_value() || completion_tokens_limit.has_value() ||
+               total_tokens_limit.has_value();
+    }
+};
+
+inline UsageLimit ParseUsageLimitFromJson(const nlohmann::json& value) {
+    UsageLimit limit;
+    if (value.contains("prompt_tokens_limit")) {
+        limit.prompt_tokens_limit = value.at("prompt_tokens_limit").get<int64_t>();
+    }
+    if (value.contains("completion_tokens_limit")) {
+        limit.completion_tokens_limit = value.at("completion_tokens_limit").get<int64_t>();
+    }
+    if (value.contains("total_tokens_limit")) {
+        limit.total_tokens_limit = value.at("total_tokens_limit").get<int64_t>();
+    }
+    return limit;
+}
+
+inline nlohmann::json UsageLimitToJson(const UsageLimit& limit) {
+    nlohmann::json result = nlohmann::json::object();
+    if (limit.prompt_tokens_limit.has_value()) {
+        result["prompt_tokens_limit"] = *limit.prompt_tokens_limit;
+    }
+    if (limit.completion_tokens_limit.has_value()) {
+        result["completion_tokens_limit"] = *limit.completion_tokens_limit;
+    }
+    if (limit.total_tokens_limit.has_value()) {
+        result["total_tokens_limit"] = *limit.total_tokens_limit;
+    }
+    return result;
+}
+
 struct ModelDetails {
     std::string provider_name;
     std::string model_name;
@@ -22,6 +74,7 @@ struct ModelDetails {
     nlohmann::json model_parameters;
     bool is_async = true;
     std::optional<int> rate_limit;
+    std::optional<UsageLimit> usage_limit;
 };
 
 const std::string OLLAMA = "ollama";

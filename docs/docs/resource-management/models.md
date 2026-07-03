@@ -23,7 +23,7 @@ Models are stored in a table with the following structure:
 | **Model Name**      | Unique identifier for the model                                                                                                                                                                                                                   |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                                                                                                                                                                                     |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`)                                                                                                                                                                                           |
-| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `model_parameters`, `is_async`, and `rate_limit` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **batch_size** must be greater than 0. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. **rate_limit** is an optional positive integer for maximum requests per minute, scoped per Flock `model_name`. When set, `batch_size` is capped to `min(batch_size, rate_limit)`. |
+| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `model_parameters`, `is_async`, `rate_limit`, and `usage_limit` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **batch_size** must be greater than 0. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. **rate_limit** is an optional positive integer for maximum requests per minute, scoped per Flock `model_name`. When set, `batch_size` is capped to `min(batch_size, rate_limit)`. **usage_limit** is an optional JSON object for cumulative token quotas, also scoped per Flock `model_name`. |
 
 ### `is_async`
 
@@ -70,6 +70,37 @@ SELECT llm_complete(
 
 If `rate_limit` is omitted, Flock does not apply request-per-minute throttling.
 
+### `usage_limit`
+
+`usage_limit` sets cumulative token quotas for a Flock model, keyed by `model_name`. Unlike `rate_limit`, which throttles request rate, `usage_limit` tracks provider-reported token usage across calls and fails once a quota is exceeded.
+
+Supported fields (at least one is required):
+
+- `prompt_tokens_limit`: maximum cumulative input/prompt tokens
+- `completion_tokens_limit`: maximum cumulative output/completion tokens
+- `total_tokens_limit`: maximum cumulative total tokens (prompt + completion)
+
+When a limit is exceeded, Flock raises a usage-limit error. This is separate from context-window overflow errors that trigger batch-size retries.
+
+```sql
+-- Cap total tokens for a model
+CREATE MODEL('budget-gpt4o', 'gpt-4o', 'openai', {
+    "batch_size": 16,
+    "usage_limit": {"total_tokens_limit": 50000}
+});
+
+-- Inline override in a function call
+SELECT llm_complete(
+    {
+        'model_name': 'gpt-4o',
+        'usage_limit': {'prompt_tokens_limit': 10000, 'completion_tokens_limit': 5000}
+    },
+    {'prompt': 'Summarize', 'context_columns': [{'data': text}]}
+) FROM my_table;
+```
+
+If `usage_limit` is omitted, Flock does not enforce cumulative token quotas.
+
 ## 2. Management Commands
 
 - Retrieve all available models
@@ -89,7 +120,7 @@ MODEL 'model_name';
 - Create a new user-defined model
 
 ```sql
--- User-defined model (only tuple_format, batch_size, model_parameters, is_async, and rate_limit allowed in JSON)
+-- User-defined model (only tuple_format, batch_size, model_parameters, is_async, rate_limit, and usage_limit allowed in JSON)
 -- tuple_format can be "JSON", "XML", or "Markdown"
 CREATE
 MODEL(

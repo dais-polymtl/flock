@@ -167,6 +167,29 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
             model_details_.batch_size = (std::min)(model_details_.batch_size, rate_limit);
         }
     }
+
+    if (model_json.contains("usage_limit")) {
+        const auto& usage_limit_value = model_json.at("usage_limit");
+        if (!usage_limit_value.is_object()) {
+            throw std::runtime_error("Expected 'usage_limit' to be a JSON object.");
+        }
+        model_details_.usage_limit = ParseUsageLimitFromJson(usage_limit_value);
+        if (!model_details_.usage_limit->HasAnyLimit()) {
+            throw std::runtime_error(
+                    "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
+                    "total_tokens_limit.");
+        }
+    } else if (!is_fully_resolved) {
+        ensure_db_loaded();
+        if (db_model_args.contains("usage_limit")) {
+            model_details_.usage_limit = ParseUsageLimitFromJson(db_model_args.at("usage_limit"));
+            if (!model_details_.usage_limit->HasAnyLimit()) {
+                throw std::runtime_error(
+                        "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
+                        "total_tokens_limit.");
+            }
+        }
+    }
 }
 
 std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedModel(const std::string& model_name) {
@@ -245,6 +268,9 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["secret"] = model_details_.secret;
     if (model_details_.rate_limit.has_value()) {
         result["rate_limit"] = *model_details_.rate_limit;
+    }
+    if (model_details_.usage_limit.has_value()) {
+        result["usage_limit"] = UsageLimitToJson(*model_details_.usage_limit);
     }
     if (!model_details_.model_parameters.empty()) {
         result["model_parameters"] = model_details_.model_parameters;

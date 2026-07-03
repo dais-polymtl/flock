@@ -14,7 +14,7 @@ public:
         }
         model_handler_ = std::make_unique<OpenAIModelManager>(
                 model_details_.secret["api_key"], base_url, true, model_details_.model_name,
-                model_details_.rate_limit);
+                model_details_.rate_limit, model_details_.usage_limit);
     }
 
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) override;

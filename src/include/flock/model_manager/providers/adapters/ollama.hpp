@@ -10,7 +10,7 @@ public:
     OllamaProvider(const ModelDetails& model_details) : IProvider(model_details) {
         model_handler_ = std::make_unique<OllamaModelManager>(model_details_.secret["api_url"], true,
                                                               model_details_.model_name,
-                                                              model_details_.rate_limit);
+                                                              model_details_.rate_limit, model_details_.usage_limit);
     }
 
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) override;

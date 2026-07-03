@@ -13,14 +13,47 @@ namespace {
 
 bool IsAllowedModelArgKey(const std::string& key) {
     return key == "tuple_format" || key == "batch_size" || key == "model_parameters" || key == "is_async" ||
-           key == "rate_limit";
+           key == "rate_limit" || key == "usage_limit";
+}
+
+nlohmann::json ValidateUsageLimitObject(const nlohmann::json& value) {
+    if (!value.is_object()) {
+        throw std::runtime_error("Expected 'usage_limit' to be a JSON object.");
+    }
+
+    nlohmann::json result = nlohmann::json::object();
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        const std::string& field = it.key();
+        if (field != "prompt_tokens_limit" && field != "completion_tokens_limit" && field != "total_tokens_limit") {
+            throw std::runtime_error(
+                    "Unknown usage_limit field: '" + field +
+                    "'. Only prompt_tokens_limit, completion_tokens_limit, and total_tokens_limit are allowed.");
+        }
+        if (!it.value().is_number_integer()) {
+            throw std::runtime_error("Expected '" + field + "' to be an integer.");
+        }
+        const int64_t limit_value = it.value().get<int64_t>();
+        if (limit_value <= 0) {
+            throw std::runtime_error("'" + field + "' must be larger than 0");
+        }
+        result[field] = limit_value;
+    }
+
+    if (result.empty()) {
+        throw std::runtime_error(
+                "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
+                "total_tokens_limit.");
+    }
+
+    return result;
 }
 
 void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
     if (!IsAllowedModelArgKey(key)) {
         throw std::runtime_error(
                 "Unknown model_args parameter: '" + key +
-                "'. Only tuple_format, batch_size, model_parameters, is_async, and rate_limit are allowed.");
+                "'. Only tuple_format, batch_size, model_parameters, is_async, rate_limit, and usage_limit are "
+                "allowed.");
     }
 
     if (key == "batch_size") {
@@ -70,6 +103,11 @@ void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& ke
         }
 
         model_args[key] = rate_limit;
+        return;
+    }
+
+    if (key == "usage_limit") {
+        model_args[key] = ValidateUsageLimitObject(value);
         return;
     }
 }

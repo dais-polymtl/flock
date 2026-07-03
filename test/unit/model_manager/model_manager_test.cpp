@@ -255,4 +255,53 @@ TEST_F(ModelManagerTest, ModelInitializationRejectsNonPositiveRateLimit) {
     EXPECT_THROW(Model model(model_config), std::runtime_error);
 }
 
+TEST_F(ModelManagerTest, ModelInitializationParsesUsageLimit) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"model_parameters", nlohmann::json::object()},
+            {"usage_limit",
+             {{"prompt_tokens_limit", 1000},
+              {"completion_tokens_limit", 500},
+              {"total_tokens_limit", 1200}}}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    ASSERT_TRUE(details.usage_limit.has_value());
+    EXPECT_EQ(details.usage_limit->prompt_tokens_limit.value(), 1000);
+    EXPECT_EQ(details.usage_limit->completion_tokens_limit.value(), 500);
+    EXPECT_EQ(details.usage_limit->total_tokens_limit.value(), 1200);
+    EXPECT_EQ(model.GetModelDetailsAsJson()["usage_limit"]["total_tokens_limit"], 1200);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationWithoutUsageLimit) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"model_parameters", nlohmann::json::object()}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    EXPECT_FALSE(details.usage_limit.has_value());
+    EXPECT_FALSE(model.GetModelDetailsAsJson().contains("usage_limit"));
+}
+
+TEST_F(ModelManagerTest, ModelInitializationRejectsEmptyUsageLimit) {
+    const json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"usage_limit", nlohmann::json::object()}};
+
+    EXPECT_THROW(Model model(model_config), std::runtime_error);
+}
+
 }// namespace flock
