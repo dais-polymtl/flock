@@ -28,9 +28,9 @@ public:
         const int request_count = static_cast<int>(pending_output_counts_.size());
         last_batch_request_count = request_count;
 
-        if (model_details_.rate_limit.has_value() && request_count > 0) {
-            ModelRateLimiter::Instance().WaitForBatch(model_details_.model_name, request_count,
-                                                      model_details_.rate_limit.value());
+        if (model_details_.rate_limit.has_value() && request_count > 0 && rate_limiter_ != nullptr) {
+            rate_limiter_->WaitForBatch(model_details_.model_name, request_count,
+                                        model_details_.rate_limit.value());
         }
 
         std::vector<nlohmann::json> responses;

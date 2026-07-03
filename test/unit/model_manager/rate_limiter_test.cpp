@@ -12,19 +12,12 @@ constexpr int kRateLimit = 30;
 
 class ModelRateLimiterTest : public ::testing::Test {
 protected:
-    void SetUp() override { ModelRateLimiter::Instance().Reset(); }
+    void SetWindow(std::chrono::steady_clock::duration window) { limiter.SetWindowForTesting(window); }
 
-    void TearDown() override { ModelRateLimiter::Instance().Reset(); }
-
-    // Friendship does not extend to the TEST_F subclass, so expose the test-only
-    // window override through the fixture.
-    static void SetWindow(std::chrono::steady_clock::duration window) {
-        ModelRateLimiter::Instance().SetWindowForTesting(window);
-    }
+    ModelRateLimiter limiter;
 };
 
 TEST_F(ModelRateLimiterTest, BurstUpToLimitDoesNotWait) {
-    auto& limiter = ModelRateLimiter::Instance();
     const auto start = std::chrono::steady_clock::now();
 
     // A full minute's worth of requests may fire back-to-back.
@@ -36,7 +29,6 @@ TEST_F(ModelRateLimiterTest, BurstUpToLimitDoesNotWait) {
 }
 
 TEST_F(ModelRateLimiterTest, SeparateBatchesUnderLimitDoNotWait) {
-    auto& limiter = ModelRateLimiter::Instance();
     const auto start = std::chrono::steady_clock::now();
 
     for (int i = 0; i < kRateLimit; i++) {
@@ -49,7 +41,6 @@ TEST_F(ModelRateLimiterTest, SeparateBatchesUnderLimitDoNotWait) {
 }
 
 TEST_F(ModelRateLimiterTest, IndependentBucketsForDifferentModels) {
-    auto& limiter = ModelRateLimiter::Instance();
     const auto start = std::chrono::steady_clock::now();
 
     // Each model has its own rolling window, so filling one does not throttle the other.
@@ -62,7 +53,6 @@ TEST_F(ModelRateLimiterTest, IndependentBucketsForDifferentModels) {
 }
 
 TEST_F(ModelRateLimiterTest, BlocksWhenOverLimitUntilWindowRolls) {
-    auto& limiter = ModelRateLimiter::Instance();
     // Use a short 10s window so the throttle is observable without a full minute.
     SetWindow(std::chrono::seconds(10));
 
@@ -80,7 +70,6 @@ TEST_F(ModelRateLimiterTest, BlocksWhenOverLimitUntilWindowRolls) {
 }
 
 TEST_F(ModelRateLimiterTest, IgnoresInvalidInput) {
-    auto& limiter = ModelRateLimiter::Instance();
     const auto start = std::chrono::steady_clock::now();
 
     limiter.WaitForBatch("", 1, kRateLimit);

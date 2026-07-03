@@ -7,7 +7,9 @@ namespace flock {
 
 class AnthropicProvider : public IProvider {
 public:
-    AnthropicProvider(const ModelDetails& model_details) : IProvider(model_details) {
+    AnthropicProvider(const ModelDetails& model_details, ModelRateLimiter* rate_limiter = nullptr,
+                      ModelUsageLimiter* usage_limiter = nullptr)
+        : IProvider(model_details, rate_limiter, usage_limiter) {
         auto api_version = ANTHROPIC_DEFAULT_API_VERSION;
         if (const auto it = model_details_.secret.find("api_version");
             it != model_details_.secret.end()) {
@@ -15,7 +17,7 @@ public:
         }
         model_handler_ = std::make_unique<AnthropicModelManager>(
                 model_details_.secret.at("api_key"), api_version, true, model_details_.model_name,
-                model_details_.rate_limit, model_details_.usage_limit);
+                model_details_.rate_limit, model_details_.usage_limit, rate_limiter_, usage_limiter_);
     }
 
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples,

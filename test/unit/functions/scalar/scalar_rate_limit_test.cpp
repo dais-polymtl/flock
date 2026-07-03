@@ -59,7 +59,7 @@ std::shared_ptr<RateLimitAwareProvider> GetLastRateLimitProvider() {
 class ScalarRateLimitTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        ModelRateLimiter::Instance().Reset();
+        Model::GetRateLimiter().Reset();
 
         auto con = Config::GetConnection();
         con.Query("CREATE SECRET (TYPE OPENAI, API_KEY 'your-api-key');");
@@ -68,7 +68,7 @@ protected:
 
     void TearDown() override {
         Model::ResetMockProvider();
-        ModelRateLimiter::Instance().Reset();
+        Model::GetRateLimiter().Reset();
     }
 };
 

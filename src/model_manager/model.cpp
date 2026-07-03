@@ -230,25 +230,27 @@ std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedMo
 void Model::ConstructProvider() {
     if (mock_provider_factory_) {
         provider_ = mock_provider_factory_(model_details_);
+        provider_->SetLimiters(&rate_limiter_, &usage_limiter_);
         return;
     }
     if (mock_provider_) {
         provider_ = mock_provider_;
+        provider_->SetLimiters(&rate_limiter_, &usage_limiter_);
         return;
     }
 
     switch (GetProviderType(model_details_.provider_name)) {
         case FLOCKMTL_OPENAI:
-            provider_ = std::make_shared<OpenAIProvider>(model_details_);
+            provider_ = std::make_shared<OpenAIProvider>(model_details_, &rate_limiter_, &usage_limiter_);
             break;
         case FLOCKMTL_AZURE:
-            provider_ = std::make_shared<AzureProvider>(model_details_);
+            provider_ = std::make_shared<AzureProvider>(model_details_, &rate_limiter_, &usage_limiter_);
             break;
         case FLOCKMTL_OLLAMA:
-            provider_ = std::make_shared<OllamaProvider>(model_details_);
+            provider_ = std::make_shared<OllamaProvider>(model_details_, &rate_limiter_, &usage_limiter_);
             break;
         case FLOCKMTL_ANTHROPIC:
-            provider_ = std::make_shared<AnthropicProvider>(model_details_);
+            provider_ = std::make_shared<AnthropicProvider>(model_details_, &rate_limiter_, &usage_limiter_);
             break;
         default:
             throw std::invalid_argument(duckdb_fmt::format("Unsupported provider: {}", model_details_.provider_name));

@@ -4,11 +4,6 @@
 
 namespace flock {
 
-ModelUsageLimiter& ModelUsageLimiter::Instance() {
-    static ModelUsageLimiter instance;
-    return instance;
-}
-
 void ModelUsageLimiter::CheckLimit(const TotalUsage& usage, const UsageLimit& limit) const {
     if (limit.prompt_tokens_limit.has_value() && usage.prompt_tokens >= *limit.prompt_tokens_limit) {
         throw UsageLimitExceededError("prompt_tokens", usage.prompt_tokens, *limit.prompt_tokens_limit);

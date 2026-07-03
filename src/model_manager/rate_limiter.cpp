@@ -5,11 +5,6 @@
 
 namespace flock {
 
-ModelRateLimiter& ModelRateLimiter::Instance() {
-    static ModelRateLimiter instance;
-    return instance;
-}
-
 void ModelRateLimiter::WaitForBatch(const std::string& model_name, int request_count, int rate_limit) {
     if (model_name.empty() || request_count <= 0 || rate_limit <= 0) {
         return;

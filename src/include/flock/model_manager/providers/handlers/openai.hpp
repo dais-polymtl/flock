@@ -10,8 +10,11 @@ class OpenAIModelManager : public BaseModelProviderHandler {
 public:
     OpenAIModelManager(std::string token, std::string api_base_url, bool throw_exception,
                        const std::string& model_name = "", std::optional<int> rate_limit = std::nullopt,
-                       std::optional<UsageLimit> usage_limit = std::nullopt)
-        : BaseModelProviderHandler(throw_exception, model_name, rate_limit, std::move(usage_limit)), _token(token), _session("OpenAI", throw_exception) {
+                       std::optional<UsageLimit> usage_limit = std::nullopt,
+                       ModelRateLimiter* rate_limiter = nullptr, ModelUsageLimiter* usage_limiter = nullptr)
+        : BaseModelProviderHandler(throw_exception, model_name, rate_limit, std::move(usage_limit), rate_limiter,
+                                   usage_limiter),
+          _token(token), _session("OpenAI", throw_exception) {
         _session.setToken(token, "");
         if (api_base_url.empty()) {
             _api_base_url = "https://api.openai.com/v1/";

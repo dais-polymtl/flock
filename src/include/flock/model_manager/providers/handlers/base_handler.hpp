@@ -21,11 +21,15 @@ class BaseModelProviderHandler : public IModelProviderHandler {
 public:
     explicit BaseModelProviderHandler(bool throw_exception, const std::string& model_name = "",
                                       std::optional<int> rate_limit = std::nullopt,
-                                      std::optional<UsageLimit> usage_limit = std::nullopt)
+                                      std::optional<UsageLimit> usage_limit = std::nullopt,
+                                      ModelRateLimiter* rate_limiter = nullptr,
+                                      ModelUsageLimiter* usage_limiter = nullptr)
         : _throw_exception(throw_exception),
           _model_name(model_name),
           _rate_limit(rate_limit),
-          _usage_limit(std::move(usage_limit)) {}
+          _usage_limit(std::move(usage_limit)),
+          _rate_limiter(rate_limiter),
+          _usage_limiter(usage_limiter) {}
     virtual ~BaseModelProviderHandler() = default;
 
     void AddRequest(const nlohmann::json& json, RequestType type = RequestType::Completion) override {
@@ -78,9 +82,8 @@ public:
 public:
 protected:
     std::vector<nlohmann::json> ExecuteBatch(const std::vector<nlohmann::json>& jsons, bool async = true, const std::string& contentType = "application/json", RequestType request_type = RequestType::Completion) {
-        if (_rate_limit.has_value()) {
-            ModelRateLimiter::Instance().WaitForBatch(_model_name, static_cast<int>(jsons.size()),
-                                                      _rate_limit.value());
+        if (_rate_limit.has_value() && _rate_limiter != nullptr) {
+            _rate_limiter->WaitForBatch(_model_name, static_cast<int>(jsons.size()), _rate_limit.value());
         }
 
 #ifdef __EMSCRIPTEN__
@@ -314,6 +317,8 @@ protected:
     std::string _model_name;
     std::optional<int> _rate_limit;
     std::optional<UsageLimit> _usage_limit;
+    ModelRateLimiter* _rate_limiter;
+    ModelUsageLimiter* _usage_limiter;
     std::vector<nlohmann::json> _request_batch;
     std::vector<RequestType> _request_types;
 
@@ -340,8 +345,8 @@ protected:
     virtual std::pair<int64_t, int64_t> ExtractTokenUsage(const nlohmann::json& response) const = 0;
 
     void RecordTokenUsage(int64_t prompt_tokens, int64_t completion_tokens) {
-        if (_usage_limit.has_value()) {
-            ModelUsageLimiter::Instance().RecordUsage(_model_name, prompt_tokens, completion_tokens, _usage_limit);
+        if (_usage_limit.has_value() && _usage_limiter != nullptr) {
+            _usage_limiter->RecordUsage(_model_name, prompt_tokens, completion_tokens, _usage_limit);
         }
     }
 

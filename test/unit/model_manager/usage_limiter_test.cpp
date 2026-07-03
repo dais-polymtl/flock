@@ -8,9 +8,7 @@ namespace flock {
 
 class ModelUsageLimiterTest : public ::testing::Test {
 protected:
-    void SetUp() override { ModelUsageLimiter::Instance().Reset(); }
-
-    void TearDown() override { ModelUsageLimiter::Instance().Reset(); }
+    ModelUsageLimiter limiter;
 
     static UsageLimit MakeLimit(int64_t prompt = -1, int64_t completion = -1, int64_t total = -1) {
         UsageLimit limit;
@@ -28,7 +26,6 @@ protected:
 };
 
 TEST_F(ModelUsageLimiterTest, AccumulatesUsageAcrossCalls) {
-    auto& limiter = ModelUsageLimiter::Instance();
     const auto limit = MakeLimit(1000);
 
     limiter.RecordUsage("model-a", 10, 5, limit);
@@ -41,7 +38,6 @@ TEST_F(ModelUsageLimiterTest, AccumulatesUsageAcrossCalls) {
 }
 
 TEST_F(ModelUsageLimiterTest, ThrowsWhenPromptLimitExceeded) {
-    auto& limiter = ModelUsageLimiter::Instance();
     const auto limit = MakeLimit(100);
 
     limiter.RecordUsage("model-a", 60, 10, limit);
@@ -49,7 +45,6 @@ TEST_F(ModelUsageLimiterTest, ThrowsWhenPromptLimitExceeded) {
 }
 
 TEST_F(ModelUsageLimiterTest, ThrowsWhenCompletionLimitExceeded) {
-    auto& limiter = ModelUsageLimiter::Instance();
     const auto limit = MakeLimit(-1, 50);
 
     limiter.RecordUsage("model-a", 10, 30, limit);
@@ -57,7 +52,6 @@ TEST_F(ModelUsageLimiterTest, ThrowsWhenCompletionLimitExceeded) {
 }
 
 TEST_F(ModelUsageLimiterTest, ThrowsWhenTotalLimitExceeded) {
-    auto& limiter = ModelUsageLimiter::Instance();
     const auto limit = MakeLimit(-1, -1, 100);
 
     limiter.RecordUsage("model-a", 40, 40, limit);
@@ -65,7 +59,6 @@ TEST_F(ModelUsageLimiterTest, ThrowsWhenTotalLimitExceeded) {
 }
 
 TEST_F(ModelUsageLimiterTest, IndependentBucketsForDifferentModels) {
-    auto& limiter = ModelUsageLimiter::Instance();
     const auto limit = MakeLimit(100);
 
     limiter.RecordUsage("model-a", 90, 0, limit);
@@ -76,14 +69,11 @@ TEST_F(ModelUsageLimiterTest, IndependentBucketsForDifferentModels) {
 }
 
 TEST_F(ModelUsageLimiterTest, IgnoresWhenNoLimitConfigured) {
-    auto& limiter = ModelUsageLimiter::Instance();
-
     EXPECT_NO_THROW(limiter.RecordUsage("model-a", 1'000'000, 1'000'000, std::nullopt));
     EXPECT_EQ(limiter.GetUsageForTesting("model-a").total_tokens(), 0);
 }
 
 TEST_F(ModelUsageLimiterTest, IgnoresEmptyModelName) {
-    auto& limiter = ModelUsageLimiter::Instance();
     const auto limit = MakeLimit(100);
 
     EXPECT_NO_THROW(limiter.RecordUsage("", 1'000, 1'000, limit));
@@ -91,7 +81,6 @@ TEST_F(ModelUsageLimiterTest, IgnoresEmptyModelName) {
 }
 
 TEST_F(ModelUsageLimiterTest, UsageLimitExceededErrorHasExpectedProperties) {
-    auto& limiter = ModelUsageLimiter::Instance();
     const auto limit = MakeLimit(-1, -1, 100);
 
     try {
@@ -110,7 +99,6 @@ TEST_F(ModelUsageLimiterTest, UsageLimitExceededErrorHasExpectedProperties) {
 }
 
 TEST_F(ModelUsageLimiterTest, ResetClearsUsage) {
-    auto& limiter = ModelUsageLimiter::Instance();
     const auto limit = MakeLimit(1000);
 
     limiter.RecordUsage("model-a", 100, 50, limit);

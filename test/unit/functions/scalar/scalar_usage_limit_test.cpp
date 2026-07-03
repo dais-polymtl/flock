@@ -53,7 +53,7 @@ void InstallUsageLimitProviderFactory() {
 class ScalarUsageLimitTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        ModelUsageLimiter::Instance().Reset();
+        Model::GetUsageLimiter().Reset();
 
         auto con = Config::GetConnection();
         con.Query("CREATE SECRET (TYPE OPENAI, API_KEY 'your-api-key');");
@@ -62,7 +62,7 @@ protected:
 
     void TearDown() override {
         Model::ResetMockProvider();
-        ModelUsageLimiter::Instance().Reset();
+        Model::GetUsageLimiter().Reset();
     }
 };
 

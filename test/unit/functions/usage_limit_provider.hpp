@@ -31,8 +31,10 @@ public:
         collect_call_count++;
 
         for (size_t i = 0; i < pending_output_counts_.size(); ++i) {
-            ModelUsageLimiter::Instance().RecordUsage(model_details_.model_name, prompt_tokens_per_request_,
-                                                      completion_tokens_per_request_, model_details_.usage_limit);
+            if (usage_limiter_ != nullptr) {
+                usage_limiter_->RecordUsage(model_details_.model_name, prompt_tokens_per_request_,
+                                            completion_tokens_per_request_, model_details_.usage_limit);
+            }
         }
 
         std::vector<nlohmann::json> responses;

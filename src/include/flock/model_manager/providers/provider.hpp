@@ -10,6 +10,9 @@
 
 namespace flock {
 
+class ModelRateLimiter;
+class ModelUsageLimiter;
+
 bool is_base64(const std::string& str);
 
 enum class OutputType {
@@ -24,8 +27,21 @@ public:
     ModelDetails model_details_;
     std::unique_ptr<IModelProviderHandler> model_handler_;
 
-    explicit IProvider(const ModelDetails& model_details) : model_details_(model_details){};
+    // Shared, app-lifetime limiters injected by the owner (see Model). They are
+    // not owned here; the same instances are reused across every provider so
+    // per-model rate/usage accounting is consistent process-wide.
+    ModelRateLimiter* rate_limiter_ = nullptr;
+    ModelUsageLimiter* usage_limiter_ = nullptr;
+
+    explicit IProvider(const ModelDetails& model_details, ModelRateLimiter* rate_limiter = nullptr,
+                       ModelUsageLimiter* usage_limiter = nullptr)
+        : model_details_(model_details), rate_limiter_(rate_limiter), usage_limiter_(usage_limiter){};
     virtual ~IProvider() = default;
+
+    void SetLimiters(ModelRateLimiter* rate_limiter, ModelUsageLimiter* usage_limiter) {
+        rate_limiter_ = rate_limiter;
+        usage_limiter_ = usage_limiter;
+    }
 
     virtual void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) = 0;
     virtual void AddEmbeddingRequest(const std::vector<std::string>& inputs) = 0;

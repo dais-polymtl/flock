@@ -9,7 +9,7 @@ namespace flock {
 
 class ModelUsageLimiter {
 public:
-    static ModelUsageLimiter& Instance();
+    ModelUsageLimiter() = default;
 
     // Accumulates provider-reported token usage for `model_name` and throws
     // UsageLimitExceededError when any configured limit is exceeded.
@@ -21,14 +21,10 @@ public:
     void Reset();
 
 private:
-    ModelUsageLimiter() = default;
-
     void CheckLimit(const TotalUsage& usage, const UsageLimit& limit) const;
 
     mutable std::mutex mutex_;
     std::unordered_map<std::string, TotalUsage> usage_by_model_;
-
-    friend class ModelUsageLimiterTest;
 };
 
 }// namespace flock
