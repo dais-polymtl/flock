@@ -28,32 +28,27 @@ void ValidateAndAssignBatchSizeArg(nlohmann::json& model_args, const std::string
 }
 
 nlohmann::json ValidateUsageLimitObject(const nlohmann::json& value) {
+    const auto allowed_fields = std::vector<std::string>{"prompt_tokens_limit", "completion_tokens_limit", "total_tokens_limit"};
+    const auto& error_message = "Expected 'usage_limit' to be a JSON object, i.e., a key-value dictionary such as {\"prompt_tokens_limit\": 10000, \"completion_tokens_limit\": 5000, \"total_tokens_limit\": 12000}.";
     if (!value.is_object()) {
-        throw std::runtime_error("Expected 'usage_limit' to be a JSON object.");
+        throw std::runtime_error(error_message);
     }
 
     nlohmann::json result = nlohmann::json::object();
     for (auto it = value.begin(); it != value.end(); ++it) {
         const std::string& field = it.key();
-        if (field != "prompt_tokens_limit" && field != "completion_tokens_limit" && field != "total_tokens_limit") {
-            throw std::runtime_error(
-                    "Unknown usage_limit field: '" + field +
-                    "'. Only prompt_tokens_limit, completion_tokens_limit, and total_tokens_limit are allowed.");
-        }
-        if (!it.value().is_number_integer()) {
-            throw std::runtime_error("Expected '" + field + "' to be an integer.");
+        if (std::find(allowed_fields.begin(), allowed_fields.end(), field) == allowed_fields.end() || !it.value().is_number_integer()) {
+            throw std::runtime_error(error_message);
         }
         const int64_t limit_value = it.value().get<int64_t>();
         if (limit_value <= 0) {
-            throw std::runtime_error("'" + field + "' must be larger than 0");
+            throw std::runtime_error(error_message);
         }
         result[field] = limit_value;
     }
 
     if (result.empty()) {
-        throw std::runtime_error(
-                "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
-                "total_tokens_limit.");
+        throw std::runtime_error(error_message);
     }
 
     return result;

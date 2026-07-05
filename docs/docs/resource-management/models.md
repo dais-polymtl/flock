@@ -125,7 +125,7 @@ If `rate_limit` is omitted, Flock does not apply request-per-minute throttling.
 
 ### `usage_limit`
 
-`usage_limit` sets cumulative token quotas for a Flock model, keyed by `model_name`. Unlike `rate_limit`, which throttles request rate, `usage_limit` tracks provider-reported token usage across calls and fails once a quota is exceeded.
+`usage_limit` sets cumulative token quotas for a Flock model, keyed by `model_name`. Like `rate_limit`, it is scoped per model; unlike `rate_limit`, which throttles how many provider requests are sent per minute, `usage_limit` tracks provider-reported token usage across calls and fails once a quota is exceeded.
 
 Supported fields (at least one is required):
 
