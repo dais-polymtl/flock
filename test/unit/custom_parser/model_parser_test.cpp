@@ -267,6 +267,33 @@ TEST(ModelParserTest, ParseNegativeBatchSizeCreateModel) {
     EXPECT_THROW(parser.Parse("CREATE MODEL ('test_model', 'model_data', 'provider', {\"tuple_format\": \"json\", \"batch_size\": -1})", statement), std::runtime_error);
 }
 
+TEST(ModelParserTest, ParseCreateModelWithMaxBatchSize) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse(
+            "CREATE MODEL ('test_model', 'model_data', 'provider', {\"max_batch_size\": 32, \"rate_limit\": 30})",
+            statement));
+    ASSERT_NE(statement, nullptr);
+    const auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
+    ASSERT_NE(create_stmt, nullptr);
+    EXPECT_EQ(create_stmt->model_args["max_batch_size"], 32);
+    EXPECT_EQ(create_stmt->model_args["rate_limit"], 30);
+}
+
+TEST(ModelParserTest, ParseCreateModelStoresBothBatchSizeKeys) {
+    std::unique_ptr<QueryStatement> statement;
+    ModelParser parser;
+    EXPECT_NO_THROW(parser.Parse(
+            "CREATE MODEL ('test_model', 'model_data', 'provider', "
+            "{\"batch_size\": 16, \"max_batch_size\": 32})",
+            statement));
+    ASSERT_NE(statement, nullptr);
+    const auto create_stmt = dynamic_cast<CreateModelStatement*>(statement.get());
+    ASSERT_NE(create_stmt, nullptr);
+    EXPECT_EQ(create_stmt->model_args["batch_size"], 16);
+    EXPECT_EQ(create_stmt->model_args["max_batch_size"], 32);
+}
+
 TEST(ModelParserTest, ParseCreateModelWithRateLimit) {
     std::unique_ptr<QueryStatement> statement;
     ModelParser parser;

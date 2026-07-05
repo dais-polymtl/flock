@@ -47,7 +47,7 @@ TEST_F(ModelManagerTest, ModelInitialization) {
         EXPECT_EQ(details.provider_name, "openai");
         EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
         EXPECT_EQ(details.tuple_format, TupleFormat::JSON);
-        EXPECT_EQ(details.batch_size, 32);
+        EXPECT_EQ(details.max_batch_size, 32);
         EXPECT_TRUE(details.is_async);
     });
 }
@@ -100,7 +100,7 @@ TEST_F(ModelManagerTest, ModelInitializationMinimal) {
         EXPECT_EQ(details.model_name, "gpt-4o-test");
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
-        EXPECT_EQ(details.batch_size, 32);
+        EXPECT_EQ(details.max_batch_size, 32);
     });
 }
 
@@ -114,7 +114,7 @@ TEST_F(ModelManagerTest, ModelInitializationUsesDefaultBatchSizeWhenUnset) {
         EXPECT_EQ(details.model_name, "gpt-4o");
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
-        EXPECT_EQ(details.batch_size, DEFAULT_BATCH_SIZE);
+        EXPECT_EQ(details.max_batch_size, DEFAULT_MAX_BATCH_SIZE);
     });
 }
 
@@ -176,7 +176,7 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.provider_name, "openai");
     EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
     EXPECT_EQ(details.tuple_format, TupleFormat::XML);
-    EXPECT_EQ(details.batch_size, 10);
+    EXPECT_EQ(details.max_batch_size, 10);
 }
 
 TEST_F(ModelManagerTest, ModelInitializationRejectsNonPositiveBatchSize) {
@@ -213,6 +213,49 @@ TEST_F(ModelManagerTest, ModelInitializationParsesRateLimit) {
     EXPECT_EQ(model.GetModelDetailsAsJson()["rate_limit"], 30);
 }
 
+TEST_F(ModelManagerTest, ModelInitializationParsesMaxBatchSize) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"max_batch_size", 48},
+            {"model_parameters", nlohmann::json::object()}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    EXPECT_EQ(details.max_batch_size, 48);
+    EXPECT_EQ(model.GetModelDetailsAsJson()["max_batch_size"], 48);
+    EXPECT_FALSE(model.GetModelDetailsAsJson().contains("batch_size"));
+}
+
+TEST_F(ModelManagerTest, ModelInitializationAcceptsDeprecatedBatchSizeAlias) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 24},
+            {"model_parameters", nlohmann::json::object()}};
+
+    Model model(model_config);
+    EXPECT_EQ(model.GetModelDetails().max_batch_size, 24);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationPrefersMaxBatchSizeOverDeprecatedAlias) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 24},
+            {"max_batch_size", 32},
+            {"model_parameters", nlohmann::json::object()}};
+
+    Model model(model_config);
+    EXPECT_EQ(model.GetModelDetails().max_batch_size, 32);
+}
+
 TEST_F(ModelManagerTest, ModelInitializationPreservesBatchSizeWhenRateLimitIsSet) {
     json model_config = {
             {"model_name", "gpt-4o-test"},
@@ -225,7 +268,7 @@ TEST_F(ModelManagerTest, ModelInitializationPreservesBatchSizeWhenRateLimitIsSet
 
     Model model(model_config);
     ModelDetails details = model.GetModelDetails();
-    EXPECT_EQ(details.batch_size, 64);
+    EXPECT_EQ(details.max_batch_size, 64);
     ASSERT_TRUE(details.rate_limit.has_value());
     EXPECT_EQ(details.rate_limit.value(), 10);
 }

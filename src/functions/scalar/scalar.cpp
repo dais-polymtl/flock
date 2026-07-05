@@ -185,7 +185,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
                                                         const std::string& user_prompt,
                                                         const ScalarFunctionType function_type, Model& model) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
-    const int configured = std::min<int>(model.GetModelDetails().batch_size, row_count);
+    const int configured = std::min<int>(model.GetModelDetails().max_batch_size, row_count);
     auto batch_size = configured;
 
     auto responses = nlohmann::json::array();
@@ -226,7 +226,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
                                                          const std::string& user_prompt,
                                                          const ScalarFunctionType function_type, Model& model) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
-    const int configured = std::min<int>(model.GetModelDetails().batch_size, row_count);
+    const int configured = std::min<int>(model.GetModelDetails().max_batch_size, row_count);
 
     auto responses = BuildNullResponsesForRowCount(row_count);
     std::vector<AsyncBatchWork> pending;

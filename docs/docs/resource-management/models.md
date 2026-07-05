@@ -23,7 +23,60 @@ Models are stored in a table with the following structure:
 | **Model Name**      | Unique identifier for the model                                                                                                                                                                                                                   |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                                                                                                                                                                                     |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`)                                                                                                                                                                                           |
-| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `model_parameters`, `is_async`, `rate_limit`, and `usage_limit` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **batch_size** must be greater than 0. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. **rate_limit** is an optional positive integer for maximum provider requests per minute, scoped per Flock `model_name`. **usage_limit** is an optional JSON object for cumulative token quotas, also scoped per Flock `model_name`. |
+| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `max_batch_size`, `batch_size` (deprecated), `model_parameters`, `is_async`, `rate_limit`, and `usage_limit` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **max_batch_size** must be greater than 0 and controls the maximum number of tuples sent in a single provider request. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. **rate_limit** is an optional positive integer for maximum provider requests per minute, scoped per Flock `model_name`. **usage_limit** is an optional JSON object for cumulative token quotas, also scoped per Flock `model_name`. |
+
+### `max_batch_size`
+
+`max_batch_size` sets the maximum number of input tuples Flock groups into a single provider request. Each request counts as one call against `rate_limit` and provider quotas.
+
+Default: `16`.
+
+```sql
+CREATE MODEL('batched-gpt4o', 'gpt-4o', 'openai', {"max_batch_size": 64});
+```
+
+You can also override `max_batch_size` inline when calling a function:
+
+```sql
+SELECT llm_complete(
+    {'model_name': 'gpt-4o', 'max_batch_size': 32},
+    {'prompt': 'Summarize', 'context_columns': [{'data': text}]}
+) FROM my_table;
+```
+
+#### Token-limit retries
+
+If a batch exceeds the model context window, Flock automatically retries with smaller batches instead of failing the whole query.
+
+**Scalar functions** (`llm_complete`, `llm_filter`, `llm_embedding`):
+
+- Flock starts from `min(max_batch_size, row_count)`.
+- On a context-window / token-limit error, the failed batch is retried at half the size: `64 → 32 → 16 → …`
+- After a successful batch, the next chunk starts again at the configured `max_batch_size`.
+- If a batch cannot be reduced further (`batch_size` of 1 still fails), affected rows return `NULL`.
+
+Sync (`is_async: false`) retries batches sequentially. Async (`is_async: true`, the default) splits only the failed batch and re-queues the smaller pieces; successful batches in the same round are kept.
+
+**Aggregate functions** (`llm_reduce`, `llm_rerank`, `llm_first`, `llm_last`):
+
+- Flock shrinks the working batch by 10% on token-limit errors and retries the same rows.
+- If the batch size reaches zero, Flock raises an error instead of returning `NULL`.
+
+This automatic backoff is separate from `usage_limit`, which tracks cumulative token quotas and fails immediately once exceeded.
+
+### `batch_size` (deprecated)
+
+`batch_size` is a deprecated alias for `max_batch_size`. Existing models and inline overrides that use `batch_size` continue to work, but Flock logs a warning when `batch_size` is used.
+
+Prefer `max_batch_size` in new models and queries. If both are set, `max_batch_size` takes precedence.
+
+```sql
+-- Deprecated
+CREATE MODEL('legacy-model', 'gpt-4o', 'openai', {"batch_size": 16});
+
+-- Preferred
+CREATE MODEL('current-model', 'gpt-4o', 'openai', {"max_batch_size": 16});
+```
 
 ### `is_async`
 
@@ -31,10 +84,10 @@ Models are stored in a table with the following structure:
 
 ```sql
 -- Default: async batching
-CREATE MODEL('async-model', 'gpt-4o', 'openai', {"batch_size": 16});
+CREATE MODEL('async-model', 'gpt-4o', 'openai', {"max_batch_size": 16});
 
 -- Explicit synchronous batching
-CREATE MODEL('sync-model', 'gpt-4o', 'openai', {"batch_size": 16, "is_async": false});
+CREATE MODEL('sync-model', 'gpt-4o', 'openai', {"max_batch_size": 16, "is_async": false});
 ```
 
 You can also pass `is_async` inline when calling a function:
@@ -53,13 +106,13 @@ SELECT llm_complete(
 When `rate_limit` is set:
 
 - Flock spaces outgoing provider requests so the configured requests-per-minute cap is not exceeded.
-- `batch_size` and `rate_limit` are independent: `batch_size` controls tuples per request; `rate_limit` throttles how many provider requests are sent per minute.
+- `max_batch_size` and `rate_limit` are independent: `max_batch_size` controls tuples per request; `rate_limit` throttles how many provider requests are sent per minute.
 - The limit applies across completions, embeddings, and transcriptions for that model.
 - Sync and async scalar execution both respect the same per-model limit.
 
 ```sql
 -- Limit to 30 requests per minute
-CREATE MODEL('limited-gpt4o', 'gpt-4o', 'openai', {"batch_size": 64, "rate_limit": 30});
+CREATE MODEL('limited-gpt4o', 'gpt-4o', 'openai', {"max_batch_size": 64, "rate_limit": 30});
 
 -- Inline override in a function call
 SELECT llm_complete(
@@ -80,12 +133,12 @@ Supported fields (at least one is required):
 - `completion_tokens_limit`: maximum cumulative output/completion tokens
 - `total_tokens_limit`: maximum cumulative total tokens (prompt + completion)
 
-When a limit is exceeded, Flock raises a usage-limit error. This is separate from context-window overflow errors that trigger batch-size retries.
+When a limit is exceeded, Flock raises a usage-limit error. This is separate from context-window overflow errors that trigger automatic `max_batch_size` retries (see above).
 
 ```sql
 -- Cap total tokens for a model
 CREATE MODEL('budget-gpt4o', 'gpt-4o', 'openai', {
-    "batch_size": 16,
+    "max_batch_size": 16,
     "usage_limit": {"total_tokens_limit": 50000}
 });
 
@@ -120,7 +173,7 @@ MODEL 'model_name';
 - Create a new user-defined model
 
 ```sql
--- User-defined model (only tuple_format, batch_size, model_parameters, is_async, rate_limit, and usage_limit allowed in JSON)
+-- User-defined model (only tuple_format, max_batch_size, batch_size, model_parameters, is_async, rate_limit, and usage_limit allowed in JSON)
 -- tuple_format can be "JSON", "XML", or "Markdown"
 CREATE
 MODEL(

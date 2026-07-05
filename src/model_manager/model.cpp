@@ -60,9 +60,13 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     nlohmann::json db_model_args = nlohmann::json::object();
     bool db_loaded = false;
 
+    const auto& hasBatchSizeConfig = [](const nlohmann::json& model_args) {
+        return model_args.contains("max_batch_size") || model_args.contains("batch_size");
+    };
+
     const bool is_fully_resolved = model_json.contains("model") && model_json.contains("provider") &&
                                    model_json.contains("secret") && model_json.contains("tuple_format") &&
-                                   model_json.contains("batch_size");
+                                   hasBatchSizeConfig(model_json);
 
     // Each fallback path can call this helper, but only the first missing field
     // queries storage. Fully resolved model JSON skips DB defaults entirely.
@@ -122,18 +126,18 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         }
     }
 
-    if (model_json.contains("batch_size")) {
-        model_details_.batch_size = model_json.at("batch_size").get<int>();
+    if (hasBatchSizeConfig(model_json)) {
+        model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(model_json);
     } else {
         ensure_db_loaded();
-        if (db_model_args.contains("batch_size")) {
-            model_details_.batch_size = db_model_args.at("batch_size").get<int>();
+        if (hasBatchSizeConfig(db_model_args)) {
+            model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(db_model_args);
         } else {
-            model_details_.batch_size = DEFAULT_BATCH_SIZE;
+            model_details_.max_batch_size = DEFAULT_BATCH_SIZE;
         }
     }
-    if (model_details_.batch_size <= 0) {
-        throw std::runtime_error("'batch_size' must be larger than 0");
+    if (model_details_.max_batch_size <= 0) {
+        throw std::runtime_error("'max_batch_size' must be larger than 0");
     }
 
     if (model_json.contains("is_async")) {
@@ -259,7 +263,7 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["model"] = model_details_.model;
     result["provider"] = model_details_.provider_name;
     result["tuple_format"] = static_cast<int>(model_details_.tuple_format);
-    result["batch_size"] = model_details_.batch_size;
+    result["max_batch_size"] = model_details_.max_batch_size;
     result["is_async"] = model_details_.is_async;
     result["secret"] = model_details_.secret;
     if (model_details_.rate_limit.has_value()) {

@@ -12,8 +12,19 @@ namespace flock {
 namespace {
 
 bool IsAllowedModelArgKey(const std::string& key) {
-    return key == "tuple_format" || key == "batch_size" || key == "model_parameters" || key == "is_async" ||
-           key == "rate_limit" || key == "usage_limit";
+    return key == "tuple_format" || key == "batch_size" || key == "max_batch_size" || key == "model_parameters" ||
+           key == "is_async" || key == "rate_limit" || key == "usage_limit";
+}
+
+void ValidateAndAssignBatchSizeArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
+    if (!value.is_number_integer()) {
+        throw std::runtime_error("Expected '" + key + "' to be an integer.");
+    }
+    const int batch_size = value.get<int>();
+    if (batch_size <= 0) {
+        throw std::runtime_error("'" + key + "' must be larger than 0");
+    }
+    model_args[key] = batch_size;
 }
 
 nlohmann::json ValidateUsageLimitObject(const nlohmann::json& value) {
@@ -52,20 +63,12 @@ void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& ke
     if (!IsAllowedModelArgKey(key)) {
         throw std::runtime_error(
                 "Unknown model_args parameter: '" + key +
-                "'. Only tuple_format, batch_size, model_parameters, is_async, rate_limit, and usage_limit are "
-                "allowed.");
+                "'. Only tuple_format, batch_size, max_batch_size, model_parameters, is_async, rate_limit, and "
+                "usage_limit are allowed.");
     }
 
-    if (key == "batch_size") {
-        if (!value.is_number_integer()) {
-            throw std::runtime_error("Expected 'batch_size' to be an integer.");
-        }
-        const int batch_size = value.get<int>();
-        if (batch_size <= 0) {
-            throw std::runtime_error("'batch_size' must be larger than 0");
-        }
-
-        model_args[key] = batch_size;
+    if (key == "batch_size" || key == "max_batch_size") {
+        ValidateAndAssignBatchSizeArg(model_args, key, value);
         return;
     }
 

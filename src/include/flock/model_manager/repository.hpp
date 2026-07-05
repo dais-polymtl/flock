@@ -4,6 +4,7 @@
 #include "flock/prompt_manager/repository.hpp"
 #include <algorithm>
 #include <cstdint>
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <unordered_map>
@@ -70,12 +71,33 @@ struct ModelDetails {
     std::string model;
     std::unordered_map<std::string, std::string> secret;
     TupleFormat tuple_format = TupleFormat::XML;
-    int batch_size;
+    int max_batch_size;
     nlohmann::json model_parameters;
     bool is_async = true;
     std::optional<int> rate_limit;
     std::optional<UsageLimit> usage_limit;
 };
+
+
+inline int ResolveMaxBatchSizeFromJson(const nlohmann::json& model_args) {
+    const bool has_max = model_args.contains("max_batch_size");
+    const bool has_legacy = model_args.contains("batch_size");
+
+    if (has_max) {
+        if (has_legacy) {
+            std::cerr << "[Flock] Warning: 'batch_size' is getting deprecated; use 'max_batch_size' instead.\n";
+        }
+        return model_args.at("max_batch_size").get<int>();
+    }
+
+    if (has_legacy) {
+        std::cerr << "[Flock] Warning: 'batch_size' is getting deprecated; use 'max_batch_size' instead.\n";
+        return model_args.at("batch_size").get<int>();
+    }
+
+    return DEFAULT_BATCH_SIZE;
+}
+
 
 const std::string OLLAMA = "ollama";
 const std::string OPENAI = "openai";
