@@ -1,3 +1,4 @@
+#include "flock/core/config.hpp"
 #include "flock/model_manager/model.hpp"
 #include "nlohmann/json.hpp"
 #include <gtest/gtest.h>
@@ -6,6 +7,41 @@
 
 namespace flock {
 using json = nlohmann::json;
+
+namespace {
+
+constexpr const char* kInlineOverrideModelName = "inline_limit_override_test";
+
+void InsertLocalTestModel(duckdb::Connection& con, const std::string& model_name, const json& model_args) {
+    Config::ConfigureTables(con, ConfigType::LOCAL);
+
+    const std::string schema = Config::get_schema_name();
+    const auto table = Config::get_user_defined_models_table_name();
+    con.Query("DELETE FROM " + schema + "." + table + " WHERE model_name = '" + model_name + "';");
+    con.Query("INSERT INTO " + schema + "." + table +
+              " (model_name, model, provider_name, model_args) VALUES ('" + model_name +
+              "', 'gpt-4o', 'openai', '" + model_args.dump() + "');");
+}
+
+void DeleteLocalTestModel(duckdb::Connection& con, const std::string& model_name) {
+    const std::string schema = Config::get_schema_name();
+    const auto table = Config::get_user_defined_models_table_name();
+    con.Query("DELETE FROM " + schema + "." + table + " WHERE model_name = '" + model_name + "';");
+}
+
+json StoredModelArgsWithRateLimit(int rate_limit) {
+    return {{"tuple_format", static_cast<int>(TupleFormat::JSON)},
+            {"batch_size", 32},
+            {"rate_limit", rate_limit}};
+}
+
+json StoredModelArgsWithUsageLimit(int total_tokens_limit) {
+    return {{"tuple_format", static_cast<int>(TupleFormat::JSON)},
+            {"batch_size", 32},
+            {"usage_limit", {{"total_tokens_limit", total_tokens_limit}}}};
+}
+
+}// namespace
 
 class ModelManagerTest : public ::testing::Test {
 protected:
@@ -354,6 +390,53 @@ TEST_F(ModelManagerTest, ModelInitializationRejectsEmptyUsageLimit) {
             {"usage_limit", nlohmann::json::object()}};
 
     EXPECT_THROW(Model model(model_config), std::runtime_error);
+}
+
+TEST_F(ModelManagerTest, InlineRateLimitOverridesStoredModelArgs) {
+    auto con = Config::GetConnection();
+    InsertLocalTestModel(con, kInlineOverrideModelName, StoredModelArgsWithRateLimit(30));
+
+    Model from_storage({{"model_name", kInlineOverrideModelName}});
+    ASSERT_TRUE(from_storage.GetModelDetails().rate_limit.has_value());
+    EXPECT_EQ(from_storage.GetModelDetails().rate_limit.value(), 30);
+
+    Model with_inline_override({{"model_name", kInlineOverrideModelName}, {"rate_limit", 10000}});
+    ASSERT_TRUE(with_inline_override.GetModelDetails().rate_limit.has_value());
+    EXPECT_EQ(with_inline_override.GetModelDetails().rate_limit.value(), 10000);
+
+    DeleteLocalTestModel(con, kInlineOverrideModelName);
+}
+
+TEST_F(ModelManagerTest, InlineUsageLimitOverridesStoredModelArgs) {
+    auto con = Config::GetConnection();
+    InsertLocalTestModel(con, kInlineOverrideModelName, StoredModelArgsWithUsageLimit(500));
+
+    Model from_storage({{"model_name", kInlineOverrideModelName}});
+    ASSERT_TRUE(from_storage.GetModelDetails().usage_limit.has_value());
+    EXPECT_EQ(from_storage.GetModelDetails().usage_limit->total_tokens_limit.value(), 500);
+
+    Model with_inline_override(
+            {{"model_name", kInlineOverrideModelName},
+             {"usage_limit", {{"total_tokens_limit", 10000}}}});
+    ASSERT_TRUE(with_inline_override.GetModelDetails().usage_limit.has_value());
+    EXPECT_EQ(with_inline_override.GetModelDetails().usage_limit->total_tokens_limit.value(), 10000);
+
+    DeleteLocalTestModel(con, kInlineOverrideModelName);
+}
+
+TEST_F(ModelManagerTest, ResolveModelDetailsToJsonPreservesInlineLimitOverrides) {
+    auto con = Config::GetConnection();
+    InsertLocalTestModel(con, kInlineOverrideModelName, StoredModelArgsWithRateLimit(30));
+
+    const auto resolved = Model::ResolveModelDetailsToJson(
+            {{"model_name", kInlineOverrideModelName},
+             {"rate_limit", 10000},
+             {"usage_limit", {{"total_tokens_limit", 8000}}}});
+
+    EXPECT_EQ(resolved["rate_limit"].get<size_t>(), 10000);
+    EXPECT_EQ(resolved["usage_limit"]["total_tokens_limit"].get<size_t>(), 8000);
+
+    DeleteLocalTestModel(con, kInlineOverrideModelName);
 }
 
 }// namespace flock
