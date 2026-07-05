@@ -197,7 +197,6 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
 
         start_index += batch_size;
 
-        // UsageLimitExceededError is not retried here; cumulative quota failures propagate immediately.
         try {
             auto response = Complete(batch_tuples, user_prompt, function_type, model);
             NormalizeAndAppendBatchResponse(response, batch_tuples[0]["data"].size(), responses);
@@ -247,7 +246,6 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
 
         std::vector<nlohmann::json> batch_responses;
         bool collect_threw_token_error = false;
-        // UsageLimitExceededError is not caught here; cumulative quota failures propagate immediately.
         try {
             batch_responses = attempt_model.CollectCompletions();
         } catch (const TokenLimitExceededError&) {
