@@ -114,7 +114,7 @@ TEST_F(ModelManagerTest, ModelInitializationUsesDefaultBatchSizeWhenUnset) {
         EXPECT_EQ(details.model_name, "gpt-4o");
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
-        EXPECT_EQ(details.max_batch_size, DEFAULT_BATCH_SIZE);
+        EXPECT_EQ(details.max_batch_size, DEFAULT_MAX_BATCH_SIZE);
     });
 }
 

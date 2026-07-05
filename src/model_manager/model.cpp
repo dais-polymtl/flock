@@ -133,7 +133,7 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         if (hasBatchSizeConfig(db_model_args)) {
             model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(db_model_args);
         } else {
-            model_details_.max_batch_size = DEFAULT_BATCH_SIZE;
+            model_details_.max_batch_size = DEFAULT_MAX_BATCH_SIZE;
         }
     }
 

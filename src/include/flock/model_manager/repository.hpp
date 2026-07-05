@@ -11,7 +11,7 @@
 
 namespace flock {
 
-inline constexpr int DEFAULT_BATCH_SIZE = 16;
+inline constexpr size_t DEFAULT_MAX_BATCH_SIZE = 16;
 
 struct TotalUsage {
     size_t prompt_tokens = 0;
@@ -104,7 +104,7 @@ inline int ResolveMaxBatchSizeFromJson(const nlohmann::json& model_args) {
         return static_cast<int>(ParsePositiveSizeFromJson(model_args.at("batch_size"), "max_batch_size"));
     }
 
-    return DEFAULT_BATCH_SIZE;
+    return DEFAULT_MAX_BATCH_SIZE;
 }
 
 
