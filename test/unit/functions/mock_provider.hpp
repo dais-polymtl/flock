@@ -6,7 +6,10 @@ namespace flock {
 
 class MockProvider : public IProvider {
 public:
-    explicit MockProvider(const ModelDetails& model_details) : IProvider(model_details) {}
+    explicit MockProvider(const ModelDetails& model_details,
+                          std::shared_ptr<ModelRateLimiter> rate_limiter = nullptr,
+                          std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr)
+        : IProvider(model_details, std::move(rate_limiter), std::move(usage_limiter)) {}
 
     MOCK_METHOD(void, AddCompletionRequest, (const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data), (override));
     MOCK_METHOD(void, AddEmbeddingRequest, (const std::vector<std::string>& inputs), (override));

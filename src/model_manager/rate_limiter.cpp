@@ -5,8 +5,8 @@
 
 namespace flock {
 
-void ModelRateLimiter::WaitForBatch(const std::string& model_name, int request_count, int rate_limit) {
-    if (model_name.empty() || request_count <= 0 || rate_limit <= 0) {
+void ModelRateLimiter::WaitForBatchIfNeeded(const std::string& model_name, size_t request_count, size_t rate_limit) {
+    if (model_name.empty() || request_count == 0 || rate_limit == 0) {
         return;
     }
 
@@ -20,9 +20,9 @@ void ModelRateLimiter::WaitForBatch(const std::string& model_name, int request_c
             times.pop_front();
         }
 
-        const int capacity = rate_limit - static_cast<int>(times.size());
+        const auto capacity = rate_limit - times.size();
         if (capacity > 0) {
-            const int admit = std::min(capacity, request_count);
+            const auto admit = std::min(capacity, request_count);
             times.insert(times.end(), static_cast<size_t>(admit), now);
             request_count -= admit;
             if (request_count == 0) {
@@ -38,12 +38,5 @@ void ModelRateLimiter::WaitForBatch(const std::string& model_name, int request_c
 void ModelRateLimiter::Reset() {
     std::lock_guard<std::mutex> lock(mutex_);
     request_times_.clear();
-    window_ = std::chrono::seconds(60);
 }
-
-void ModelRateLimiter::SetWindowForTesting(std::chrono::steady_clock::duration window) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    window_ = window;
-}
-
 }// namespace flock

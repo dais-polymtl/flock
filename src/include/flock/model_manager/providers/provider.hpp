@@ -40,11 +40,6 @@ public:
           usage_limiter_(std::move(usage_limiter)){};
     virtual ~IProvider() = default;
 
-    void SetLimiters(std::shared_ptr<ModelRateLimiter> rate_limiter, std::shared_ptr<ModelUsageLimiter> usage_limiter) {
-        rate_limiter_ = std::move(rate_limiter);
-        usage_limiter_ = std::move(usage_limiter);
-    }
-
     virtual void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) = 0;
     virtual void AddEmbeddingRequest(const std::vector<std::string>& inputs) = 0;
     virtual void AddTranscriptionRequest(const nlohmann::json& audio_files) = 0;

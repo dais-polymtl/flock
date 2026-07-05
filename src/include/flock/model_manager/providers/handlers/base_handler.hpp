@@ -84,16 +84,22 @@ public:
 protected:
     std::vector<nlohmann::json> ExecuteBatch(const std::vector<nlohmann::json>& jsons, bool async = true, const std::string& contentType = "application/json", RequestType request_type = RequestType::Completion) {
         if (_rate_limit.has_value() && _rate_limiter != nullptr) {
-            _rate_limiter->WaitForBatch(_model_name, static_cast<int>(jsons.size()), _rate_limit.value());
+            _rate_limiter->WaitForBatchIfNeeded(_model_name, jsons.size(), static_cast<size_t>(_rate_limit.value()));
         }
+
+        EnsureUsageLimitNotExceeded();
 
 #ifdef __EMSCRIPTEN__
         // WASM: Process requests sequentially using emscripten fetch
         std::vector<nlohmann::json> results(jsons.size());
         bool is_completion = (request_type == RequestType::Completion);
+        bool is_transcription = (request_type == RequestType::Transcription);
         auto url = is_completion ? getCompletionUrl() : getEmbedUrl();
+        bool usage_limit_reached = false;
 
         for (size_t i = 0; i < jsons.size(); ++i) {
+            EnsureUsageLimitNotExceeded();
+
             prepareSessionForRequest(url);
             setParameters(jsons[i].dump(), contentType);
             auto response = postRequest(contentType);
@@ -102,17 +108,11 @@ protected:
                 try {
                     nlohmann::json parsed = nlohmann::json::parse(response.text);
                     checkResponse(parsed, request_type);
-                    if (request_type != RequestType::Transcription) {
+                    if (!is_transcription) {
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
-                        RecordTokenUsage(input_tokens, output_tokens);
+                        RecordTokenUsageWithSoftCap(input_tokens, output_tokens, usage_limit_reached);
                     }
-                    if (is_completion) {
-                        results[i] = ExtractCompletionOutput(parsed);
-                    } else if (request_type != RequestType::Transcription) {
-                        results[i] = ExtractEmbeddingVector(parsed);
-                    }
-                } catch (const UsageLimitExceededError&) {
-                    throw;
+                    ExtractOutputWithErrorHandling(parsed, request_type, results[i]);
                 } catch (const TokenLimitExceededError&) {
                     results[i] = TokenLimitExceededMarker();
                 } catch (const std::exception& e) {
@@ -240,6 +240,7 @@ protected:
         int64_t batch_output_tokens = 0;
 
         std::vector<nlohmann::json> results(jsons.size());
+        bool usage_limit_reached = false;
         for (size_t i = 0; i < requests.size(); ++i) {
             // Clean up temp files for transcriptions
             if (is_transcription && requests[i].is_temp_file && !requests[i].temp_file_path.empty()) {
@@ -261,29 +262,14 @@ protected:
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
                         batch_input_tokens += input_tokens;
                         batch_output_tokens += output_tokens;
-                        RecordTokenUsage(input_tokens, output_tokens);
+                        RecordTokenUsageWithSoftCap(input_tokens, output_tokens, usage_limit_reached);
                     }
 
-                    // Let provider extract output based on request type
-                    try {
-                        results[i] = ExtractOutput(parsed, request_type);
-                    } catch (const std::exception& e) {
-                        std::string msg = e.what();
-                        if (msg.rfind("[ModelProvider]", 0) == 0) {
-                            throw;
-                        }
-                        trigger_error(std::string("Output extraction error: ") + msg);
-                    }
-                } catch (const UsageLimitExceededError&) {
-                    throw;
+                    ExtractOutputWithErrorHandling(parsed, request_type, results[i]);
                 } catch (const TokenLimitExceededError&) {
                     results[i] = TokenLimitExceededMarker();
-                } catch (const std::exception& e) {
-                    std::string msg = e.what();
-                    if (msg.rfind("[ModelProvider]", 0) == 0) {
-                        throw;
-                    }
-                    trigger_error(std::string("Response processing error: ") + msg);
+                } catch (const nlohmann::json::exception& e) {
+                    trigger_error(std::string("Response processing error: ") + e.what());
                 }
             } else {
                 trigger_error("Invalid JSON response (HTTP " + std::to_string(http_code) + ", URL: " + url + "): " + requests[i].response);
@@ -348,6 +334,36 @@ protected:
     void RecordTokenUsage(int64_t prompt_tokens, int64_t completion_tokens) {
         if (_usage_limit.has_value() && _usage_limiter != nullptr) {
             _usage_limiter->RecordUsage(_model_name, prompt_tokens, completion_tokens, _usage_limit);
+        }
+    }
+
+    void EnsureUsageLimitNotExceeded() const {
+        if (_usage_limit.has_value() && _usage_limiter != nullptr && !_model_name.empty()) {
+            _usage_limiter->ThrowIfLimitExceeded(_model_name, *_usage_limit);
+        }
+    }
+
+    void RecordTokenUsageWithSoftCap(int64_t prompt_tokens, int64_t completion_tokens, bool& usage_limit_reached) {
+        if (usage_limit_reached) {
+            return;
+        }
+        try {
+            RecordTokenUsage(prompt_tokens, completion_tokens);
+        } catch (const UsageLimitExceededError&) {
+            usage_limit_reached = true;
+        }
+    }
+
+    void ExtractOutputWithErrorHandling(const nlohmann::json& parsed, RequestType request_type,
+                                        nlohmann::json& result) {
+        try {
+            result = ExtractOutput(parsed, request_type);
+        } catch (const std::exception& e) {
+            std::string msg = e.what();
+            if (msg.rfind("[ModelProvider]", 0) == 0) {
+                throw;
+            }
+            trigger_error(std::string("Output extraction error: ") + msg);
         }
     }
 

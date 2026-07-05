@@ -16,9 +16,13 @@ public:
     void RecordUsage(const std::string& model_name, int64_t prompt_tokens, int64_t completion_tokens,
                      const std::optional<UsageLimit>& limit);
 
-    TotalUsage GetUsageForTesting(const std::string& model_name) const;
+    TotalUsage GetUsage(const std::string& model_name) const;
 
     void Reset();
+
+    bool IsLimitExceeded(const std::string& model_name, const UsageLimit& limit) const;
+
+    void ThrowIfLimitExceeded(const std::string& model_name, const UsageLimit& limit) const;
 
 private:
     void CheckLimit(const TotalUsage& usage, const UsageLimit& limit) const;

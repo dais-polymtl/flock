@@ -214,6 +214,12 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
                 start_index += rows_to_null;
                 batch_size = configured;
             }
+        } catch (const UsageLimitExceededError&) {
+            const int rows_not_yet_responded = row_count - static_cast<int>(responses.size());
+            for (int i = 0; i < rows_not_yet_responded; i++) {
+                responses.push_back(nullptr);
+            }
+            break;
         }
 
     } while (start_index < row_count);
@@ -246,10 +252,20 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
 
         std::vector<nlohmann::json> batch_responses;
         bool collect_threw_token_error = false;
+        bool collect_threw_usage_limit_error = false;
         try {
             batch_responses = attempt_model.CollectCompletions();
         } catch (const TokenLimitExceededError&) {
             collect_threw_token_error = true;
+        } catch (const UsageLimitExceededError&) {
+            collect_threw_usage_limit_error = true;
+        }
+
+        if (collect_threw_usage_limit_error) {
+            for (const auto& work: current_round) {
+                NullBatchRows(work.start_index, work.batch_size, responses);
+            }
+            break;
         }
 
         if (collect_threw_token_error) {

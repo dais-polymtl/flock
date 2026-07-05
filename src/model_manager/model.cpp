@@ -136,9 +136,6 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
             model_details_.max_batch_size = DEFAULT_BATCH_SIZE;
         }
     }
-    if (model_details_.max_batch_size <= 0) {
-        throw std::runtime_error("'max_batch_size' must be larger than 0");
-    }
 
     if (model_json.contains("is_async")) {
         model_details_.is_async = model_json.at("is_async").get<bool>();
@@ -154,16 +151,12 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     }
 
     if (model_json.contains("rate_limit")) {
-        model_details_.rate_limit = model_json.at("rate_limit").get<int>();
+        model_details_.rate_limit = ParsePositiveSizeFromJson(model_json.at("rate_limit"), "rate_limit");
     } else {
         ensure_db_loaded();
         if (db_model_args.contains("rate_limit")) {
-            model_details_.rate_limit = db_model_args.at("rate_limit").get<int>();
+            model_details_.rate_limit = ParsePositiveSizeFromJson(db_model_args.at("rate_limit"), "rate_limit");
         }
-    }
-
-    if (model_details_.rate_limit.has_value() && model_details_.rate_limit.value() <= 0) {
-        throw std::runtime_error("'rate_limit' must be larger than 0");
     }
 
     if (model_json.contains("usage_limit")) {
@@ -227,13 +220,11 @@ std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedMo
 
 void Model::ConstructProvider() {
     if (mock_provider_factory_) {
-        provider_ = mock_provider_factory_(model_details_);
-        provider_->SetLimiters(rate_limiter_, usage_limiter_);
+        provider_ = mock_provider_factory_(model_details_, rate_limiter_, usage_limiter_);
         return;
     }
     if (mock_provider_) {
         provider_ = mock_provider_;
-        provider_->SetLimiters(rate_limiter_, usage_limiter_);
         return;
     }
 

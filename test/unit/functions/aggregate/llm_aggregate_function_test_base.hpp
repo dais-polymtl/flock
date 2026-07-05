@@ -42,9 +42,8 @@ protected:
 
         // Aggregate unit tests share this mock so expectations can be verified.
         // Test connections run single-threaded to avoid concurrent gMock calls.
-        Model::SetMockProviderFactory([this](const ModelDetails&) {
-            return mock_provider;
-        });
+        Model::SetMockProviderFactory([this](const ModelDetails&, std::shared_ptr<ModelRateLimiter>,
+                                             std::shared_ptr<ModelUsageLimiter>) { return mock_provider; });
     }
 
     void TearDown() override {

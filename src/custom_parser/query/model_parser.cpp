@@ -17,10 +17,11 @@ bool IsAllowedModelArgKey(const std::string& key) {
 }
 
 void ValidateAndAssignBatchSizeArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
-    if (!value.is_number_integer()) {
-        throw std::runtime_error("Expected '" + key + "' to be an integer.");
+
+    if (!value.is_number_unsigned()) {
+        throw std::runtime_error("Expected '" + key + "' to be an unsigned number.");
     }
-    const int batch_size = value.get<int>();
+    const auto batch_size = value.get<size_t>();
     if (batch_size <= 0) {
         throw std::runtime_error("'" + key + "' must be larger than 0");
     }
@@ -37,10 +38,10 @@ nlohmann::json ValidateUsageLimitObject(const nlohmann::json& value) {
     nlohmann::json result = nlohmann::json::object();
     for (auto it = value.begin(); it != value.end(); ++it) {
         const std::string& field = it.key();
-        if (std::find(allowed_fields.begin(), allowed_fields.end(), field) == allowed_fields.end() || !it.value().is_number_integer()) {
+        if (std::find(allowed_fields.begin(), allowed_fields.end(), field) == allowed_fields.end() || !it.value().is_number_unsigned()) {
             throw std::runtime_error(error_message);
         }
-        const int64_t limit_value = it.value().get<int64_t>();
+        const auto limit_value = it.value().get<size_t>();
         if (limit_value <= 0) {
             throw std::runtime_error(error_message);
         }
@@ -92,10 +93,10 @@ void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& ke
     }
 
     if (key == "rate_limit") {
-        if (!value.is_number_integer()) {
-            throw std::runtime_error("Expected 'rate_limit' to be an integer.");
+        if (!value.is_number_unsigned()) {
+            throw std::runtime_error("Expected 'rate_limit' to be an unsigned number.");
         }
-        const int rate_limit = value.get<int>();
+        const auto rate_limit = value.get<size_t>();
         if (rate_limit <= 0) {
             throw std::runtime_error("'rate_limit' must be larger than 0");
         }

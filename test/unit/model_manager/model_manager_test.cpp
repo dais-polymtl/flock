@@ -114,7 +114,7 @@ TEST_F(ModelManagerTest, ModelInitializationUsesDefaultBatchSizeWhenUnset) {
         EXPECT_EQ(details.model_name, "gpt-4o");
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
-        EXPECT_EQ(details.max_batch_size, DEFAULT_MAX_BATCH_SIZE);
+        EXPECT_EQ(details.max_batch_size, DEFAULT_BATCH_SIZE);
     });
 }
 
@@ -298,6 +298,13 @@ TEST_F(ModelManagerTest, ModelInitializationRejectsNonPositiveRateLimit) {
             {"rate_limit", 0}};
 
     EXPECT_THROW(Model model(model_config), std::runtime_error);
+    EXPECT_THROW(Model({{"model_name", "gpt-4o-test"},
+                        {"model", "gpt-4o"},
+                        {"provider", "openai"},
+                        {"tuple_format", "json"},
+                        {"batch_size", 32},
+                        {"rate_limit", -1}}),
+                 std::runtime_error);
 }
 
 TEST_F(ModelManagerTest, ModelInitializationParsesUsageLimit) {

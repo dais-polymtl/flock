@@ -43,8 +43,9 @@ nlohmann::json MakeTuples(int row_count) {
 std::shared_ptr<RateLimitAwareProvider> g_last_rate_limit_provider;
 
 void InstallRateLimitProviderFactory() {
-    Model::SetMockProviderFactory([](const ModelDetails& details) {
-        auto provider = std::make_shared<RateLimitAwareProvider>(details);
+    Model::SetMockProviderFactory([](const ModelDetails& details, std::shared_ptr<ModelRateLimiter> rate_limiter,
+                                     std::shared_ptr<ModelUsageLimiter> usage_limiter) {
+        auto provider = std::make_shared<RateLimitAwareProvider>(details, std::move(rate_limiter), std::move(usage_limiter));
         g_last_rate_limit_provider = provider;
         return provider;
     });

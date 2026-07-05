@@ -7,7 +7,10 @@ namespace flock {
 
 class RateLimitAwareProvider : public IProvider {
 public:
-    explicit RateLimitAwareProvider(const ModelDetails& model_details) : IProvider(model_details) {}
+    explicit RateLimitAwareProvider(const ModelDetails& model_details,
+                                    std::shared_ptr<ModelRateLimiter> rate_limiter = nullptr,
+                                    std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr)
+        : IProvider(model_details, std::move(rate_limiter), std::move(usage_limiter)) {}
 
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type,
                               const nlohmann::json& media_data) override {
@@ -29,8 +32,8 @@ public:
         last_batch_request_count = request_count;
 
         if (model_details_.rate_limit.has_value() && request_count > 0 && rate_limiter_ != nullptr) {
-            rate_limiter_->WaitForBatch(model_details_.model_name, request_count,
-                                        model_details_.rate_limit.value());
+            rate_limiter_->WaitForBatchIfNeeded(model_details_.model_name, static_cast<size_t>(request_count),
+                                                model_details_.rate_limit.value());
         }
 
         std::vector<nlohmann::json> responses;
