@@ -418,7 +418,7 @@ protected:
 
     bool isJson(const std::string& data) {
         try {
-            (void) nlohmann::json::parse(data);
+            [[maybe_unused]] auto _ = nlohmann::json::parse(data);
         } catch (...) {
             return false;
         }
