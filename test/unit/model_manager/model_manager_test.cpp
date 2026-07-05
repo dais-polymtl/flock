@@ -213,7 +213,7 @@ TEST_F(ModelManagerTest, ModelInitializationParsesRateLimit) {
     EXPECT_EQ(model.GetModelDetailsAsJson()["rate_limit"], 30);
 }
 
-TEST_F(ModelManagerTest, ModelInitializationCapsBatchSizeWithRateLimit) {
+TEST_F(ModelManagerTest, ModelInitializationPreservesBatchSizeWhenRateLimitIsSet) {
     json model_config = {
             {"model_name", "gpt-4o-test"},
             {"model", "gpt-4o"},
@@ -225,7 +225,9 @@ TEST_F(ModelManagerTest, ModelInitializationCapsBatchSizeWithRateLimit) {
 
     Model model(model_config);
     ModelDetails details = model.GetModelDetails();
-    EXPECT_EQ(details.batch_size, 10);
+    EXPECT_EQ(details.batch_size, 64);
+    ASSERT_TRUE(details.rate_limit.has_value());
+    EXPECT_EQ(details.rate_limit.value(), 10);
 }
 
 TEST_F(ModelManagerTest, ModelInitializationWithoutRateLimit) {

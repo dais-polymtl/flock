@@ -158,14 +158,8 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         }
     }
 
-    if (model_details_.rate_limit.has_value()) {
-        const auto& rate_limit = model_details_.rate_limit.value();
-        if (rate_limit == 0) {
-            throw std::runtime_error("'rate_limit' must be larger than 0");
-        } else {
-            // we call std::min that way because in windowsit's a macro and we want to avoid the macro expansion
-            model_details_.batch_size = (std::min)(model_details_.batch_size, rate_limit);
-        }
+    if (model_details_.rate_limit.has_value() && model_details_.rate_limit.value() <= 0) {
+        throw std::runtime_error("'rate_limit' must be larger than 0");
     }
 
     if (model_json.contains("usage_limit")) {

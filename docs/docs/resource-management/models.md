@@ -23,7 +23,7 @@ Models are stored in a table with the following structure:
 | **Model Name**      | Unique identifier for the model                                                                                                                                                                                                                   |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                                                                                                                                                                                     |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`)                                                                                                                                                                                           |
-| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `model_parameters`, `is_async`, `rate_limit`, and `usage_limit` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **batch_size** must be greater than 0. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. **rate_limit** is an optional positive integer for maximum requests per minute, scoped per Flock `model_name`. When set, `batch_size` is capped to `min(batch_size, rate_limit)`. **usage_limit** is an optional JSON object for cumulative token quotas, also scoped per Flock `model_name`. |
+| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `batch_size`, `model_parameters`, `is_async`, `rate_limit`, and `usage_limit` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **batch_size** must be greater than 0. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. **rate_limit** is an optional positive integer for maximum provider requests per minute, scoped per Flock `model_name`. **usage_limit** is an optional JSON object for cumulative token quotas, also scoped per Flock `model_name`. |
 
 ### `is_async`
 
@@ -52,8 +52,8 @@ SELECT llm_complete(
 
 When `rate_limit` is set:
 
-- Flock spaces outgoing request batches so the configured requests-per-minute cap is not exceeded.
-- Effective `batch_size` becomes `min(batch_size, rate_limit)`.
+- Flock spaces outgoing provider requests so the configured requests-per-minute cap is not exceeded.
+- `batch_size` and `rate_limit` are independent: `batch_size` controls tuples per request; `rate_limit` throttles how many provider requests are sent per minute.
 - The limit applies across completions, embeddings, and transcriptions for that model.
 - Sync and async scalar execution both respect the same per-model limit.
 
