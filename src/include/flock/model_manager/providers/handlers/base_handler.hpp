@@ -84,7 +84,7 @@ public:
 protected:
     std::vector<nlohmann::json> ExecuteBatch(const std::vector<nlohmann::json>& jsons, bool async = true, const std::string& contentType = "application/json", RequestType request_type = RequestType::Completion) {
         if (_rate_limit.has_value() && _rate_limiter != nullptr) {
-            _rate_limiter->WaitForBatchIfNeeded(_model_name, jsons.size(), static_cast<size_t>(_rate_limit.value()));
+            _rate_limiter->WaitForBatchIfNeeded(jsons.size(), static_cast<size_t>(_rate_limit.value()));
         }
 
         EnsureUsageLimitNotExceeded();
@@ -333,13 +333,13 @@ protected:
 
     void RecordTokenUsage(int64_t prompt_tokens, int64_t completion_tokens) {
         if (_usage_limit.has_value() && _usage_limiter != nullptr) {
-            _usage_limiter->RecordUsage(_model_name, prompt_tokens, completion_tokens, _usage_limit);
+            _usage_limiter->RecordUsage(prompt_tokens, completion_tokens, _usage_limit);
         }
     }
 
     void EnsureUsageLimitNotExceeded() const {
-        if (_usage_limit.has_value() && _usage_limiter != nullptr && !_model_name.empty()) {
-            _usage_limiter->ThrowIfLimitExceeded(_model_name, *_usage_limit);
+        if (_usage_limit.has_value() && _usage_limiter != nullptr) {
+            _usage_limiter->ThrowIfLimitExceeded(*_usage_limit);
         }
     }
 

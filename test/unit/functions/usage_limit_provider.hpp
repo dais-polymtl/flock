@@ -35,7 +35,7 @@ public:
 
         if (usage_limiter_ != nullptr && model_details_.usage_limit.has_value()) {
             try {
-                usage_limiter_->ThrowIfLimitExceeded(model_details_.model_name, *model_details_.usage_limit);
+                usage_limiter_->ThrowIfLimitExceeded(*model_details_.usage_limit);
             } catch (const UsageLimitExceededError&) {
                 collects_blocked_at_precheck++;
                 pending_output_counts_.clear();
@@ -49,8 +49,8 @@ public:
         for (const int num_output_tuples: pending_output_counts_) {
             if (usage_limiter_ != nullptr && model_details_.usage_limit.has_value() && !usage_limit_reached) {
                 try {
-                    usage_limiter_->RecordUsage(model_details_.model_name, prompt_tokens_per_request_,
-                                                completion_tokens_per_request_, model_details_.usage_limit);
+                    usage_limiter_->RecordUsage(prompt_tokens_per_request_, completion_tokens_per_request_,
+                                                model_details_.usage_limit);
                 } catch (const UsageLimitExceededError&) {
                     usage_limit_reached = true;
                 }

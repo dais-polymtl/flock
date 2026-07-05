@@ -54,7 +54,7 @@ void InstallUsageLimitProviderFactory() {
 class ScalarUsageLimitTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        Model::GetUsageLimiter().Reset();
+        Model::ResetUsageLimiters();
 
         auto con = Config::GetConnection();
         con.Query("CREATE SECRET (TYPE OPENAI, API_KEY 'your-api-key');");
@@ -63,7 +63,7 @@ protected:
 
     void TearDown() override {
         Model::ResetMockProvider();
-        Model::GetUsageLimiter().Reset();
+        Model::ResetUsageLimiters();
     }
 };
 
@@ -104,7 +104,8 @@ TEST_F(ScalarUsageLimitTest, SoftCapReturnsCrossingRequestAndBlocksSubsequentCol
     EXPECT_EQ(g_last_usage_limit_provider->requests_processed_count, 2);
     EXPECT_EQ(g_last_usage_limit_provider->collect_call_count, 3);
     EXPECT_EQ(g_last_usage_limit_provider->collects_blocked_at_precheck, 1);
-    EXPECT_TRUE(Model::GetUsageLimiter().IsLimitExceeded(kUsageLimitModelName, *model.GetModelDetails().usage_limit));
+    EXPECT_TRUE(Model::GetOrCreateUsageLimiter(kUsageLimitModelName)
+                        ->IsLimitExceeded(*model.GetModelDetails().usage_limit));
 }
 
 TEST_F(ScalarUsageLimitTest, AsyncBatchStopsWhenTotalUsageLimitExceeded) {

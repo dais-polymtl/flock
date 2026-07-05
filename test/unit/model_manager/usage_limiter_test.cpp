@@ -28,10 +28,10 @@ protected:
 TEST_F(ModelUsageLimiterTest, AccumulatesUsageAcrossCalls) {
     const auto limit = MakeLimit(1000);
 
-    limiter.RecordUsage("model-a", 10, 5, limit);
-    limiter.RecordUsage("model-a", 20, 10, limit);
+    limiter.RecordUsage(10, 5, limit);
+    limiter.RecordUsage(20, 10, limit);
 
-    const auto usage = limiter.GetUsage("model-a");
+    const auto usage = limiter.GetUsage();
     EXPECT_EQ(usage.prompt_tokens, 30);
     EXPECT_EQ(usage.completion_tokens, 15);
     EXPECT_EQ(usage.total_tokens(), 45);
@@ -40,51 +40,46 @@ TEST_F(ModelUsageLimiterTest, AccumulatesUsageAcrossCalls) {
 TEST_F(ModelUsageLimiterTest, ThrowsWhenPromptLimitExceeded) {
     const auto limit = MakeLimit(100);
 
-    limiter.RecordUsage("model-a", 60, 10, limit);
-    EXPECT_THROW(limiter.RecordUsage("model-a", 50, 0, limit), UsageLimitExceededError);
+    limiter.RecordUsage(60, 10, limit);
+    EXPECT_THROW(limiter.RecordUsage(50, 0, limit), UsageLimitExceededError);
 }
 
 TEST_F(ModelUsageLimiterTest, ThrowsWhenCompletionLimitExceeded) {
     const auto limit = MakeLimit(-1, 50);
 
-    limiter.RecordUsage("model-a", 10, 30, limit);
-    EXPECT_THROW(limiter.RecordUsage("model-a", 0, 25, limit), UsageLimitExceededError);
+    limiter.RecordUsage(10, 30, limit);
+    EXPECT_THROW(limiter.RecordUsage(0, 25, limit), UsageLimitExceededError);
 }
 
 TEST_F(ModelUsageLimiterTest, ThrowsWhenTotalLimitExceeded) {
     const auto limit = MakeLimit(-1, -1, 100);
 
-    limiter.RecordUsage("model-a", 40, 40, limit);
-    EXPECT_THROW(limiter.RecordUsage("model-a", 10, 15, limit), UsageLimitExceededError);
+    limiter.RecordUsage(40, 40, limit);
+    EXPECT_THROW(limiter.RecordUsage(10, 15, limit), UsageLimitExceededError);
 }
 
 TEST_F(ModelUsageLimiterTest, IndependentBucketsForDifferentModels) {
     const auto limit = MakeLimit(100);
 
-    limiter.RecordUsage("model-a", 90, 0, limit);
-    EXPECT_NO_THROW(limiter.RecordUsage("model-b", 90, 0, limit));
+    ModelUsageLimiter limiter_a;
+    ModelUsageLimiter limiter_b;
+    limiter_a.RecordUsage(90, 0, limit);
+    EXPECT_NO_THROW(limiter_b.RecordUsage(90, 0, limit));
 
-    EXPECT_EQ(limiter.GetUsage("model-a").prompt_tokens, 90);
-    EXPECT_EQ(limiter.GetUsage("model-b").prompt_tokens, 90);
+    EXPECT_EQ(limiter_a.GetUsage().prompt_tokens, 90);
+    EXPECT_EQ(limiter_b.GetUsage().prompt_tokens, 90);
 }
 
 TEST_F(ModelUsageLimiterTest, IgnoresWhenNoLimitConfigured) {
-    EXPECT_NO_THROW(limiter.RecordUsage("model-a", 1'000'000, 1'000'000, std::nullopt));
-    EXPECT_EQ(limiter.GetUsage("model-a").total_tokens(), 0);
-}
-
-TEST_F(ModelUsageLimiterTest, IgnoresEmptyModelName) {
-    const auto limit = MakeLimit(100);
-
-    EXPECT_NO_THROW(limiter.RecordUsage("", 1'000, 1'000, limit));
-    EXPECT_EQ(limiter.GetUsage("").total_tokens(), 0);
+    EXPECT_NO_THROW(limiter.RecordUsage(1'000'000, 1'000'000, std::nullopt));
+    EXPECT_EQ(limiter.GetUsage().total_tokens(), 0);
 }
 
 TEST_F(ModelUsageLimiterTest, UsageLimitExceededErrorHasExpectedProperties) {
     const auto limit = MakeLimit(-1, -1, 100);
 
     try {
-        limiter.RecordUsage("model-a", 100, 0, limit);
+        limiter.RecordUsage(100, 0, limit);
         FAIL() << "Expected UsageLimitExceededError";
     } catch (const UsageLimitExceededError& e) {
         const auto error_json = nlohmann::json::parse(e.what());
@@ -101,44 +96,46 @@ TEST_F(ModelUsageLimiterTest, UsageLimitExceededErrorHasExpectedProperties) {
 TEST_F(ModelUsageLimiterTest, IsLimitExceededReturnsFalseWhenBelowLimit) {
     const auto limit = MakeLimit(-1, -1, 100);
 
-    limiter.RecordUsage("model-a", 40, 40, limit);
+    limiter.RecordUsage(40, 40, limit);
 
-    EXPECT_FALSE(limiter.IsLimitExceeded("model-a", limit));
+    EXPECT_FALSE(limiter.IsLimitExceeded(limit));
 }
 
 TEST_F(ModelUsageLimiterTest, IsLimitExceededReturnsTrueWhenAtOrAboveLimit) {
     const auto limit = MakeLimit(-1, -1, 100);
 
-    limiter.RecordUsage("model-a", 60, 0, limit);
+    limiter.RecordUsage(60, 0, limit);
     try {
-        limiter.RecordUsage("model-a", 40, 0, limit);
+        limiter.RecordUsage(40, 0, limit);
     } catch (const UsageLimitExceededError&) {
     }
 
-    EXPECT_TRUE(limiter.IsLimitExceeded("model-a", limit));
+    EXPECT_TRUE(limiter.IsLimitExceeded(limit));
 }
 
 TEST_F(ModelUsageLimiterTest, ThrowIfLimitExceededThrowsWithSameSemanticsAsRecordUsage) {
     const auto limit = MakeLimit(-1, -1, 100);
 
-    limiter.RecordUsage("model-a", 60, 0, limit);
+    limiter.RecordUsage(60, 0, limit);
     try {
-        limiter.RecordUsage("model-a", 40, 0, limit);
+        limiter.RecordUsage(40, 0, limit);
     } catch (const UsageLimitExceededError&) {
     }
 
-    EXPECT_THROW(limiter.ThrowIfLimitExceeded("model-a", limit), UsageLimitExceededError);
-    EXPECT_NO_THROW(limiter.ThrowIfLimitExceeded("model-b", limit));
+    EXPECT_THROW(limiter.ThrowIfLimitExceeded(limit), UsageLimitExceededError);
+
+    ModelUsageLimiter fresh_limiter;
+    EXPECT_NO_THROW(fresh_limiter.ThrowIfLimitExceeded(limit));
 }
 
 TEST_F(ModelUsageLimiterTest, ResetClearsUsage) {
     const auto limit = MakeLimit(1000);
 
-    limiter.RecordUsage("model-a", 100, 50, limit);
+    limiter.RecordUsage(100, 50, limit);
     limiter.Reset();
 
-    EXPECT_EQ(limiter.GetUsage("model-a").total_tokens(), 0);
-    EXPECT_NO_THROW(limiter.RecordUsage("model-a", 100, 50, limit));
+    EXPECT_EQ(limiter.GetUsage().total_tokens(), 0);
+    EXPECT_NO_THROW(limiter.RecordUsage(100, 50, limit));
 }
 
 }// namespace flock

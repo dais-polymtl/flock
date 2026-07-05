@@ -16,50 +16,41 @@ void ModelUsageLimiter::CheckLimit(const TotalUsage& usage, const UsageLimit& li
     }
 }
 
-void ModelUsageLimiter::RecordUsage(const std::string& model_name, int64_t prompt_tokens, int64_t completion_tokens,
+void ModelUsageLimiter::RecordUsage(int64_t prompt_tokens, int64_t completion_tokens,
                                     const std::optional<UsageLimit>& limit) {
-    if (model_name.empty() || !limit.has_value() || !limit->HasAnyLimit()) {
+    if (!limit.has_value() || !limit->HasAnyLimit()) {
         return;
     }
 
     std::lock_guard<std::mutex> lock(mutex_);
-    auto& usage = usage_by_model_[model_name];
-    usage.prompt_tokens += prompt_tokens;
-    usage.completion_tokens += completion_tokens;
-    CheckLimit(usage, *limit);
+    usage_.prompt_tokens += prompt_tokens;
+    usage_.completion_tokens += completion_tokens;
+    CheckLimit(usage_, *limit);
 }
 
-TotalUsage ModelUsageLimiter::GetUsage(const std::string& model_name) const {
+TotalUsage ModelUsageLimiter::GetUsage() const {
     std::lock_guard<std::mutex> lock(mutex_);
-    const auto it = usage_by_model_.find(model_name);
-    if (it == usage_by_model_.end()) {
-        return {};
-    }
-    return it->second;
+    return usage_;
 }
 
 void ModelUsageLimiter::Reset() {
     std::lock_guard<std::mutex> lock(mutex_);
-    usage_by_model_.clear();
+    usage_ = {};
 }
 
-bool ModelUsageLimiter::IsLimitExceeded(const std::string& model_name, const UsageLimit& limit) const {
+bool ModelUsageLimiter::IsLimitExceeded(const UsageLimit& limit) const {
     std::lock_guard<std::mutex> lock(mutex_);
-    const auto it = usage_by_model_.find(model_name);
-    const TotalUsage usage = (it == usage_by_model_.end()) ? TotalUsage{} : it->second;
     try {
-        CheckLimit(usage, limit);
+        CheckLimit(usage_, limit);
         return false;
     } catch (const UsageLimitExceededError&) {
         return true;
     }
 }
 
-void ModelUsageLimiter::ThrowIfLimitExceeded(const std::string& model_name, const UsageLimit& limit) const {
+void ModelUsageLimiter::ThrowIfLimitExceeded(const UsageLimit& limit) const {
     std::lock_guard<std::mutex> lock(mutex_);
-    const auto it = usage_by_model_.find(model_name);
-    const TotalUsage usage = (it == usage_by_model_.end()) ? TotalUsage{} : it->second;
-    CheckLimit(usage, limit);
+    CheckLimit(usage_, limit);
 }
 
 }// namespace flock

@@ -16,7 +16,10 @@
 #include "flock/model_manager/rate_limiter.hpp"
 #include "flock/model_manager/repository.hpp"
 #include "flock/model_manager/usage_limiter.hpp"
+#include <mutex>
 #include <nlohmann/json.hpp>
+#include <string>
+#include <unordered_map>
 
 namespace flock {
 
@@ -56,19 +59,21 @@ public:
         mock_provider_factory_ = nullptr;
     }
 
-    // Single, process-wide limiter instances. They are created once and shared
-    // across every Model/provider so per-model rate and usage accounting stays
-    // consistent regardless of how many Model objects are created.
-    static ModelRateLimiter& GetRateLimiter() { return *rate_limiter_; }
-    static ModelUsageLimiter& GetUsageLimiter() { return *usage_limiter_; }
+    // Per-model limiter registry. All Model/provider instances for the same
+    // model_name share one limiter so accounting stays consistent.
+    static std::shared_ptr<ModelRateLimiter> GetOrCreateRateLimiter(const std::string& model_name);
+    static std::shared_ptr<ModelUsageLimiter> GetOrCreateUsageLimiter(const std::string& model_name);
+    static void ResetRateLimiters();
+    static void ResetUsageLimiters();
 
     std::shared_ptr<IProvider>
             provider_;
 
 private:
     ModelDetails model_details_;
-    inline static std::shared_ptr<ModelRateLimiter> rate_limiter_ = std::make_shared<ModelRateLimiter>();
-    inline static std::shared_ptr<ModelUsageLimiter> usage_limiter_ = std::make_shared<ModelUsageLimiter>();
+    inline static std::mutex limiter_registry_mutex_;
+    inline static std::unordered_map<std::string, std::shared_ptr<ModelRateLimiter>> rate_limiters_by_model_;
+    inline static std::unordered_map<std::string, std::shared_ptr<ModelUsageLimiter>> usage_limiters_by_model_;
     inline static std::shared_ptr<IProvider> mock_provider_ = nullptr;
     inline static MockProviderFactory mock_provider_factory_ = nullptr;
     void ConstructProvider();

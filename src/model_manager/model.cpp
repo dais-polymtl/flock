@@ -218,9 +218,44 @@ std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedMo
     return {model, provider_name, model_args};
 }
 
+std::shared_ptr<ModelRateLimiter> Model::GetOrCreateRateLimiter(const std::string& model_name) {
+    std::lock_guard<std::mutex> lock(limiter_registry_mutex_);
+    auto& slot = rate_limiters_by_model_[model_name];
+    if (!slot) {
+        slot = std::make_shared<ModelRateLimiter>();
+    }
+    return slot;
+}
+
+std::shared_ptr<ModelUsageLimiter> Model::GetOrCreateUsageLimiter(const std::string& model_name) {
+    std::lock_guard<std::mutex> lock(limiter_registry_mutex_);
+    auto& slot = usage_limiters_by_model_[model_name];
+    if (!slot) {
+        slot = std::make_shared<ModelUsageLimiter>();
+    }
+    return slot;
+}
+
+void Model::ResetRateLimiters() {
+    std::lock_guard<std::mutex> lock(limiter_registry_mutex_);
+    rate_limiters_by_model_.clear();
+}
+
+void Model::ResetUsageLimiters() {
+    std::lock_guard<std::mutex> lock(limiter_registry_mutex_);
+    usage_limiters_by_model_.clear();
+}
+
 void Model::ConstructProvider() {
+    std::shared_ptr<ModelRateLimiter> rate_limiter;
+    std::shared_ptr<ModelUsageLimiter> usage_limiter;
+    if (!model_details_.model_name.empty()) {
+        rate_limiter = GetOrCreateRateLimiter(model_details_.model_name);
+        usage_limiter = GetOrCreateUsageLimiter(model_details_.model_name);
+    }
+
     if (mock_provider_factory_) {
-        provider_ = mock_provider_factory_(model_details_, rate_limiter_, usage_limiter_);
+        provider_ = mock_provider_factory_(model_details_, std::move(rate_limiter), std::move(usage_limiter));
         return;
     }
     if (mock_provider_) {
@@ -230,16 +265,16 @@ void Model::ConstructProvider() {
 
     switch (GetProviderType(model_details_.provider_name)) {
         case FLOCKMTL_OPENAI:
-            provider_ = std::make_shared<OpenAIProvider>(model_details_, rate_limiter_, usage_limiter_);
+            provider_ = std::make_shared<OpenAIProvider>(model_details_, rate_limiter, usage_limiter);
             break;
         case FLOCKMTL_AZURE:
-            provider_ = std::make_shared<AzureProvider>(model_details_, rate_limiter_, usage_limiter_);
+            provider_ = std::make_shared<AzureProvider>(model_details_, rate_limiter, usage_limiter);
             break;
         case FLOCKMTL_OLLAMA:
-            provider_ = std::make_shared<OllamaProvider>(model_details_, rate_limiter_, usage_limiter_);
+            provider_ = std::make_shared<OllamaProvider>(model_details_, rate_limiter, usage_limiter);
             break;
         case FLOCKMTL_ANTHROPIC:
-            provider_ = std::make_shared<AnthropicProvider>(model_details_, rate_limiter_, usage_limiter_);
+            provider_ = std::make_shared<AnthropicProvider>(model_details_, rate_limiter, usage_limiter);
             break;
         default:
             throw std::invalid_argument(duckdb_fmt::format("Unsupported provider: {}", model_details_.provider_name));
