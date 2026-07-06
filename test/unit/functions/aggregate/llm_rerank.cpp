@@ -98,16 +98,16 @@ TEST_F(LLMRerankTest, MultipleTuplesWithoutGroupBy) {
 }
 
 TEST_F(LLMRerankTest, DefaultBatchSizeSplitsLargeInput) {
-    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+    constexpr size_t input_count = DEFAULT_MAX_BATCH_SIZE + 1;
 
     {
         ::testing::InSequence sequence;
-        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, DEFAULT_BATCH_SIZE, ::testing::_, ::testing::_))
+        EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, DEFAULT_MAX_BATCH_SIZE, ::testing::_, ::testing::_))
                 .Times(1);
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-                .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(DEFAULT_BATCH_SIZE)}));
+                .WillOnce(::testing::Return(std::vector<nlohmann::json>{PrepareSequentialRanking(DEFAULT_MAX_BATCH_SIZE)}));
 
-        const int second_batch_size = (DEFAULT_BATCH_SIZE / 2) + 1;
+        const int second_batch_size = (DEFAULT_MAX_BATCH_SIZE / 2) + 1;
         EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, second_batch_size, ::testing::_, ::testing::_))
                 .Times(1);
         EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))

@@ -2,6 +2,7 @@
 
 #include "fmt/format.h"
 #include <functional>
+#include <memory>
 #include <utility>
 
 #include "duckdb/main/connection.hpp"
@@ -12,8 +13,13 @@
 #include "flock/model_manager/providers/adapters/ollama.hpp"
 #include "flock/model_manager/providers/adapters/openai.hpp"
 #include "flock/model_manager/providers/handlers/ollama.hpp"
+#include "flock/model_manager/rate_limiter.hpp"
 #include "flock/model_manager/repository.hpp"
+#include "flock/model_manager/usage_limiter.hpp"
+#include <mutex>
 #include <nlohmann/json.hpp>
+#include <string>
+#include <unordered_map>
 
 namespace flock {
 
@@ -35,7 +41,8 @@ public:
     static nlohmann::json ResolveModelDetailsToJson(const nlohmann::json& user_model_json);
 
     // Factory function type for creating mock providers
-    using MockProviderFactory = std::function<std::shared_ptr<IProvider>()>;
+    using MockProviderFactory = std::function<std::shared_ptr<IProvider>(
+            const ModelDetails&, std::shared_ptr<ModelRateLimiter>, std::shared_ptr<ModelUsageLimiter>)>;
 
     // Set a factory to create fresh mock providers (each Model gets its own instance)
     static void SetMockProviderFactory(MockProviderFactory factory) {
@@ -52,11 +59,21 @@ public:
         mock_provider_factory_ = nullptr;
     }
 
+    // Per-model limiter registry. All Model/provider instances for the same
+    // model_name share one limiter so accounting stays consistent.
+    static std::shared_ptr<ModelRateLimiter> GetOrCreateRateLimiter(const std::string& model_name);
+    static std::shared_ptr<ModelUsageLimiter> GetOrCreateUsageLimiter(const std::string& model_name);
+    static void ResetRateLimiters();
+    static void ResetUsageLimiters();
+
     std::shared_ptr<IProvider>
             provider_;
 
 private:
     ModelDetails model_details_;
+    inline static std::mutex limiter_registry_mutex_;
+    inline static std::unordered_map<std::string, std::shared_ptr<ModelRateLimiter>> rate_limiters_by_model_;
+    inline static std::unordered_map<std::string, std::shared_ptr<ModelUsageLimiter>> usage_limiters_by_model_;
     inline static std::shared_ptr<IProvider> mock_provider_ = nullptr;
     inline static MockProviderFactory mock_provider_factory_ = nullptr;
     void ConstructProvider();

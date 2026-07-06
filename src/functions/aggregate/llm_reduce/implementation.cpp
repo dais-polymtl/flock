@@ -33,7 +33,7 @@ nlohmann::json LlmReduce::ReduceLoop(const nlohmann::json& tuples,
     auto summary = nlohmann::json::object({{"Previous Batch Summary", ""}});
     int start_index = 0;
     int num_tuples = static_cast<int>(tuples[0]["data"].size());
-    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, num_tuples);
+    auto batch_size = std::min<int>(model.GetModelDetails().max_batch_size, num_tuples);
 
     do {
         for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {

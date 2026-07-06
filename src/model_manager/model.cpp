@@ -1,6 +1,7 @@
 #include "flock/model_manager/model.hpp"
 #include "flock/prompt_manager/repository.hpp"
 #include "flock/secret_manager/secret_manager.hpp"
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -59,9 +60,13 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     nlohmann::json db_model_args = nlohmann::json::object();
     bool db_loaded = false;
 
+    const auto& hasBatchSizeConfig = [](const nlohmann::json& model_args) {
+        return model_args.contains("max_batch_size") || model_args.contains("batch_size");
+    };
+
     const bool is_fully_resolved = model_json.contains("model") && model_json.contains("provider") &&
                                    model_json.contains("secret") && model_json.contains("tuple_format") &&
-                                   model_json.contains("batch_size");
+                                   hasBatchSizeConfig(model_json);
 
     // Each fallback path can call this helper, but only the first missing field
     // queries storage. Fully resolved model JSON skips DB defaults entirely.
@@ -121,18 +126,15 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         }
     }
 
-    if (model_json.contains("batch_size")) {
-        model_details_.batch_size = model_json.at("batch_size").get<int>();
+    if (hasBatchSizeConfig(model_json)) {
+        model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(model_json);
     } else {
         ensure_db_loaded();
-        if (db_model_args.contains("batch_size")) {
-            model_details_.batch_size = db_model_args.at("batch_size").get<int>();
+        if (hasBatchSizeConfig(db_model_args)) {
+            model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(db_model_args);
         } else {
-            model_details_.batch_size = DEFAULT_BATCH_SIZE;
+            model_details_.max_batch_size = DEFAULT_MAX_BATCH_SIZE;
         }
-    }
-    if (model_details_.batch_size <= 0) {
-        throw std::runtime_error("'batch_size' must be larger than 0");
     }
 
     if (model_json.contains("is_async")) {
@@ -145,6 +147,38 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
             model_details_.is_async = db_model_args.at("is_async").get<bool>();
         } else {
             model_details_.is_async = true;
+        }
+    }
+
+    if (model_json.contains("rate_limit")) {
+        model_details_.rate_limit = ParsePositiveSizeFromJson(model_json.at("rate_limit"), "rate_limit");
+    } else {
+        ensure_db_loaded();
+        if (db_model_args.contains("rate_limit")) {
+            model_details_.rate_limit = ParsePositiveSizeFromJson(db_model_args.at("rate_limit"), "rate_limit");
+        }
+    }
+
+    if (model_json.contains("usage_limit")) {
+        const auto& usage_limit_value = model_json.at("usage_limit");
+        if (!usage_limit_value.is_object()) {
+            throw std::runtime_error("Expected 'usage_limit' to be a JSON object.");
+        }
+        model_details_.usage_limit = ParseUsageLimitFromJson(usage_limit_value);
+        if (!model_details_.usage_limit->HasAnyLimit()) {
+            throw std::runtime_error(
+                    "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
+                    "total_tokens_limit.");
+        }
+    } else if (!is_fully_resolved) {
+        ensure_db_loaded();
+        if (db_model_args.contains("usage_limit")) {
+            model_details_.usage_limit = ParseUsageLimitFromJson(db_model_args.at("usage_limit"));
+            if (!model_details_.usage_limit->HasAnyLimit()) {
+                throw std::runtime_error(
+                        "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
+                        "total_tokens_limit.");
+            }
         }
     }
 }
@@ -184,9 +218,44 @@ std::tuple<std::string, std::string, nlohmann::basic_json<>> Model::GetQueriedMo
     return {model, provider_name, model_args};
 }
 
+std::shared_ptr<ModelRateLimiter> Model::GetOrCreateRateLimiter(const std::string& model_name) {
+    std::lock_guard<std::mutex> lock(limiter_registry_mutex_);
+    auto& slot = rate_limiters_by_model_[model_name];
+    if (!slot) {
+        slot = std::make_shared<ModelRateLimiter>();
+    }
+    return slot;
+}
+
+std::shared_ptr<ModelUsageLimiter> Model::GetOrCreateUsageLimiter(const std::string& model_name) {
+    std::lock_guard<std::mutex> lock(limiter_registry_mutex_);
+    auto& slot = usage_limiters_by_model_[model_name];
+    if (!slot) {
+        slot = std::make_shared<ModelUsageLimiter>();
+    }
+    return slot;
+}
+
+void Model::ResetRateLimiters() {
+    std::lock_guard<std::mutex> lock(limiter_registry_mutex_);
+    rate_limiters_by_model_.clear();
+}
+
+void Model::ResetUsageLimiters() {
+    std::lock_guard<std::mutex> lock(limiter_registry_mutex_);
+    usage_limiters_by_model_.clear();
+}
+
 void Model::ConstructProvider() {
+    std::shared_ptr<ModelRateLimiter> rate_limiter;
+    std::shared_ptr<ModelUsageLimiter> usage_limiter;
+    if (!model_details_.model_name.empty()) {
+        rate_limiter = GetOrCreateRateLimiter(model_details_.model_name);
+        usage_limiter = GetOrCreateUsageLimiter(model_details_.model_name);
+    }
+
     if (mock_provider_factory_) {
-        provider_ = mock_provider_factory_();
+        provider_ = mock_provider_factory_(model_details_, std::move(rate_limiter), std::move(usage_limiter));
         return;
     }
     if (mock_provider_) {
@@ -196,16 +265,16 @@ void Model::ConstructProvider() {
 
     switch (GetProviderType(model_details_.provider_name)) {
         case FLOCKMTL_OPENAI:
-            provider_ = std::make_shared<OpenAIProvider>(model_details_);
+            provider_ = std::make_shared<OpenAIProvider>(model_details_, rate_limiter, usage_limiter);
             break;
         case FLOCKMTL_AZURE:
-            provider_ = std::make_shared<AzureProvider>(model_details_);
+            provider_ = std::make_shared<AzureProvider>(model_details_, rate_limiter, usage_limiter);
             break;
         case FLOCKMTL_OLLAMA:
-            provider_ = std::make_shared<OllamaProvider>(model_details_);
+            provider_ = std::make_shared<OllamaProvider>(model_details_, rate_limiter, usage_limiter);
             break;
         case FLOCKMTL_ANTHROPIC:
-            provider_ = std::make_shared<AnthropicProvider>(model_details_);
+            provider_ = std::make_shared<AnthropicProvider>(model_details_, rate_limiter, usage_limiter);
             break;
         default:
             throw std::invalid_argument(duckdb_fmt::format("Unsupported provider: {}", model_details_.provider_name));
@@ -220,9 +289,15 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["model"] = model_details_.model;
     result["provider"] = model_details_.provider_name;
     result["tuple_format"] = static_cast<int>(model_details_.tuple_format);
-    result["batch_size"] = model_details_.batch_size;
+    result["max_batch_size"] = model_details_.max_batch_size;
     result["is_async"] = model_details_.is_async;
     result["secret"] = model_details_.secret;
+    if (model_details_.rate_limit.has_value()) {
+        result["rate_limit"] = *model_details_.rate_limit;
+    }
+    if (model_details_.usage_limit.has_value()) {
+        result["usage_limit"] = UsageLimitToJson(*model_details_.usage_limit);
+    }
     if (!model_details_.model_parameters.empty()) {
         result["model_parameters"] = model_details_.model_parameters;
     }

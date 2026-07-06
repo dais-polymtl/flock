@@ -87,7 +87,7 @@ nlohmann::json LlmFirstOrLast::Evaluate(nlohmann::json& tuples) {
 
     auto batch_tuples = nlohmann::json::array();
     int start_index = 0;
-    auto batch_size = std::min<int>(model.GetModelDetails().batch_size, num_tuples);
+    auto batch_size = std::min<int>(model.GetModelDetails().max_batch_size, num_tuples);
 
     do {
         for (auto i = 0; i < static_cast<int>(tuples.size()); i++) {

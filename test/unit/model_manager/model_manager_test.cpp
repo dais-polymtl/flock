@@ -1,3 +1,4 @@
+#include "flock/core/config.hpp"
 #include "flock/model_manager/model.hpp"
 #include "nlohmann/json.hpp"
 #include <gtest/gtest.h>
@@ -6,6 +7,41 @@
 
 namespace flock {
 using json = nlohmann::json;
+
+namespace {
+
+constexpr const char* kInlineOverrideModelName = "inline_limit_override_test";
+
+void InsertLocalTestModel(duckdb::Connection& con, const std::string& model_name, const json& model_args) {
+    Config::ConfigureTables(con, ConfigType::LOCAL);
+
+    const std::string schema = Config::get_schema_name();
+    const auto table = Config::get_user_defined_models_table_name();
+    con.Query("DELETE FROM " + schema + "." + table + " WHERE model_name = '" + model_name + "';");
+    con.Query("INSERT INTO " + schema + "." + table +
+              " (model_name, model, provider_name, model_args) VALUES ('" + model_name +
+              "', 'gpt-4o', 'openai', '" + model_args.dump() + "');");
+}
+
+void DeleteLocalTestModel(duckdb::Connection& con, const std::string& model_name) {
+    const std::string schema = Config::get_schema_name();
+    const auto table = Config::get_user_defined_models_table_name();
+    con.Query("DELETE FROM " + schema + "." + table + " WHERE model_name = '" + model_name + "';");
+}
+
+json StoredModelArgsWithRateLimit(int rate_limit) {
+    return {{"tuple_format", static_cast<int>(TupleFormat::JSON)},
+            {"batch_size", 32},
+            {"rate_limit", rate_limit}};
+}
+
+json StoredModelArgsWithUsageLimit(int total_tokens_limit) {
+    return {{"tuple_format", static_cast<int>(TupleFormat::JSON)},
+            {"batch_size", 32},
+            {"usage_limit", {{"total_tokens_limit", total_tokens_limit}}}};
+}
+
+}// namespace
 
 class ModelManagerTest : public ::testing::Test {
 protected:
@@ -47,7 +83,7 @@ TEST_F(ModelManagerTest, ModelInitialization) {
         EXPECT_EQ(details.provider_name, "openai");
         EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
         EXPECT_EQ(details.tuple_format, TupleFormat::JSON);
-        EXPECT_EQ(details.batch_size, 32);
+        EXPECT_EQ(details.max_batch_size, 32);
         EXPECT_TRUE(details.is_async);
     });
 }
@@ -100,7 +136,7 @@ TEST_F(ModelManagerTest, ModelInitializationMinimal) {
         EXPECT_EQ(details.model_name, "gpt-4o-test");
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
-        EXPECT_EQ(details.batch_size, 32);
+        EXPECT_EQ(details.max_batch_size, 32);
     });
 }
 
@@ -114,7 +150,7 @@ TEST_F(ModelManagerTest, ModelInitializationUsesDefaultBatchSizeWhenUnset) {
         EXPECT_EQ(details.model_name, "gpt-4o");
         EXPECT_EQ(details.model, "gpt-4o");
         EXPECT_EQ(details.provider_name, "openai");
-        EXPECT_EQ(details.batch_size, DEFAULT_BATCH_SIZE);
+        EXPECT_EQ(details.max_batch_size, DEFAULT_MAX_BATCH_SIZE);
     });
 }
 
@@ -176,7 +212,7 @@ TEST_F(ModelManagerTest, GetModelDetails) {
     EXPECT_EQ(details.provider_name, "openai");
     EXPECT_EQ(details.model_parameters, nlohmann::json::parse("{\"temperature\": 0.7}"));
     EXPECT_EQ(details.tuple_format, TupleFormat::XML);
-    EXPECT_EQ(details.batch_size, 10);
+    EXPECT_EQ(details.max_batch_size, 10);
 }
 
 TEST_F(ModelManagerTest, ModelInitializationRejectsNonPositiveBatchSize) {
@@ -194,6 +230,213 @@ TEST_F(ModelManagerTest, ModelInitializationRejectsNonPositiveBatchSize) {
                         {"tuple_format", "json"},
                         {"batch_size", -1}}),
                  std::runtime_error);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationParsesRateLimit) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"model_parameters", nlohmann::json::object()},
+            {"rate_limit", 30}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    ASSERT_TRUE(details.rate_limit.has_value());
+    EXPECT_EQ(details.rate_limit.value(), 30);
+    EXPECT_EQ(model.GetModelDetailsAsJson()["rate_limit"], 30);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationParsesMaxBatchSize) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"max_batch_size", 48},
+            {"model_parameters", nlohmann::json::object()}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    EXPECT_EQ(details.max_batch_size, 48);
+    EXPECT_EQ(model.GetModelDetailsAsJson()["max_batch_size"], 48);
+    EXPECT_FALSE(model.GetModelDetailsAsJson().contains("batch_size"));
+}
+
+TEST_F(ModelManagerTest, ModelInitializationAcceptsDeprecatedBatchSizeAlias) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 24},
+            {"model_parameters", nlohmann::json::object()}};
+
+    Model model(model_config);
+    EXPECT_EQ(model.GetModelDetails().max_batch_size, 24);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationPrefersMaxBatchSizeOverDeprecatedAlias) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 24},
+            {"max_batch_size", 32},
+            {"model_parameters", nlohmann::json::object()}};
+
+    Model model(model_config);
+    EXPECT_EQ(model.GetModelDetails().max_batch_size, 32);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationPreservesBatchSizeWhenRateLimitIsSet) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 64},
+            {"model_parameters", nlohmann::json::object()},
+            {"rate_limit", 10}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    EXPECT_EQ(details.max_batch_size, 64);
+    ASSERT_TRUE(details.rate_limit.has_value());
+    EXPECT_EQ(details.rate_limit.value(), 10);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationWithoutRateLimit) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"model_parameters", nlohmann::json::object()}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    EXPECT_FALSE(details.rate_limit.has_value());
+    EXPECT_FALSE(model.GetModelDetailsAsJson().contains("rate_limit"));
+}
+
+TEST_F(ModelManagerTest, ModelInitializationRejectsNonPositiveRateLimit) {
+    const json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"rate_limit", 0}};
+
+    EXPECT_THROW(Model model(model_config), std::runtime_error);
+    EXPECT_THROW(Model({{"model_name", "gpt-4o-test"},
+                        {"model", "gpt-4o"},
+                        {"provider", "openai"},
+                        {"tuple_format", "json"},
+                        {"batch_size", 32},
+                        {"rate_limit", -1}}),
+                 std::runtime_error);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationParsesUsageLimit) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"model_parameters", nlohmann::json::object()},
+            {"usage_limit",
+             {{"prompt_tokens_limit", 1000},
+              {"completion_tokens_limit", 500},
+              {"total_tokens_limit", 1200}}}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    ASSERT_TRUE(details.usage_limit.has_value());
+    EXPECT_EQ(details.usage_limit->prompt_tokens_limit.value(), 1000);
+    EXPECT_EQ(details.usage_limit->completion_tokens_limit.value(), 500);
+    EXPECT_EQ(details.usage_limit->total_tokens_limit.value(), 1200);
+    EXPECT_EQ(model.GetModelDetailsAsJson()["usage_limit"]["total_tokens_limit"], 1200);
+}
+
+TEST_F(ModelManagerTest, ModelInitializationWithoutUsageLimit) {
+    json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"model_parameters", nlohmann::json::object()}};
+
+    Model model(model_config);
+    ModelDetails details = model.GetModelDetails();
+    EXPECT_FALSE(details.usage_limit.has_value());
+    EXPECT_FALSE(model.GetModelDetailsAsJson().contains("usage_limit"));
+}
+
+TEST_F(ModelManagerTest, ModelInitializationRejectsEmptyUsageLimit) {
+    const json model_config = {
+            {"model_name", "gpt-4o-test"},
+            {"model", "gpt-4o"},
+            {"provider", "openai"},
+            {"tuple_format", "json"},
+            {"batch_size", 32},
+            {"usage_limit", nlohmann::json::object()}};
+
+    EXPECT_THROW(Model model(model_config), std::runtime_error);
+}
+
+TEST_F(ModelManagerTest, InlineRateLimitOverridesStoredModelArgs) {
+    auto con = Config::GetConnection();
+    InsertLocalTestModel(con, kInlineOverrideModelName, StoredModelArgsWithRateLimit(30));
+
+    Model from_storage(json{{"model_name", kInlineOverrideModelName}});
+    ASSERT_TRUE(from_storage.GetModelDetails().rate_limit.has_value());
+    EXPECT_EQ(from_storage.GetModelDetails().rate_limit.value(), 30);
+
+    Model with_inline_override({{"model_name", kInlineOverrideModelName}, {"rate_limit", 10000}});
+    ASSERT_TRUE(with_inline_override.GetModelDetails().rate_limit.has_value());
+    EXPECT_EQ(with_inline_override.GetModelDetails().rate_limit.value(), 10000);
+
+    DeleteLocalTestModel(con, kInlineOverrideModelName);
+}
+
+TEST_F(ModelManagerTest, InlineUsageLimitOverridesStoredModelArgs) {
+    auto con = Config::GetConnection();
+    InsertLocalTestModel(con, kInlineOverrideModelName, StoredModelArgsWithUsageLimit(500));
+
+    Model from_storage(json{{"model_name", kInlineOverrideModelName}});
+    ASSERT_TRUE(from_storage.GetModelDetails().usage_limit.has_value());
+    EXPECT_EQ(from_storage.GetModelDetails().usage_limit->total_tokens_limit.value(), 500);
+
+    Model with_inline_override(
+            {{"model_name", kInlineOverrideModelName},
+             {"usage_limit", {{"total_tokens_limit", 10000}}}});
+    ASSERT_TRUE(with_inline_override.GetModelDetails().usage_limit.has_value());
+    EXPECT_EQ(with_inline_override.GetModelDetails().usage_limit->total_tokens_limit.value(), 10000);
+
+    DeleteLocalTestModel(con, kInlineOverrideModelName);
+}
+
+TEST_F(ModelManagerTest, ResolveModelDetailsToJsonPreservesInlineLimitOverrides) {
+    auto con = Config::GetConnection();
+    InsertLocalTestModel(con, kInlineOverrideModelName, StoredModelArgsWithRateLimit(30));
+
+    const auto resolved = Model::ResolveModelDetailsToJson(
+            {{"model_name", kInlineOverrideModelName},
+             {"rate_limit", 10000},
+             {"usage_limit", {{"total_tokens_limit", 8000}}}});
+
+    EXPECT_EQ(resolved["rate_limit"].get<size_t>(), 10000);
+    EXPECT_EQ(resolved["usage_limit"]["total_tokens_limit"].get<size_t>(), 8000);
+
+    DeleteLocalTestModel(con, kInlineOverrideModelName);
 }
 
 }// namespace flock

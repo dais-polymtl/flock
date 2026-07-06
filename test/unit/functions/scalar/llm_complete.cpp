@@ -141,8 +141,8 @@ TEST_F(LLMCompleteTest, Operation_LargeInputSet_ProcessesCorrectly) {
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
     std::vector<nlohmann::json> batch_responses;
-    for (size_t start_index = 0; start_index < input_count; start_index += DEFAULT_BATCH_SIZE) {
-        const auto batch_count = std::min<size_t>(DEFAULT_BATCH_SIZE, input_count - start_index);
+    for (size_t start_index = 0; start_index < input_count; start_index += DEFAULT_MAX_BATCH_SIZE) {
+        const auto batch_count = std::min<size_t>(DEFAULT_MAX_BATCH_SIZE, input_count - start_index);
         batch_responses.push_back(PrepareExpectedResponseRange(start_index, batch_count));
     }
     size_t next_response = 0;
@@ -183,8 +183,8 @@ TEST_F(LLMCompleteTest, Operation_AsyncLargeInputSet_CollectsOnceAndPreservesOrd
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
     std::vector<nlohmann::json> batch_responses;
-    for (size_t start_index = 0; start_index < input_count; start_index += DEFAULT_BATCH_SIZE) {
-        const auto batch_count = std::min<size_t>(DEFAULT_BATCH_SIZE, input_count - start_index);
+    for (size_t start_index = 0; start_index < input_count; start_index += DEFAULT_MAX_BATCH_SIZE) {
+        const auto batch_count = std::min<size_t>(DEFAULT_MAX_BATCH_SIZE, input_count - start_index);
         batch_responses.push_back(PrepareExpectedResponseRange(start_index, batch_count));
     }
 
@@ -217,7 +217,7 @@ TEST_F(LLMCompleteTest, Operation_AsyncRetriesWithSmallerBatchOnTokenOverflow) {
     constexpr size_t input_count = 100;
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
-    const auto first_attempt_batches = (input_count + DEFAULT_BATCH_SIZE - 1) / DEFAULT_BATCH_SIZE;
+    const auto first_attempt_batches = (input_count + DEFAULT_MAX_BATCH_SIZE - 1) / DEFAULT_MAX_BATCH_SIZE;
     const auto retry_batch_count = first_attempt_batches * 2;
 
     std::vector<nlohmann::json> retry_batch_responses;

@@ -155,7 +155,7 @@ TEST_F(LLMEmbeddingTest, Operation_LargeInputSet_ProcessesCorrectly) {
 }
 
 TEST_F(LLMEmbeddingTest, Operation_DefaultBatchSizeSplitsLargeInput) {
-    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+    constexpr size_t input_count = DEFAULT_MAX_BATCH_SIZE + 1;
 
     nlohmann::json expected_response = nlohmann::json::array();
     for (size_t i = 0; i < input_count; i++) {
@@ -168,7 +168,7 @@ TEST_F(LLMEmbeddingTest, Operation_DefaultBatchSizeSplitsLargeInput) {
 
     {
         ::testing::InSequence sequence;
-        EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::SizeIs(DEFAULT_BATCH_SIZE)))
+        EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::SizeIs(DEFAULT_MAX_BATCH_SIZE)))
                 .Times(1);
         EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::SizeIs(1)))
                 .Times(1);
@@ -187,7 +187,7 @@ TEST_F(LLMEmbeddingTest, Operation_DefaultBatchSizeSplitsLargeInput) {
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), input_count);
     ASSERT_EQ(results->GetValue(0, 0).type().id(), duckdb::LogicalTypeId::LIST);
-    ASSERT_EQ(results->GetValue(0, DEFAULT_BATCH_SIZE).type().id(), duckdb::LogicalTypeId::LIST);
+    ASSERT_EQ(results->GetValue(0, DEFAULT_MAX_BATCH_SIZE).type().id(), duckdb::LogicalTypeId::LIST);
 }
 
 }// namespace flock
