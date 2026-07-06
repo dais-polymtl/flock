@@ -396,7 +396,7 @@ TEST_F(ModelManagerTest, InlineRateLimitOverridesStoredModelArgs) {
     auto con = Config::GetConnection();
     InsertLocalTestModel(con, kInlineOverrideModelName, StoredModelArgsWithRateLimit(30));
 
-    Model from_storage({{"model_name", kInlineOverrideModelName}});
+    Model from_storage(json{{"model_name", kInlineOverrideModelName}});
     ASSERT_TRUE(from_storage.GetModelDetails().rate_limit.has_value());
     EXPECT_EQ(from_storage.GetModelDetails().rate_limit.value(), 30);
 
@@ -411,7 +411,7 @@ TEST_F(ModelManagerTest, InlineUsageLimitOverridesStoredModelArgs) {
     auto con = Config::GetConnection();
     InsertLocalTestModel(con, kInlineOverrideModelName, StoredModelArgsWithUsageLimit(500));
 
-    Model from_storage({{"model_name", kInlineOverrideModelName}});
+    Model from_storage(json{{"model_name", kInlineOverrideModelName}});
     ASSERT_TRUE(from_storage.GetModelDetails().usage_limit.has_value());
     EXPECT_EQ(from_storage.GetModelDetails().usage_limit->total_tokens_limit.value(), 500);
 
