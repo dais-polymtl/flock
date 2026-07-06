@@ -84,7 +84,7 @@ TEST_F(LLMReduceTest, MultipleTuplesWithoutGroupBy) {
 }
 
 TEST_F(LLMReduceTest, DefaultBatchSizeSplitsLargeInput) {
-    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+    constexpr size_t input_count = DEFAULT_MAX_BATCH_SIZE + 1;
     const nlohmann::json first_batch_response = {{"items", {"Partial summary"}}};
 
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))

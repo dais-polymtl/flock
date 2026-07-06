@@ -4,11 +4,15 @@
 #include "flock/metrics/manager.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "flock/model_manager/providers/provider.hpp"
+#include "flock/model_manager/rate_limiter.hpp"
+#include "flock/model_manager/usage_limiter.hpp"
 #include "session.hpp"
 #include <cstdio>
 #include <curl/curl.h>
 #include <map>
+#include <memory>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -16,8 +20,17 @@ namespace flock {
 
 class BaseModelProviderHandler : public IModelProviderHandler {
 public:
-    explicit BaseModelProviderHandler(bool throw_exception)
-        : _throw_exception(throw_exception) {}
+    explicit BaseModelProviderHandler(bool throw_exception, const std::string& model_name = "",
+                                      std::optional<int> rate_limit = std::nullopt,
+                                      std::optional<UsageLimit> usage_limit = std::nullopt,
+                                      std::shared_ptr<ModelRateLimiter> rate_limiter = nullptr,
+                                      std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr)
+        : _throw_exception(throw_exception),
+          _model_name(model_name),
+          _rate_limit(rate_limit),
+          _usage_limit(std::move(usage_limit)),
+          _rate_limiter(std::move(rate_limiter)),
+          _usage_limiter(std::move(usage_limiter)) {}
     virtual ~BaseModelProviderHandler() = default;
 
     void AddRequest(const nlohmann::json& json, RequestType type = RequestType::Completion) override {
@@ -70,13 +83,23 @@ public:
 public:
 protected:
     std::vector<nlohmann::json> ExecuteBatch(const std::vector<nlohmann::json>& jsons, bool async = true, const std::string& contentType = "application/json", RequestType request_type = RequestType::Completion) {
+        if (_rate_limit.has_value() && _rate_limiter != nullptr) {
+            _rate_limiter->WaitForBatchIfNeeded(jsons.size(), static_cast<size_t>(_rate_limit.value()));
+        }
+
+        EnsureUsageLimitNotExceeded();
+
 #ifdef __EMSCRIPTEN__
         // WASM: Process requests sequentially using emscripten fetch
         std::vector<nlohmann::json> results(jsons.size());
         bool is_completion = (request_type == RequestType::Completion);
+        bool is_transcription = (request_type == RequestType::Transcription);
         auto url = is_completion ? getCompletionUrl() : getEmbedUrl();
+        bool usage_limit_reached = false;
 
         for (size_t i = 0; i < jsons.size(); ++i) {
+            EnsureUsageLimitNotExceeded();
+
             prepareSessionForRequest(url);
             setParameters(jsons[i].dump(), contentType);
             auto response = postRequest(contentType);
@@ -85,11 +108,11 @@ protected:
                 try {
                     nlohmann::json parsed = nlohmann::json::parse(response.text);
                     checkResponse(parsed, request_type);
-                    if (is_completion) {
-                        results[i] = ExtractCompletionOutput(parsed);
-                    } else {
-                        results[i] = ExtractEmbeddingVector(parsed);
+                    if (!is_transcription) {
+                        auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
+                        RecordTokenUsageWithSoftCap(input_tokens, output_tokens, usage_limit_reached);
                     }
+                    ExtractOutputWithErrorHandling(parsed, request_type, results[i]);
                 } catch (const TokenLimitExceededError&) {
                     results[i] = TokenLimitExceededMarker();
                 } catch (const std::exception& e) {
@@ -217,6 +240,7 @@ protected:
         int64_t batch_output_tokens = 0;
 
         std::vector<nlohmann::json> results(jsons.size());
+        bool usage_limit_reached = false;
         for (size_t i = 0; i < requests.size(); ++i) {
             // Clean up temp files for transcriptions
             if (is_transcription && requests[i].is_temp_file && !requests[i].temp_file_path.empty()) {
@@ -238,26 +262,14 @@ protected:
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
                         batch_input_tokens += input_tokens;
                         batch_output_tokens += output_tokens;
+                        RecordTokenUsageWithSoftCap(input_tokens, output_tokens, usage_limit_reached);
                     }
 
-                    // Let provider extract output based on request type
-                    try {
-                        results[i] = ExtractOutput(parsed, request_type);
-                    } catch (const std::exception& e) {
-                        std::string msg = e.what();
-                        if (msg.rfind("[ModelProvider]", 0) == 0) {
-                            throw;
-                        }
-                        trigger_error(std::string("Output extraction error: ") + msg);
-                    }
+                    ExtractOutputWithErrorHandling(parsed, request_type, results[i]);
                 } catch (const TokenLimitExceededError&) {
                     results[i] = TokenLimitExceededMarker();
-                } catch (const std::exception& e) {
-                    std::string msg = e.what();
-                    if (msg.rfind("[ModelProvider]", 0) == 0) {
-                        throw;
-                    }
-                    trigger_error(std::string("Response processing error: ") + msg);
+                } catch (const nlohmann::json::exception& e) {
+                    trigger_error(std::string("Response processing error: ") + e.what());
                 }
             } else {
                 trigger_error("Invalid JSON response (HTTP " + std::to_string(http_code) + ", URL: " + url + "): " + requests[i].response);
@@ -289,6 +301,11 @@ protected:
 
 protected:
     bool _throw_exception;
+    std::string _model_name;
+    std::optional<int> _rate_limit;
+    std::optional<UsageLimit> _usage_limit;
+    std::shared_ptr<ModelRateLimiter> _rate_limiter;
+    std::shared_ptr<ModelUsageLimiter> _usage_limiter;
     std::vector<nlohmann::json> _request_batch;
     std::vector<RequestType> _request_types;
 
@@ -313,6 +330,42 @@ protected:
         }
     }
     virtual std::pair<int64_t, int64_t> ExtractTokenUsage(const nlohmann::json& response) const = 0;
+
+    void RecordTokenUsage(int64_t prompt_tokens, int64_t completion_tokens) {
+        if (_usage_limit.has_value() && _usage_limiter != nullptr) {
+            _usage_limiter->RecordUsage(prompt_tokens, completion_tokens, _usage_limit);
+        }
+    }
+
+    void EnsureUsageLimitNotExceeded() const {
+        if (_usage_limit.has_value() && _usage_limiter != nullptr) {
+            _usage_limiter->ThrowIfLimitExceeded(*_usage_limit);
+        }
+    }
+
+    void RecordTokenUsageWithSoftCap(int64_t prompt_tokens, int64_t completion_tokens, bool& usage_limit_reached) {
+        if (usage_limit_reached) {
+            return;
+        }
+        try {
+            RecordTokenUsage(prompt_tokens, completion_tokens);
+        } catch (const UsageLimitExceededError&) {
+            usage_limit_reached = true;
+        }
+    }
+
+    void ExtractOutputWithErrorHandling(const nlohmann::json& parsed, RequestType request_type,
+                                        nlohmann::json& result) {
+        try {
+            result = ExtractOutput(parsed, request_type);
+        } catch (const std::exception& e) {
+            std::string msg = e.what();
+            if (msg.rfind("[ModelProvider]", 0) == 0) {
+                throw;
+            }
+            trigger_error(std::string("Output extraction error: ") + msg);
+        }
+    }
 
     static void ThrowOnTokenLimitMarkers(const std::vector<nlohmann::json>& results) {
         for (const auto& result: results) {
@@ -365,7 +418,7 @@ protected:
 
     bool isJson(const std::string& data) {
         try {
-            (void) nlohmann::json::parse(data);
+            [[maybe_unused]] auto _ = nlohmann::json::parse(data);
         } catch (...) {
             return false;
         }

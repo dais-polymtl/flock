@@ -12,24 +12,59 @@ namespace flock {
 namespace {
 
 bool IsAllowedModelArgKey(const std::string& key) {
-    return key == "tuple_format" || key == "batch_size" || key == "model_parameters" || key == "is_async";
+    return key == "tuple_format" || key == "batch_size" || key == "max_batch_size" || key == "model_parameters" ||
+           key == "is_async" || key == "rate_limit" || key == "usage_limit";
+}
+
+void ValidateAndAssignBatchSizeArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
+
+    if (!value.is_number_unsigned()) {
+        throw std::runtime_error("Expected '" + key + "' to be an unsigned number.");
+    }
+    const auto batch_size = value.get<size_t>();
+    if (batch_size <= 0) {
+        throw std::runtime_error("'" + key + "' must be larger than 0");
+    }
+    model_args[key] = batch_size;
+}
+
+nlohmann::json ValidateUsageLimitObject(const nlohmann::json& value) {
+    const auto allowed_fields = std::vector<std::string>{"prompt_tokens_limit", "completion_tokens_limit", "total_tokens_limit"};
+    const auto& error_message = "Expected 'usage_limit' to be a JSON object, i.e., a key-value dictionary such as {\"prompt_tokens_limit\": 10000, \"completion_tokens_limit\": 5000, \"total_tokens_limit\": 12000}.";
+    if (!value.is_object()) {
+        throw std::runtime_error(error_message);
+    }
+
+    nlohmann::json result = nlohmann::json::object();
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        const std::string& field = it.key();
+        if (std::find(allowed_fields.begin(), allowed_fields.end(), field) == allowed_fields.end() || !it.value().is_number_unsigned()) {
+            throw std::runtime_error(error_message);
+        }
+        const auto limit_value = it.value().get<size_t>();
+        if (limit_value <= 0) {
+            throw std::runtime_error(error_message);
+        }
+        result[field] = limit_value;
+    }
+
+    if (result.empty()) {
+        throw std::runtime_error(error_message);
+    }
+
+    return result;
 }
 
 void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
     if (!IsAllowedModelArgKey(key)) {
-        throw std::runtime_error("Unknown model_args parameter: '" + key + "'. Only tuple_format, batch_size, model_parameters, and is_async are allowed.");
+        throw std::runtime_error(
+                "Unknown model_args parameter: '" + key +
+                "'. Only tuple_format, batch_size, max_batch_size, model_parameters, is_async, rate_limit, and "
+                "usage_limit are allowed.");
     }
 
-    if (key == "batch_size") {
-        if (!value.is_number_integer()) {
-            throw std::runtime_error("Expected 'batch_size' to be an integer.");
-        }
-        const int batch_size = value.get<int>();
-        if (batch_size <= 0) {
-            throw std::runtime_error("'batch_size' must be larger than 0");
-        }
-
-        model_args[key] = batch_size;
+    if (key == "batch_size" || key == "max_batch_size") {
+        ValidateAndAssignBatchSizeArg(model_args, key, value);
         return;
     }
 
@@ -54,6 +89,24 @@ void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& ke
             throw std::runtime_error("Expected 'is_async' to be a boolean.");
         }
         model_args[key] = value.get<bool>();
+        return;
+    }
+
+    if (key == "rate_limit") {
+        if (!value.is_number_unsigned()) {
+            throw std::runtime_error("Expected 'rate_limit' to be an unsigned number.");
+        }
+        const auto rate_limit = value.get<size_t>();
+        if (rate_limit <= 0) {
+            throw std::runtime_error("'rate_limit' must be larger than 0");
+        }
+
+        model_args[key] = rate_limit;
+        return;
+    }
+
+    if (key == "usage_limit") {
+        model_args[key] = ValidateUsageLimitObject(value);
         return;
     }
 }

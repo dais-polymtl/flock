@@ -5,8 +5,13 @@ namespace flock {
 class AzureModelManager : public BaseModelProviderHandler {
 public:
     AzureModelManager(std::string token, std::string resource_name, std::string deployment_model_name,
-                      std::string api_version, bool throw_exception)
-        : BaseModelProviderHandler(throw_exception),
+                      std::string api_version, bool throw_exception, const std::string& model_name = "",
+                      std::optional<int> rate_limit = std::nullopt,
+                      std::optional<UsageLimit> usage_limit = std::nullopt,
+                      std::shared_ptr<ModelRateLimiter> rate_limiter = nullptr,
+                      std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr)
+        : BaseModelProviderHandler(throw_exception, model_name, rate_limit, std::move(usage_limit),
+                                   std::move(rate_limiter), std::move(usage_limiter)),
           _token(token), _resource_name(resource_name), _deployment_model_name(deployment_model_name),
           _api_version(api_version), _session("Azure", throw_exception) {
         _session.setToken(token, "");

@@ -83,7 +83,7 @@ TEST_F(LLMFirstTest, MultipleTuplesWithoutGroupBy) {
 }
 
 TEST_F(LLMFirstTest, DefaultBatchSizeSplitsLargeInput) {
-    constexpr size_t input_count = DEFAULT_BATCH_SIZE + 1;
+    constexpr size_t input_count = DEFAULT_MAX_BATCH_SIZE + 1;
 
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
             .Times(2);

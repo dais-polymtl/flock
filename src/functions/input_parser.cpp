@@ -77,13 +77,13 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
                         struct_json["context_columns"][context_column_idx]["data"].push_back(context_column_json["data"]);
                     }
                 }
-            } else if (key == "batch_size") {
+            } else if (key == "batch_size" || key == "max_batch_size") {
                 if (value.GetTypeMutable() != duckdb::LogicalType::INTEGER) {
-                    throw std::runtime_error("Expected 'batch_size' to be an integer.");
+                    throw std::runtime_error("Expected '" + std::string(key) + "' to be an integer.");
                 }
                 const int batch_size = value.GetValue<int>();
                 if (batch_size <= 0) {
-                    throw std::runtime_error("'batch_size' must be larger than 0");
+                    throw std::runtime_error("'" + std::string(key) + "' must be larger than 0");
                 }
                 struct_json[key] = batch_size;
             } else if (key == "is_async") {
@@ -121,8 +121,8 @@ nlohmann::json CastValueToJson(const duckdb::Value& value) {
                     result[key] = CastValueToJson(child_value);
                 } else if (child_value.type().id() == duckdb::LogicalTypeId::INTEGER) {
                     const int int_value = child_value.GetValue<int>();
-                    if (key == "batch_size" && int_value <= 0) {
-                        throw std::runtime_error("'batch_size' must be larger than 0");
+                    if ((key == "batch_size" || key == "max_batch_size") && int_value <= 0) {
+                        throw std::runtime_error("'" + key + "' must be larger than 0");
                     }
                     result[key] = int_value;
                 } else if (child_value.type().id() == duckdb::LogicalTypeId::BOOLEAN) {

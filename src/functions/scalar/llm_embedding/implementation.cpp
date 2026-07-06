@@ -54,7 +54,7 @@ std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataC
         prepared_inputs.push_back(concat_input);
     }
 
-    auto batch_size = model.GetModelDetails().batch_size;
+    auto batch_size = model.GetModelDetails().max_batch_size;
 
     if (batch_size > static_cast<int>(prepared_inputs.size())) {
         batch_size = static_cast<int>(prepared_inputs.size());

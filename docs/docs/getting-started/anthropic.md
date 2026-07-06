@@ -191,7 +191,7 @@ Attempting to use `llm_embedding` with an Anthropic model will result in a clear
 
 ## Rate Limits and Usage
 
-Anthropic has rate limits based on your plan tier. Monitor your usage in the [Anthropic Console](https://console.anthropic.com/). Consider using batch processing with appropriate `batch_size` settings for high-volume workloads.
+Anthropic has rate limits based on your plan tier. Monitor your usage in the [Anthropic Console](https://console.anthropic.com/). For high-volume workloads, use appropriate `batch_size` settings and consider setting a per-model `rate_limit` in Flock to throttle requests per minute (see [Models Management](/docs/resource-management/models)).
 
 ## API Version
 
