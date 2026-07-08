@@ -1,0 +1,101 @@
+---
+title: "Beyond Quacking"
+description: "Deep Integration of Language Models and RAG into DuckDB — Proc. VLDB Endow. 2025"
+---
+
+<Tip>
+  Proc. VLDB Endow. 2025 · Vol. 18, No. 12
+</Tip>
+
+# Beyond Quacking: Deep Integration of Language Models and RAG into DuckDB
+
+Anas Dorbani · Sunny Yasser · Jimmy Lin · Amine Mhedhbi
+
+Flock is a DuckDB extension that deeply integrates LLM and RAG capabilities into OLAP systems, so you can mix analytics with semantic analysis in SQL using map and reduce functions for generation, classification, embeddings, and more.
+
+<Columns cols={3}>
+  <Card
+    title="Paper"
+    icon="file-lines"
+    href="https://dl.acm.org/doi/10.14778/3750601.3750685"
+  >
+    Read the VLDB 2025 paper on ACM.
+  </Card>
+  <Card
+    title="Source Code"
+    icon="github"
+    href="https://github.com/dais-polymtl/flock"
+  >
+    Explore and contribute on GitHub.
+  </Card>
+  <Card title="Docs" icon="book-open" href="/what-is-flock">
+    Install Flock and start querying.
+  </Card>
+</Columns>
+
+## Overview
+
+Flock brings language models and retrieval into DuckDB so semantic analysis runs alongside ordinary SQL analytics.
+
+<Columns cols={1}>
+  <Card title="Administrative Views for Managing Prompts and Models" icon="database">
+    Treat models and prompts as resources similar to tables. You can CREATE PROMPT(s) and MODEL(s) and iterate on them without making changes to SQL queries.
+  </Card>
+  <Card title="Scalar / Map Functions for Tuple and Passage Transformation" icon="filter">
+    Map tuples or text passages to new text, boolean, or JSON values using LLMs to support various types of semantic analysis such as extraction and classification.
+  </Card>
+  <Card title="Aggregate / Reduce Functions to Reduce over Tuples and Passages" icon="layer-group">
+    Use Aggregate / Reduce functions to reduce tuples or text passages using LLMs to support various types of semantic analysis such as reranking and summarization.
+  </Card>
+</Columns>
+
+## Why Use Flock?
+
+- Create reusable models and prompts once, then call them from simple SQL.
+- Run LLM workloads next to your data without custom services or glue code.
+- Keep results in tables you can join, filter, and visualize with regular DuckDB queries.
+
+```sql
+INSTALL flock FROM community;
+LOAD flock;
+```
+
+## Paper
+
+**Beyond Quacking: Deep Integration of Language Models and RAG into DuckDB**
+
+Anas Dorbani, Sunny Yasser, Jimmy Lin, Amine Mhedhbi
+
+Proc. VLDB Endow. 2025, Vol. 18, No. 12
+
+[https://doi.org/10.14778/3750601.3750685](https://doi.org/10.14778/3750601.3750685)
+
+```bibtex
+@article{10.14778/3750601.3750685,
+  author  = {Dorbani, Anas and Yasser, Sunny and Lin, Jimmy and Mhedhbi, Amine},
+  title   = {Beyond Quacking: Deep Integration of Language Models and RAG into DuckDB},
+  journal = {Proc. VLDB Endow.},
+  year    = {2025},
+  volume  = {18},
+  number  = {12},
+  doi     = {10.14778/3750601.3750685},
+  url     = {https://doi.org/10.14778/3750601.3750685}
+}
+```
+
+## Authors
+
+<Columns cols={2}>
+  <Card title="Anas Dorbani" href="https://github.com/anasdorbani">
+    PhD Student · Data & AI Systems Lab, Polytechnique Montréal
+  </Card>
+  <Card title="Sunny Yasser" href="https://github.com/SunnyYasser">
+    PhD Student · Data & AI Systems Lab, Polytechnique Montréal
+  </Card>
+  <Card title="Jimmy Lin" href="https://github.com/lintool">
+    Faculty · University of Waterloo
+  </Card>
+  <Card title="Amine Mhedhbi" href="https://github.com/queryproc/">
+    Faculty · Polytechnique Montréal
+  </Card>
+</Columns>

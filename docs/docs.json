@@ -1,0 +1,134 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "maple",
+  "name": "Flock",
+  "colors": {
+    "primary": "#FF9128",
+    "light": "#ffbb7c",
+    "dark": "#e07d1a"
+  },
+  "appearance": {
+    "default": "system"
+  },
+  "background": {
+    "decoration": "gradient"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "pages": [
+      {
+        "group": "Home",
+        "pages": ["index", "what-is-flock"]
+      },
+      {
+        "group": "Getting Started",
+        "pages": [
+          "getting-started/index",
+          "getting-started/openai",
+          "getting-started/azure",
+          "getting-started/ollama",
+          "getting-started/anthropic"
+        ]
+      },
+      {
+        "group": "Resource Management",
+        "pages": [
+          "resource-management/index",
+          "resource-management/models",
+          "resource-management/prompts",
+          "resource-management/api-keys"
+        ]
+      },
+      {
+        "group": "Scalar Functions",
+        "pages": [
+          "scalar-functions/index",
+          "scalar-functions/llm-complete",
+          "scalar-functions/llm-filter",
+          "scalar-functions/llm-embedding"
+        ]
+      },
+      {
+        "group": "Aggregate Functions",
+        "pages": [
+          "aggregate-functions/index",
+          "aggregate-functions/llm-reduce",
+          "aggregate-functions/llm-rerank",
+          "aggregate-functions/llm-first",
+          "aggregate-functions/llm-last"
+        ]
+      },
+      {
+        "group": "Guides",
+        "pages": [
+          "image-support",
+          "audio-support",
+          "hybrid-search",
+          "structured-output",
+          "llm-metrics",
+          "model-parameters",
+          "developer-guide",
+          "faq"
+        ]
+      }
+    ]
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Paper",
+        "href": "https://dl.acm.org/doi/10.14778/3750601.3750685"
+      },
+      {
+        "label": "Support",
+        "href": "mailto:amine.mhedhbi@polymtl.ca,anasdorbani@gmail.com"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "GitHub",
+      "href": "https://github.com/dais-polymtl/flock"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/dais-polymtl/flock"
+    }
+  },
+  "contextual": {
+    "options": ["copy", "view", "chatgpt", "claude", "cursor"]
+  },
+  "redirects": [
+    { "source": "/docs/what-is-flock", "destination": "/what-is-flock" },
+    { "source": "/docs/getting-started", "destination": "/getting-started" },
+    { "source": "/docs/getting-started/openai", "destination": "/getting-started/openai" },
+    { "source": "/docs/getting-started/azure", "destination": "/getting-started/azure" },
+    { "source": "/docs/getting-started/ollama", "destination": "/getting-started/ollama" },
+    { "source": "/docs/getting-started/anthropic", "destination": "/getting-started/anthropic" },
+    { "source": "/docs/resource-management", "destination": "/resource-management" },
+    { "source": "/docs/resource-management/models", "destination": "/resource-management/models" },
+    { "source": "/docs/resource-management/prompts", "destination": "/resource-management/prompts" },
+    { "source": "/docs/resource-management/api-keys", "destination": "/resource-management/api-keys" },
+    { "source": "/docs/scalar-functions", "destination": "/scalar-functions" },
+    { "source": "/docs/scalar-functions/llm-complete", "destination": "/scalar-functions/llm-complete" },
+    { "source": "/docs/scalar-functions/llm-filter", "destination": "/scalar-functions/llm-filter" },
+    { "source": "/docs/scalar-functions/llm-embedding", "destination": "/scalar-functions/llm-embedding" },
+    { "source": "/docs/aggregate-functions", "destination": "/aggregate-functions" },
+    { "source": "/docs/aggregate-functions/llm-reduce", "destination": "/aggregate-functions/llm-reduce" },
+    { "source": "/docs/aggregate-functions/llm-rerank", "destination": "/aggregate-functions/llm-rerank" },
+    { "source": "/docs/aggregate-functions/llm-first", "destination": "/aggregate-functions/llm-first" },
+    { "source": "/docs/aggregate-functions/llm-last", "destination": "/aggregate-functions/llm-last" },
+    { "source": "/docs/image-support", "destination": "/image-support" },
+    { "source": "/docs/audio-support", "destination": "/audio-support" },
+    { "source": "/docs/hybrid-search", "destination": "/hybrid-search" },
+    { "source": "/docs/structured-output", "destination": "/structured-output" },
+    { "source": "/docs/llm-metrics", "destination": "/llm-metrics" },
+    { "source": "/docs/model-parameters", "destination": "/model-parameters" },
+    { "source": "/docs/developer-guide", "destination": "/developer-guide" },
+    { "source": "/docs/faq", "destination": "/faq" }
+  ]
+}

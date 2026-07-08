@@ -1,41 +1,25 @@
-# Website
+# Flock documentation
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+This site is built with [Mintlify](https://mintlify.com).
 
-### Installation
+## Local preview
 
-```
-$ npm install
-```
-
-### Local Development
-
-```
-$ npm start
+```bash
+npm i -g mint
+cd docs
+mint dev
 ```
 
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
+Open [http://localhost:3000](http://localhost:3000).
 
-### Build
+## Deploy
 
-```
-$ npm run build
-```
+Connect the repository to Mintlify with the [GitHub app](https://dashboard.mintlify.com/settings/organization/github-app).
 
-This command generates static content into the `build` directory and can be served using any static content hosting service.
+Point the docs root at the `docs/` directory. Changes on the default branch deploy automatically.
 
-### Deployment
+## Writing
 
-Using SSH:
-
-```
-$ USE_SSH=true npm run deploy
-```
-
-Not using SSH:
-
-```
-$ GIT_USER=<Your GitHub username> npm run deploy
-```
-
-If you are using GitHub Pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+- Pages are MDX with YAML frontmatter
+- Navigation and branding live in `docs.json`
+- See `AGENTS.md` for project writing preferences
