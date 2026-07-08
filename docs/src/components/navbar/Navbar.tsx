@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { navLinks } from "@site/src/constants";
-import { Reveal } from '../Reveal';
 import { CiMenuFries } from 'react-icons/ci';
 
 import React from 'react';
@@ -9,63 +8,40 @@ import ThemeLogo from '../global/ThemeLogo';
 
 const Navbar: React.FC = () => {
     const [toggle, setToggle] = useState(false);
-    const [scrolling, setScrolling] = useState(false);
-
-    useEffect(() => {
-        const handleScroll = () => {
-            if (window.scrollY > 50) {
-                setScrolling(true);
-            } else {
-                setScrolling(false);
-            }
-        };
-
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, []);
 
     return (
         <>
             <nav
-                className={`fixed lg:max-w-[1280px] w-full py-4 px-8 mt-4 justify-between z-50 flex items-center rounded-full ${scrolling ? "shadow-xl backdrop-filter backdrop-blur-md" : "bg-transparent"
-                }`}
+                className="fixed top-0 left-0 right-0 w-full py-3 px-8 justify-between z-50 flex items-center bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800"
             >
-                <Reveal>
-                    <ThemeLogo />
-                </Reveal>
-                <Reveal>
-                    <ul className="list-none sm:flex hidden justify-end items-center flex-1">
-                        {navLinks.map((nav) => (
-                            <li
-                                key={nav.id}
-                                className="font-poppins font-normal cursor-pointer text-[16px] mr-10">
-                                <a href={`#${nav.id}`} className='text-black dark:text-white'>
-                                    {nav.title}
-                                </a>
-                            </li>
-                        ))}
-                        <li className="mr-10">
-                            <ThemeToggler />
+                <ThemeLogo />
+                <ul className="list-none sm:flex hidden justify-end items-center flex-1">
+                    {navLinks.map((nav) => (
+                        <li
+                            key={nav.id}
+                            className="font-poppins font-normal cursor-pointer text-[16px] mr-10">
+                            <a href={nav.href} className='text-black dark:text-white'>
+                                {nav.title}
+                            </a>
                         </li>
-                    </ul>
-                </Reveal>
+                    ))}
+                    <li className="mr-10">
+                        <ThemeToggler />
+                    </li>
+                </ul>
                 <div className="sm:hidden flex flex-1 justify-end items-center">
-                    <Reveal>
-                        <div className="mr-4">
-                            <ThemeToggler />
-                        </div>
-                    </Reveal>
-                    <Reveal>
-                        <CiMenuFries size={28} onClick={() => setToggle((prev) => !prev)} className='flex' />
-                    </Reveal>
+                    <div className="mr-4">
+                        <ThemeToggler />
+                    </div>
+                    <CiMenuFries size={28} onClick={() => setToggle((prev) => !prev)} className='flex' />
                     <div className={`${toggle ? 'flex' : 'hidden'}
-            p-6 absolute top-20 ring-0 mx-4 my-2 min-w-[140px] rounded-xl sidebar shadow-xl bg-white dark:bg-black`}>
+            p-6 absolute top-14 right-4 mx-0 my-2 min-w-[140px] sidebar bg-white dark:bg-black border border-gray-200 dark:border-gray-800`}>
                         <ul className="list-none flex flex-col p-0 justify-end items-center flex-1">
                             {navLinks.map((nav, index) => (
                                 <li
                                     key={nav.id}
                                     className={`font-poppins font-normal cursor-pointer text-[16px] ${index === navLinks.length - 1 ? 'mr-0' : 'mb-4'}`}>
-                                    <a href={`#${nav.id}`} className='text-black dark:text-white'>
+                                    <a href={nav.href} className='text-black dark:text-white'>
                                         {nav.title}
                                     </a>
                                 </li>
@@ -74,7 +50,7 @@ const Navbar: React.FC = () => {
                     </div>
                 </div>
             </nav>
-            <div className="w-full h-32"></div>
+            <div className="w-full h-16"></div>
         </>
     )
 }

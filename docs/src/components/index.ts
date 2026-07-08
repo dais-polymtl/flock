@@ -3,6 +3,7 @@ import Hero from "./hero/Hero";
 import WhyFlock from "./why-flock/WhyFlock";
 import Features from "./features/Features";
 import GettingStarted from "./getting-started/GettingStarted";
+import Paper from "./paper/Paper";
 import Team from "./team/Team";
 import CTA from "./cta/CTA";
 import Footer from "./footer/Footer";
@@ -13,6 +14,7 @@ export {
     WhyFlock,
     Features,
     GettingStarted,
+    Paper,
     Team,
     CTA,
     Footer,

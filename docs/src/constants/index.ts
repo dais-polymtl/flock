@@ -4,20 +4,24 @@ import {AmineMhedhbi, AnasDorbani, SunnyYasser} from "@site/static";
 
 export const navLinks = [
     {
-        id: "features",
-        title: "Features",
+        id: "overview",
+        title: "Overview",
+        href: "#overview",
     },
     {
         id: "why-flock",
         title: "Why Flock?",
+        href: "#why-flock",
     },
     {
-        id: "getting-started",
-        title: "Getting Started",
+        id: "paper",
+        title: "Paper",
+        href: "#paper",
     },
     {
-        id: "team",
-        title: "Team",
+        id: "docs",
+        title: "Docs",
+        href: "./docs/what-is-flock",
     },
 ];
 
@@ -45,6 +49,16 @@ export const features = [
     },
 ];
 
+export const bibtex = `@article{10.14778/3750601.3750685,
+  author  = {Dorbani, Anas and Yasser, Sunny and Lin, Jimmy and Mhedhbi, Amine},
+  title   = {Beyond Quacking: Deep Integration of Language Models and RAG into DuckDB},
+  journal = {Proc. VLDB Endow.},
+  year    = {2025},
+  volume  = {18},
+  number  = {12},
+  doi     = {10.14778/3750601.3750685},
+  url     = {https://doi.org/10.14778/3750601.3750685}
+}`;
 
 export const whyFlock = [
     {
@@ -84,6 +98,16 @@ export const team = [
     },
     {
         id: "team-member-3",
+        name: "Jimmy Lin",
+        role: "Faculty",
+        company: "University of Waterloo",
+        img: "",
+        github: "https://github.com/lintool",
+        linkedin: "",
+        X: "",
+    },
+    {
+        id: "team-member-4",
         name: "Amine Mhedhbi",
         role: "Faculty",
         company: "Polytechnique Montréal",

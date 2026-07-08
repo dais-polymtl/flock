@@ -9,7 +9,7 @@ import rehypeKatex from "rehype-katex";
 const config: Config = {
     title: "Flock",
     tagline:
-        "Explore the future of data analysis with Flock. Seamlessly integrate AI capabilities into your SQL workflows and unlock powerful insights, all within the flexibility and speed of RDBMSs.",
+        "A DuckDB extension that integrates language models and RAG into SQL analytics.",
     favicon: "img/favicon.ico",
 
     // Set the production url of your site here
@@ -93,11 +93,6 @@ const config: Config = {
                 srcDark: "img/logo-dark.png",
             },
             items: [
-                {
-                    to: "docs/getting-started",
-                    label: "Getting Started",
-                    position: "left",
-                },
                 {
                     to: "docs/scalar-functions",
                     label: "Scalar Functions",

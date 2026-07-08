@@ -1,6 +1,6 @@
 import BrowserOnly from '@docusaurus/BrowserOnly';
 import styles from "@site/src/css/style";
-import {Navbar, Hero, Features, WhyFlock, GettingStarted, CTA, Footer} from "@site/src/components";
+import {Navbar, Hero, Features, WhyFlock, Paper, Footer} from "@site/src/components";
 
 const Home: React.FC = () => {
     return (
@@ -8,11 +8,7 @@ const Home: React.FC = () => {
             {() => (
                 <body>
                 <div className="bg-primary w-full overflow-hidden">
-                    <div className={`${styles.paddingX} ${styles.flexCenter}`}>
-                        <div className={`${styles.boxWidth} flex justify-center`}>
-                            <Navbar/>
-                        </div>
-                    </div>
+                    <Navbar/>
                     <div className={`bg-primary ${styles.flexStart}`}>
                         <div className={`${styles.boxWidth}`}>
                             <Hero/>
@@ -22,8 +18,7 @@ const Home: React.FC = () => {
                         <div className={`${styles.boxWidth}`}>
                             <Features/>
                             <WhyFlock/>
-                            <GettingStarted/>
-                            <CTA/>
+                            <Paper/>
                             <Footer/>
                         </div>
                     </div>
