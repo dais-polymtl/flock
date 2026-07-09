@@ -9,47 +9,51 @@ on:
       - docs/**
   workflow_dispatch:
 
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build:
-    name: Build Docusaurus
+    name: Build Mintlify site
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
-          cache: npm
-          cache-dependency-path: docs/package-lock.json
+          node-version: 22
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Mintlify CLI
+        run: npm install -g mint
+
+      - name: Export static site
         working-directory: docs
+        run: mint export --output ../site.zip
 
-      - name: Build website
-        run: npm run build
-        working-directory: docs
+      - name: Prepare GitHub Pages artifact
+        run: |
+          mkdir -p site
+          unzip -q site.zip -d site
+          node docs/scripts/prepare-github-pages.mjs site
 
-      - name: Upload Build Artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/build
+          path: site
 
   deploy:
     name: Deploy to GitHub Pages
     needs: build
-
-    permissions:
-      pages: write
-      id-token: write
-
+    runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
-    runs-on: ubuntu-latest
     steps:
       - name: Deploy to GitHub Pages
         id: deployment

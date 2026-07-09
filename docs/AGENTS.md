@@ -3,6 +3,7 @@
 ## About this project
 
 - This is the Flock documentation site built on [Mintlify](https://mintlify.com)
+- Production is hosted on GitHub Pages at https://dais-polymtl.github.io/flock/
 - Flock is a DuckDB extension that integrates language models and RAG into SQL analytics
 - Pages are MDX files with YAML frontmatter
 - Configuration lives in `docs.json`

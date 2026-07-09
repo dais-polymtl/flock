@@ -4,6 +4,9 @@
 
 # Mintlify
 .mintlify
+_next/
+export.zip
+site.zip
 
 # Misc
 .env.local

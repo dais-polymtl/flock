@@ -3,17 +3,17 @@
 <br />
 
 <div align="center">
-  <a href="https://dais-polymtl.github.io/flock/">
+  <a href="https://github.com/dais-polymtl/flock/tree/main/docs">
     <img src="docs/static/flock-square-readme.png" alt="Logo" height="300">
   </a>
   <br /><br />
   <p align="center">
     DBMS extension for multimodal query processing and optimization.
     <br />
-    <a href="https://dais-polymtl.github.io/flock/docs/what-is-flock"><strong>Explore the docs »</strong></a>
+    <a href="./docs/what-is-flock.mdx"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://dais-polymtl.github.io/flock/">Landing Page</a>
+    <a href="./docs/index.mdx">Landing Page</a>
     |
     <a href="https://github.com/dais-polymtl/flock/issues/new?labels=bug&template=bug-report.md">Report Bug</a>
     |
@@ -151,7 +151,7 @@ If you want to build Flock from source or contribute to the project, you can use
 
    The script will automatically detect your system configuration and use the appropriate build tools (Ninja or Make).
 
-3. The script will launch DuckDB with Flock extension ready to use. Make sure to check the [documentation](https://dais-polymtl.github.io/flock/docs/what-is-flock) for usage examples.
+3. The script will launch DuckDB with Flock extension ready to use. Make sure to check the [documentation](./docs/what-is-flock.mdx) for usage examples.
 
 **Requirements for building from source:**
 
@@ -177,10 +177,10 @@ SELECT llm_complete(
   FROM UNNEST(['Wireless Headphones', 'Gaming Laptop', 'Smart Watch']) AS t(product_name);
 ```
 
-Explore more usage examples in the [documentation](https://dais-polymtl.github.io/flock/docs/what-is-flock).
+Explore more usage examples in the [documentation](./docs/what-is-flock.mdx).
 
 If you are a contributor or want to work on Flock itself, see the dedicated
-[Developer Guide](https://dais-polymtl.github.io/flock/docs/developer-guide) for build, testing, and contribution details.
+[Developer Guide](./docs/developer-guide.mdx) for build, testing, and contribution details.
 
 <p align="right"><a href="#readme-top">🔝 back to top</a></p>
 
