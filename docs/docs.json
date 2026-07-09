@@ -13,12 +13,12 @@
   "background": {
     "decoration": "gradient"
   },
-  "favicon": "/favicon.svg",
+  "favicon": "/static/img/favicon.ico",
   "navigation": {
     "pages": [
       {
         "group": "Home",
-        "pages": ["index", "what-is-flock"]
+        "pages": ["what-is-flock", "index"]
       },
       {
         "group": "Getting Started",
@@ -74,8 +74,8 @@
     ]
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png"
   },
   "navbar": {
     "links": [
