@@ -34,18 +34,19 @@ jobs:
 
       - name: Export static site
         working-directory: docs
-        run: mint export --output ../site.zip
+        run: mint export --output ../docs-site.zip
 
       - name: Prepare GitHub Pages artifact
         run: |
-          mkdir -p site
-          unzip -q site.zip -d site
-          node docs/scripts/prepare-github-pages.mjs site
+          mkdir -p docs-site
+          unzip -q docs-site.zip -d docs-site
+          node docs/scripts/prepare-github-pages.mjs docs-site
+          npx -y pagefind --site docs-site --output-subdir pagefind
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: docs-site
 
   deploy:
     name: Deploy to GitHub Pages

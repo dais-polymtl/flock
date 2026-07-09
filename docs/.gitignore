@@ -6,7 +6,8 @@
 .mintlify
 _next/
 export.zip
-site.zip
+docs-site/
+docs-site.zip
 
 # Misc
 .env.local

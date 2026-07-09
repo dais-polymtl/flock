@@ -23,7 +23,7 @@
       {
         "group": "Getting Started",
         "pages": [
-          "getting-started/index",
+          "getting-started/overview",
           "getting-started/openai",
           "getting-started/azure",
           "getting-started/ollama",
@@ -33,7 +33,7 @@
       {
         "group": "Resource Management",
         "pages": [
-          "resource-management/index",
+          "resource-management/overview",
           "resource-management/models",
           "resource-management/prompts",
           "resource-management/api-keys"
@@ -42,7 +42,7 @@
       {
         "group": "Scalar Functions",
         "pages": [
-          "scalar-functions/index",
+          "scalar-functions/overview",
           "scalar-functions/llm-complete",
           "scalar-functions/llm-filter",
           "scalar-functions/llm-embedding"
@@ -51,7 +51,7 @@
       {
         "group": "Aggregate Functions",
         "pages": [
-          "aggregate-functions/index",
+          "aggregate-functions/overview",
           "aggregate-functions/llm-reduce",
           "aggregate-functions/llm-rerank",
           "aggregate-functions/llm-first",
@@ -104,20 +104,20 @@
   },
   "redirects": [
     { "source": "/docs/what-is-flock", "destination": "/what-is-flock" },
-    { "source": "/docs/getting-started", "destination": "/getting-started" },
+    { "source": "/docs/getting-started", "destination": "/getting-started/overview" },
     { "source": "/docs/getting-started/openai", "destination": "/getting-started/openai" },
     { "source": "/docs/getting-started/azure", "destination": "/getting-started/azure" },
     { "source": "/docs/getting-started/ollama", "destination": "/getting-started/ollama" },
     { "source": "/docs/getting-started/anthropic", "destination": "/getting-started/anthropic" },
-    { "source": "/docs/resource-management", "destination": "/resource-management" },
+    { "source": "/docs/resource-management", "destination": "/resource-management/overview" },
     { "source": "/docs/resource-management/models", "destination": "/resource-management/models" },
     { "source": "/docs/resource-management/prompts", "destination": "/resource-management/prompts" },
     { "source": "/docs/resource-management/api-keys", "destination": "/resource-management/api-keys" },
-    { "source": "/docs/scalar-functions", "destination": "/scalar-functions" },
+    { "source": "/docs/scalar-functions", "destination": "/scalar-functions/overview" },
     { "source": "/docs/scalar-functions/llm-complete", "destination": "/scalar-functions/llm-complete" },
     { "source": "/docs/scalar-functions/llm-filter", "destination": "/scalar-functions/llm-filter" },
     { "source": "/docs/scalar-functions/llm-embedding", "destination": "/scalar-functions/llm-embedding" },
-    { "source": "/docs/aggregate-functions", "destination": "/aggregate-functions" },
+    { "source": "/docs/aggregate-functions", "destination": "/aggregate-functions/overview" },
     { "source": "/docs/aggregate-functions/llm-reduce", "destination": "/aggregate-functions/llm-reduce" },
     { "source": "/docs/aggregate-functions/llm-rerank", "destination": "/aggregate-functions/llm-rerank" },
     { "source": "/docs/aggregate-functions/llm-first", "destination": "/aggregate-functions/llm-first" },
@@ -129,6 +129,10 @@
     { "source": "/docs/llm-metrics", "destination": "/llm-metrics" },
     { "source": "/docs/model-parameters", "destination": "/model-parameters" },
     { "source": "/docs/developer-guide", "destination": "/developer-guide" },
-    { "source": "/docs/faq", "destination": "/faq" }
+    { "source": "/docs/faq", "destination": "/faq" },
+    { "source": "/getting-started", "destination": "/getting-started/overview" },
+    { "source": "/resource-management", "destination": "/resource-management/overview" },
+    { "source": "/scalar-functions", "destination": "/scalar-functions/overview" },
+    { "source": "/aggregate-functions", "destination": "/aggregate-functions/overview" }
   ]
 }
