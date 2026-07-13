@@ -340,6 +340,38 @@
     return target instanceof Element && !!target.closest('#search-bar-entry, #search-bar-entry-mobile');
   }
 
+  const THEME_SELECTED_CLASSES = [
+    'text-gray-600',
+    'dark:text-gray-200',
+    'bg-gray-200/50',
+    'dark:bg-gray-900',
+  ];
+  const THEME_UNSELECTED_CLASSES = [
+    'text-gray-400',
+    'dark:text-gray-500',
+    'hover:text-gray-600',
+    'dark:hover:text-gray-300',
+  ];
+
+  function themeButtons() {
+    return document.querySelectorAll(
+      'button[aria-label="Switch to system theme"], button[aria-label="Switch to light theme"], button[aria-label="Switch to dark theme"]',
+    );
+  }
+
+  function syncThemeToggleUi(mode) {
+    const normalized = (mode || '').toLowerCase();
+    themeButtons().forEach((button) => {
+      const label = button.getAttribute('aria-label') || '';
+      const match = label.match(/^Switch to (system|light|dark) theme$/i);
+      if (!match) return;
+      const isActive = match[1].toLowerCase() === normalized;
+      button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      THEME_SELECTED_CLASSES.forEach((cls) => button.classList.toggle(cls, isActive));
+      THEME_UNSELECTED_CLASSES.forEach((cls) => button.classList.toggle(cls, !isActive));
+    });
+  }
+
   function applyThemeMode(mode) {
     if (!mode) return;
 
@@ -356,6 +388,7 @@
     html.classList.remove('light', 'dark');
     html.classList.add(resolved);
     html.style.colorScheme = resolved;
+    syncThemeToggleUi(normalized);
     window.dispatchEvent(new Event('storage'));
   }
 
@@ -422,6 +455,10 @@
       sessionStorage.removeItem('flock-sidebar-scroll');
     } catch {
       // ignore
+    }
+    const storedTheme = (localStorage.getItem('isDarkMode') || 'system').toLowerCase();
+    if (storedTheme === 'system' || storedTheme === 'light' || storedTheme === 'dark') {
+      syncThemeToggleUi(storedTheme);
     }
     ensurePagefind().catch(() => {});
   }
