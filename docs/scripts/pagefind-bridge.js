@@ -24,7 +24,6 @@
   const basePath = config.basePath || '';
   const bundlePath = config.bundlePath || `${basePath}/pagefind/`;
   const pagefindModuleUrl = `${bundlePath}pagefind.js`;
-  const SIDEBAR_SCROLL_KEY = 'flock-sidebar-scroll';
 
   const SEARCH_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500 dark:text-gray-400"><path d="M15.25 15.25L11.285 11.285"></path><path d="M7.75 12.75C10.5114 12.75 12.75 10.5114 12.75 7.75C12.75 4.98858 10.5114 2.75 7.75 2.75C4.98858 2.75 2.75 4.98858 2.75 7.75C2.75 10.5114 4.98858 12.75 7.75 12.75Z"></path></svg>';
@@ -47,7 +46,6 @@
   let activeIndex = -1;
   let activeRequest = 0;
   let isOpen = false;
-  let suppressSidebarAutoScroll = false;
 
   function ensurePagefind() {
     if (!pagefindReady) {
@@ -298,63 +296,6 @@
     });
   }
 
-  function getSidebarScroller() {
-    return document.getElementById('sidebar-content');
-  }
-
-  function saveSidebarScroll() {
-    const scroller = getSidebarScroller();
-    if (!scroller) return;
-    sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(scroller.scrollTop));
-  }
-
-  function restoreSidebarScroll() {
-    const scroller = getSidebarScroller();
-    const saved = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
-    if (!scroller || saved === null) return;
-
-    const top = Number(saved);
-    if (Number.isNaN(top)) return;
-    scroller.scrollTop = top;
-  }
-
-  function scheduleSidebarScrollRestore() {
-    suppressSidebarAutoScroll = true;
-    restoreSidebarScroll();
-    requestAnimationFrame(restoreSidebarScroll);
-    [16, 50, 100, 200, 400, 800].forEach((delay) => {
-      window.setTimeout(restoreSidebarScroll, delay);
-    });
-    window.setTimeout(() => {
-      suppressSidebarAutoScroll = false;
-    }, 900);
-  }
-
-  function installSidebarScrollPreservation() {
-    const sidebar = document.getElementById('sidebar');
-    const scroller = getSidebarScroller();
-    if (!sidebar || !scroller || sidebar.dataset.pagefindScrollInstalled === 'true') return;
-
-    sidebar.dataset.pagefindScrollInstalled = 'true';
-    scroller.addEventListener('scroll', saveSidebarScroll, { passive: true });
-
-    sidebar.addEventListener(
-      'click',
-      (event) => {
-        if (event.target instanceof Element && event.target.closest('a[href]')) {
-          saveSidebarScroll();
-        }
-      },
-      true,
-    );
-
-    const originalScrollIntoView = Element.prototype.scrollIntoView;
-    Element.prototype.scrollIntoView = function scrollIntoView(...args) {
-      if (suppressSidebarAutoScroll && sidebar.contains(this)) return;
-      return originalScrollIntoView.apply(this, args);
-    };
-  }
-
   function isSearchTrigger(target) {
     return target instanceof Element && !!target.closest('#search-bar-entry, #search-bar-entry-mobile');
   }
@@ -436,17 +377,12 @@
     attributeFilter: ['data-open'],
   });
 
-  const routeObserver = new MutationObserver(scheduleSidebarScrollRestore);
-  routeObserver.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['data-current-path'],
-  });
-
-  window.addEventListener('popstate', scheduleSidebarScrollRestore);
-
   function boot() {
-    installSidebarScrollPreservation();
-    scheduleSidebarScrollRestore();
+    try {
+      sessionStorage.removeItem('flock-sidebar-scroll');
+    } catch {
+      // ignore
+    }
     ensurePagefind().catch(() => {});
   }
 

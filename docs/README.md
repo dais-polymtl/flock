@@ -19,7 +19,7 @@ Docs deploy automatically when changes land on `main` under `docs/`. The workflo
 1. Runs `mint export` to generate a static site
 2. Rewrites paths for the `/flock` GitHub Pages base URL
 3. Indexes the site with [Pagefind](https://pagefind.app/) (free, client-side search)
-4. Injects a bridge that reuses Mintlify's Cmd+K search UI but queries a local Pagefind index
+4. Injects a Pagefind bridge for Cmd+K search (Mintlify cloud search is unavailable on static export)
 5. Publishes to GitHub Pages via `actions/deploy-pages`
 
 You can also trigger a deploy manually from the **Website Deploy to GitHub Pages** workflow in GitHub Actions.
