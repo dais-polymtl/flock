@@ -4,10 +4,12 @@ title: "Hybrid Search"
 
 ## Overview
 
-Flock provides a set of fusion functions that allow you to combine multiple scoring systems into a single, unified
+Flock provides a set of **scalar** fusion functions that allow you to combine multiple scoring systems into a single, unified
 relevance score. This is particularly useful in hybrid search scenarios where you want to leverage the strengths of
 different scoring methods (e.g., BM25 and vector similarity scores) to produce the best-fit result. To achieve that,
 Flock offers two types of fusion functions: rank-based and score-based.
+
+See also the [Scalar Functions overview](/scalar-functions/overview) for how fusion functions fit alongside `llm_complete` and related map functions.
 
 ## Rank-Based Fusion Algorithm
 
@@ -21,9 +23,7 @@ $$
 combined\_score = \sum_{n=1}^{N} \frac{1}{60 + \text{ranking}_n}
 $$
 where `N` represents the number of scoring systems and `ranking_n` represents the rank of the document in that scoring
-system.
-
-Performs Reciprocal Rank Fusion (RRF) as described by [Cormack et al](https://doi.org/10.1145/1571941.1572114).
+system. Described by [Cormack et al](https://doi.org/10.1145/1571941.1572114).
 
 * Gordon V. Cormack, Charles L A Clarke, and Stefan Buettcher. 2009. Reciprocal rank fusion outperforms condorcet and
   individual rank learning methods. In Proceedings of the 32nd international ACM SIGIR conference on Research and

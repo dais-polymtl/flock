@@ -16,11 +16,19 @@ image analysis, and machine learning tasks directly within SQL queries.
 - [`llm_embedding`](/scalar-functions/llm-embedding): Generates vector embeddings for text data, used for
   similarity search and machine learning tasks (text only)
 
+For hybrid search, Flock also provides scalar fusion functions documented in [Hybrid Search](/hybrid-search):
+
+- `fusion_rrf` — Reciprocal Rank Fusion
+- `fusion_combsum` — sum of normalized scores
+- `fusion_combmnz` — sum multiplied by hit count
+- `fusion_combmed` — median of normalized scores
+- `fusion_combanz` — average of normalized scores
+
 ## 2. Function Characteristics
 
 - Applied row-by-row to table data
 - Supports text generation, filtering, and embeddings
-- **Multimodal support**: Process both text and image data using the same functions
+- **Multimodal support**: Process text, image, and audio data using the same functions
 - **Context columns**: New API design using `context_columns` arrays for flexible data input
 
 ## 3. Context Columns API
@@ -31,7 +39,8 @@ All scalar functions now use a unified `context_columns` API structure:
 'context_columns': [
   {'data': column_name},                    -- Basic text column
   {'data': column_name, 'name': 'alias'},   -- Text column with custom name
-  {'data': image_url, 'type': 'image'}      -- Image column
+  {'data': image_url, 'type': 'image'},     -- Image column
+  {'data': audio_path, 'type': 'audio', 'transcription_model': 'whisper-1'}  -- Audio column
 ]
 ```
 
@@ -39,7 +48,7 @@ Each context column supports three properties:
 
 - **`data`** _(required)_: The SQL column data
 - **`name`** _(optional)_: Custom name for referencing in prompts
-- **`type`** _(optional)_: Data type - `"tabular"` (default) or `"image"`
+- **`type`** _(optional)_: Data type — `"tabular"` (default), `"image"`, or `"audio"`. Audio requires `transcription_model`; see [Audio Support](/audio-support).
 
 ## 4. Use Cases
 

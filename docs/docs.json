@@ -18,7 +18,7 @@
     "pages": [
       {
         "group": "Home",
-        "pages": ["what-is-flock", "index"]
+        "pages": ["index", "what-is-flock"]
       },
       {
         "group": "Getting Started",
@@ -65,8 +65,10 @@
           "audio-support",
           "hybrid-search",
           "structured-output",
+          "performance",
           "llm-metrics",
           "model-parameters",
+          "wasm",
           "developer-guide",
           "faq"
         ]
@@ -85,7 +87,7 @@
       },
       {
         "label": "Support",
-        "href": "mailto:amine.mhedhbi@polymtl.ca,anasdorbani@gmail.com"
+        "href": "mailto:amine.mhedhbi@polymtl.ca,anasdorbani@gmail.com,eyad.salama@polymtl.ca"
       }
     ],
     "primary": {
@@ -127,6 +129,8 @@
     { "source": "/docs/hybrid-search", "destination": "/hybrid-search" },
     { "source": "/docs/structured-output", "destination": "/structured-output" },
     { "source": "/docs/llm-metrics", "destination": "/llm-metrics" },
+    { "source": "/docs/performance", "destination": "/performance" },
+    { "source": "/docs/wasm", "destination": "/wasm" },
     { "source": "/docs/model-parameters", "destination": "/model-parameters" },
     { "source": "/docs/developer-guide", "destination": "/developer-guide" },
     { "source": "/docs/faq", "destination": "/faq" },
