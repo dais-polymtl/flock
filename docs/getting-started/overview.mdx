@@ -21,20 +21,20 @@ the [DuckDB CLI Overview](https://duckdb.org/docs/stable/clients/cli/overview.ht
 
 ## Install Flock Extension
 
-At this stage you should have a running DuckDB instance (DuckDB **v1.4.4 or later**). Flock can be installed in two ways:
+At this stage you should have a running DuckDB instance (DuckDB **v1.5.0 or later**). Flock can be installed in two ways:
 
 ### Option 1: Install from Community Extension (Recommended)
 
 To install Flock from DuckDB's community catalog, run the following SQL commands in your DuckDB instance:
 
 ```sql
-INSTALL
-flock FROM community;
-LOAD
-flock;
+INSTALL flock FROM community;
+LOAD flock;
 ```
 
 This will install the Flock extension and load it into your DuckDB environment.
+
+For tuning batch size, concurrency, and cost on LLM queries, see [Performance and cost](/performance).
 
 ### Option 2: Build from Source
 
@@ -97,3 +97,7 @@ Refer to the following sections for detailed instructions on setting up API keys
     Set up Flock with Anthropic / Claude.
   </Card>
 </Columns>
+
+<Note>
+Last updated for Flock **v0.4.x** (DuckDB 1.5.0+, four providers, multimodal, metrics).
+</Note>

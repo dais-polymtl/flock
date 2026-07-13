@@ -168,3 +168,21 @@ SELECT llm_complete(
   { 'language': 'python', 'task': 'sort a list' }
 ) AS code_snippet;
 ````
+
+## Anthropic Parameters
+
+Anthropic Claude models use the [Anthropic Messages API](https://docs.anthropic.com/en/api/messages). Common parameters:
+
+```sql
+{
+  'model_name': 'claude-sonnet-4-5',
+  'model_parameters': '{
+    "temperature": 0.7,
+    "max_tokens": 1024,
+    "system": "You are a helpful data analyst assistant.",
+    "top_p": 0.9
+  }'
+}
+```
+
+For structured output with Claude, use `output_format` (Claude 4.x) or rely on Flock's tool-use fallback (Claude 3.x). See the [Anthropic guide](/getting-started/anthropic) and [Structured Output](/structured-output).
