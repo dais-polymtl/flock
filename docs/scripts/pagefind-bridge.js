@@ -82,6 +82,43 @@
     return `${basePath}/${url}`;
   }
 
+  /**
+   * Expand Pagefind page hits into section hits when possible.
+   * Pagefind `sub_results` split on headings that have `id` attributes and
+   * include deep-link URLs (e.g. `/faq/#how-can-i-contact-support`).
+   */
+  function flattenToSectionHits(pageResults, limit = 8) {
+    const items = [];
+    for (const page of pageResults) {
+      if (items.length >= limit) break;
+
+      const pageTitle = page.meta?.title || page.url;
+      const pageExcerpt = page.plain_excerpt || stripHtml(page.excerpt) || '';
+      const subs = Array.isArray(page.sub_results) ? page.sub_results : [];
+
+      if (!subs.length) {
+        items.push({
+          title: pageTitle,
+          excerpt: pageExcerpt,
+          url: page.url,
+        });
+        continue;
+      }
+
+      for (const sub of subs) {
+        if (items.length >= limit) break;
+        const hasAnchor = typeof sub.url === 'string' && sub.url.includes('#');
+        const sectionTitle = sub.title && hasAnchor ? sub.title : null;
+        items.push({
+          title: sectionTitle ? `${pageTitle} › ${sectionTitle}` : pageTitle,
+          excerpt: sub.plain_excerpt || stripHtml(sub.excerpt) || pageExcerpt,
+          url: sub.url || page.url,
+        });
+      }
+    }
+    return items;
+  }
+
   function setHighlighted(index) {
     if (!activeList) return;
     const items = activeList.querySelectorAll('[data-pagefind-result]');
@@ -115,8 +152,8 @@
 
     activeList.innerHTML = results
       .map((result, index) => {
-        const title = result.meta?.title || stripHtml(result.excerpt) || result.url;
-        const excerpt = result.plain_excerpt || stripHtml(result.excerpt);
+        const title = result.title || result.url;
+        const excerpt = result.excerpt || '';
         const href = withBasePath(result.url);
         return `<a href="${href}" data-pagefind-result data-index="${index}" class="${ITEM_CLASS}" tabindex="-1">
   <span data-component-part="search-item-icon" class="flex h-5 items-center shrink-0" aria-hidden="true">${DOC_ICON}</span>
@@ -148,9 +185,12 @@
       const search = await pf.debouncedSearch(query.trim());
       if (!search || requestId !== activeRequest) return;
 
-      const results = await Promise.all(search.results.slice(0, 8).map((result) => result.data()));
+      // Fetch a few more pages so section expansion can still fill ~8 slots
+      const pageResults = await Promise.all(
+        search.results.slice(0, 8).map((result) => result.data()),
+      );
       if (requestId !== activeRequest) return;
-      renderResults(results);
+      renderResults(flattenToSectionHits(pageResults, 8));
     } catch {
       if (requestId !== activeRequest) return;
       renderEmpty('Search is unavailable offline');
