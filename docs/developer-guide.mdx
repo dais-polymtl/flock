@@ -4,6 +4,10 @@ title: "Developer Guide"
 
 This guide is for developers who want to build, extend, or contribute to Flock itself.
 
+<Note>
+Flock CI builds against DuckDB **v1.5.4**. User-facing docs require DuckDB **1.5.0+**.
+</Note>
+
 ## Local Development Setup
 
 - **Clone the repository**:
@@ -57,6 +61,10 @@ ninja
 
 The resulting Flock extension library can then be loaded from DuckDB using `LOAD` with the appropriate path.
 
+## WASM builds
+
+Flock CI produces DuckDB-WASM extension artifacts via `extension-ci-tools` (see `.github/workflows/MainDistributionPipeline.yml`). For browser usage and limitations, see [Browser and WASM](/wasm).
+
 ## Running Tests
 
 Flock comes with both **unit** and **integration** tests:
@@ -104,9 +112,10 @@ npm i -g mint
 mint dev
 ```
 
-This runs the docs site locally with hot reload. When adding new features to Flock, prefer updating or extending:
+This runs the docs site locally with hot reload. When adding new features to Flock, update:
 
-- `what-is-flock.mdx` for high-level positioning.
-- The relevant function or feature page (e.g., `image-support.mdx`, `audio-support.mdx`, `llm-metrics.mdx`).
-- This **Developer Guide** for build, testing, or contribution-related changes.
+- `what-is-flock.mdx` for high-level positioning
+- The relevant function or feature page (e.g., `image-support.mdx`, `audio-support.mdx`, `llm-metrics.mdx`)
+- [`faq.mdx`](/faq) and [`static/llms.txt`](/static/llms.txt) so entry points stay current
+- This **Developer Guide** for build, testing, or contribution-related changes
 

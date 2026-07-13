@@ -2,6 +2,9 @@
 # # NLP with Disaster Tweets: Advanced Cleaning with FlockMTL
 # 
 # This notebook demonstrates advanced text processing of disaster-related tweets using the **FlockMTL** extension for DuckDB. The pipeline includes cleaning, feature extraction, and data visualization.
+#
+# JSON field extraction uses `llm_complete` with dot notation (requires `LOAD JSON`).
+# See https://dais-polymtl.github.io/flock/structured-output
 
 # %% [markdown]
 # ## Step 1: Install and Import Libraries
@@ -91,7 +94,7 @@ SELECT
     id,
     text AS tweet_text,
     location AS existing_location,
-    llm_complete_json(
+    llm_complete(
         {'model_name': 'gpt-4o'},
         {'prompt_name': 'location-extraction'},
         {'tweet_text': text, 'existing_location': location}
@@ -131,7 +134,7 @@ FROM (
     SELECT 
         id,
         text AS tweet_text,
-        llm_complete_json(
+        llm_complete(
             {'model_name': 'gpt-4o'},
             {'prompt_name': 'text-features'},
             {'tweet_text': text}
@@ -170,7 +173,7 @@ FROM (
     SELECT 
         id,
         text AS tweet_text,
-        llm_complete_json(
+        llm_complete(
             {'model_name': 'gpt-4o'},
             {'prompt_name': 'keyword-extraction'},
             {'tweet_text': text}
