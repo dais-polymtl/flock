@@ -4,13 +4,25 @@ This site is built with [Mintlify](https://mintlify.com) and published to [GitHu
 
 ## Local preview
 
+Two workflows — see the [Developer Guide](/developer-guide) section on docs.
+
+### Fast editing (`mint dev`)
+
 ```bash
 npm i -g mint
 cd docs
 mint dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). Hot reload; no GitHub Pages base path; search uses Mintlify cloud (if logged in), not Pagefind.
+
+### Production parity (`build-and-serve.sh`)
+
+```bash
+./docs/scripts/build-and-serve.sh
+```
+
+Open **`http://localhost:3000/flock/`**. Runs export, GitHub Pages path prep, Pagefind indexing, and local serve — same pipeline as deploy.
 
 ## Deploy
 
@@ -48,8 +60,6 @@ Optional environment variables:
 - `DOCS_TMPDIR` (default `/tmp`)
 
 Then serve `../docs-site` and open `http://localhost:3000/flock/`.
-
-**Note:** Static exports cannot use Mintlify cloud search (the export shows "Login into CLI to enable search"). The injected bridge intercepts Cmd+K and the search bar, opens Mintlify-styled search UI, and runs queries through Pagefind. Use `mint dev` for the full hosted Mintlify preview experience locally.
 
 If your shell points `TMPDIR` to a small ramdisk (for example `/private/ramdisk`), `mint export` can fail with `ENOSPC` even when your main disk has free space. Prefixing with `TMPDIR=/tmp` avoids that by using disk-backed temp storage.
 

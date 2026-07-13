@@ -22,7 +22,7 @@
 - Keep sentences concise — one idea per sentence
 - Use sentence case for headings
 - Code formatting for file names, commands, paths, SQL identifiers, and function names
-- Prefer SQL examples that run after `INSTALL flock FROM community; LOAD flock;`
+- Assume readers have loaded Flock per [Installation](/installation); do not repeat the community install SQL in other pages
 
 ## Content boundaries
 

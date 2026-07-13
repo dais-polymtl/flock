@@ -8,19 +8,14 @@ Flock can run in the browser as a DuckDB-WASM loadable extension, using the same
 
 | Environment | Install |
 |-------------|---------|
-| **CLI / Python / etc.** | `INSTALL flock FROM community;` then `LOAD flock;` |
-| **DuckDB-WASM** | Same SQL — extensions are fetched as `.wasm` modules on `LOAD` |
+| **CLI / Python / etc.** | [Installation](/installation) |
+| **DuckDB-WASM** | Same commands as [Installation](/installation) — extensions are fetched as `.wasm` modules on `LOAD` |
 
-See [Getting Started](/getting-started/overview) for native setup and provider configuration.
+See [Getting Started](/getting-started/overview) for provider configuration after install.
 
 ## Using Flock in DuckDB-WASM
 
-In a DuckDB-WASM environment (for example [shell.duckdb.org](https://shell.duckdb.org) or an app using [@duckdb/duckdb-wasm](https://duckdb.org/docs/stable/clients/wasm/overview)):
-
-```sql
-INSTALL flock FROM community;
-LOAD flock;
-```
+In a DuckDB-WASM environment (for example [shell.duckdb.org](https://shell.duckdb.org) or an app using [@duckdb/duckdb-wasm](https://duckdb.org/docs/stable/clients/wasm/overview)), run the install commands from [Installation](/installation).
 
 In WASM, `INSTALL` records extension metadata; the `.wasm` binary is fetched when you `LOAD`. See the [DuckDB-WASM extensions guide](https://duckdb.org/docs/stable/clients/wasm/extensions) for details.
 
@@ -51,6 +46,7 @@ For production browser apps, consider a backend that holds API keys and exposes 
 
 ## Related guides
 
-- [Getting Started](/getting-started/overview) — install and provider setup
+- [Installation](/installation) — DuckDB and community extension setup
+- [Getting Started](/getting-started/overview) — provider setup
 - [Performance and cost](/performance) — batching and metrics for LLM workloads
 - [Developer Guide](/developer-guide) — build and contribute to Flock

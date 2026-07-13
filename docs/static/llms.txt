@@ -10,10 +10,11 @@ Structured JSON output is provided via `llm_complete` and other LLM functions wi
 
 - [Flock Homepage](https://dais-polymtl.github.io/flock/): Landing page and paper overview.
 - [What is Flock?](https://dais-polymtl.github.io/flock/what-is-flock): Purpose, features, and capabilities.
+- [Installation](https://dais-polymtl.github.io/flock/installation): Install DuckDB and load Flock from the community catalog.
 
 ## Getting Started
 
-- [Getting Started Overview](https://dais-polymtl.github.io/flock/getting-started/overview): Install DuckDB and Flock, configure providers.
+- [Getting Started Overview](https://dais-polymtl.github.io/flock/getting-started/overview): Configure providers and build from source.
 - [OpenAI Provider](https://dais-polymtl.github.io/flock/getting-started/openai): OpenAI and OpenAI-compatible API setup.
 - [Azure Provider](https://dais-polymtl.github.io/flock/getting-started/azure): Azure OpenAI setup.
 - [Ollama Provider](https://dais-polymtl.github.io/flock/getting-started/ollama): Local inference setup.

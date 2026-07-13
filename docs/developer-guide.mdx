@@ -104,15 +104,56 @@ For examples, see the existing OpenAI, Azure, Ollama, and Anthropic adapters.
 
 ## Docs & Developer Experience
 
-The Mintlify docs live in `docs/`. To work on them:
+The Mintlify docs live in `docs/`. Install the CLI once:
+
+```bash
+npm i -g mint
+```
+
+There are two local preview workflows. Use both at different times — they are not interchangeable.
+
+### `mint dev` — fast editing
+
+Best for writing and layout while you iterate on MDX, nav, and components.
 
 ```bash
 cd docs
-npm i -g mint
 mint dev
 ```
 
-This runs the docs site locally with hot reload. When adding new features to Flock, update:
+Open [http://localhost:3000](http://localhost:3000).
+
+- Hot reload on save
+- Mintlify dev server (root URL, no `/flock` prefix)
+- Mintlify cloud search when the CLI is authenticated (optional)
+- Does **not** run the GitHub Pages export, path rewrites, or Pagefind index
+
+### `build-and-serve.sh` — production parity
+
+Best before merging doc changes, when testing search, or when verifying links and assets under the GitHub Pages base path.
+
+From the repo root:
+
+```bash
+./docs/scripts/build-and-serve.sh
+```
+
+Open **`http://localhost:3000/flock/`** (the `/flock/` prefix matters).
+
+This script:
+
+1. `mint export` → static HTML
+2. `prepare-github-pages.mjs` → rewrites paths for `/flock` and injects the Pagefind search bridge
+3. `pagefind` → builds the client-side search index
+4. Serves the result with the same layout as [GitHub Pages](https://dais-polymtl.github.io/flock/)
+
+Optional environment variables: `PORT` (default `3000`), `GITHUB_PAGES_BASE_PATH` (default `/flock`), `SITE_DIR`, `SITE_ZIP`, `DOCS_TMPDIR`. If `mint export` fails with `ENOSPC`, set `DOCS_TMPDIR=/tmp`.
+
+<Warning>
+Cmd+K search on the static export uses Pagefind, not Mintlify cloud search. If search shows “Search is unavailable offline”, you are likely on `mint dev` or skipped the Pagefind step — use `build-and-serve.sh` instead.
+</Warning>
+
+### When adding new Flock features, update
 
 - `what-is-flock.mdx` for high-level positioning
 - The relevant function or feature page (e.g. `image-support.mdx`, `audio-support.mdx`, `llm-metrics.mdx`)

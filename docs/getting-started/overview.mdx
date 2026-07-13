@@ -5,38 +5,13 @@ title: "Overview"
 Flock as a DuckDB extension is designed to simplify the integration of Large Language Models (LLMs) into your data
 workflows. This guide will help you get started with Flock, covering installation, setup, and basic usage.
 
-## Install DuckDB
+## Installation
 
-To install Duckdb, it's an easy process you need just to
-visit [DuckDB Installation Page](https://duckdb.org/docs/installation/) and choose the installation options that
-represent your environment, by specifying:
-
-- **Version**: Stable or Preview.
-- **Environment**: CLI, Python, R, etc.
-- **Platform**: Linux, MacOS or Windows.
-- **Download Method**: Direct or Package Manager.
-
-After installing DuckDB, you can verify the installation and get started by following
-the [DuckDB CLI Overview](https://duckdb.org/docs/stable/clients/cli/overview.html/).
-
-## Install Flock Extension
-
-At this stage you should have a running DuckDB instance (DuckDB **v1.5.0 or later**). Flock can be installed in two ways:
-
-### Option 1: Install from Community Extension (Recommended)
-
-To install Flock from DuckDB's community catalog, run the following SQL commands in your DuckDB instance:
-
-```sql
-INSTALL flock FROM community;
-LOAD flock;
-```
-
-This will install the Flock extension and load it into your DuckDB environment.
+Install DuckDB and load Flock from the community catalog — see [Installation](/installation).
 
 For tuning batch size, concurrency, and cost on LLM queries, see [Performance and cost](/performance).
 
-### Option 2: Build from Source
+### Build from Source
 
 If you want to build Flock from source or contribute to the project, you can use our automated build script:
 
@@ -97,7 +72,3 @@ Refer to the following sections for detailed instructions on setting up API keys
     Set up Flock with Anthropic / Claude.
   </Card>
 </Columns>
-
-<Note>
-Last updated for Flock **v0.4.x** (DuckDB 1.5.0+, four providers, multimodal, metrics).
-</Note>

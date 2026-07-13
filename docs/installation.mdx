@@ -1,0 +1,29 @@
+---
+title: "Installation"
+---
+
+Install DuckDB, then load Flock from DuckDB's community extension catalog.
+
+## Prerequisites
+
+- DuckDB **v1.5.0 or later**
+- API keys or credentials for at least one supported provider ([OpenAI](/getting-started/openai), [Azure](/getting-started/azure), [Ollama](/getting-started/ollama), or [Anthropic / Claude](/getting-started/anthropic))
+
+## Install DuckDB
+
+Visit the [DuckDB installation guide](https://duckdb.org/docs/installation/) and choose options for your environment (CLI, Python, platform, and download method).
+
+## Install Flock
+
+In your DuckDB instance, run:
+
+```sql
+INSTALL flock FROM community;
+LOAD flock;
+```
+
+Flock is now ready to use. Configure a provider next — see [Getting Started](/getting-started/overview).
+
+## Build from source
+
+To build Flock locally or contribute to the project, see the [Developer Guide](/developer-guide) or run `./scripts/build_and_run.sh` from the [GitHub repository](https://github.com/dais-polymtl/flock).

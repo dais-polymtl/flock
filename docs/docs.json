@@ -18,7 +18,7 @@
     "pages": [
       {
         "group": "Home",
-        "pages": ["index", "what-is-flock"]
+        "pages": ["index", "what-is-flock", "installation"]
       },
       {
         "group": "Getting Started",
@@ -131,6 +131,7 @@
   },
   "redirects": [
     { "source": "/docs/what-is-flock", "destination": "/what-is-flock" },
+    { "source": "/docs/installation", "destination": "/installation" },
     { "source": "/docs/getting-started", "destination": "/getting-started/overview" },
     { "source": "/docs/getting-started/openai", "destination": "/getting-started/openai" },
     { "source": "/docs/getting-started/azure", "destination": "/getting-started/azure" },
