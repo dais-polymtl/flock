@@ -28,3 +28,16 @@
 
 - Document public SQL APIs, providers, and developer setup
 - Do not document unpublished internal-only tooling or speculative features as GA
+
+## Navigation groups
+
+Sidebar sections in `docs.json`:
+
+- **Resource Management** — models, prompts, secrets, model parameters
+- **Scalar / Aggregate Functions** — map and reduce SQL APIs (hybrid search lives under Scalar)
+- **Multimodal** — image and audio inputs
+- **Patterns** — cross-cutting SQL patterns (structured output)
+- **Operations** — performance tuning and metrics
+- **Platform** — WASM / browser deployment
+- **Help** — FAQ
+- **Contributing** — developer guide

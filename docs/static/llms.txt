@@ -25,6 +25,7 @@ Structured JSON output is provided via `llm_complete` and other LLM functions wi
 - [Model Management](https://dais-polymtl.github.io/flock/resource-management/models): `max_batch_size`, `is_async`, `rate_limit`, `usage_limit`.
 - [Prompt Management](https://dais-polymtl.github.io/flock/resource-management/prompts): Create and manage prompts.
 - [API Keys Management](https://dais-polymtl.github.io/flock/resource-management/api-keys): Secure secret storage.
+- [Model Parameters](https://dais-polymtl.github.io/flock/model-parameters): Provider-specific generation settings.
 
 ## Scalar Map Functions
 
@@ -32,6 +33,7 @@ Structured JSON output is provided via `llm_complete` and other LLM functions wi
 - [LLM Complete](https://dais-polymtl.github.io/flock/scalar-functions/llm-complete): Text and image completions.
 - [LLM Filter](https://dais-polymtl.github.io/flock/scalar-functions/llm-filter): LLM-based row filtering.
 - [LLM Embedding](https://dais-polymtl.github.io/flock/scalar-functions/llm-embedding): Text embeddings.
+- [Hybrid Search](https://dais-polymtl.github.io/flock/hybrid-search): Fusion functions (RRF, CombSum, etc.).
 
 ## Aggregate Reduce Functions
 
@@ -41,15 +43,28 @@ Structured JSON output is provided via `llm_complete` and other LLM functions wi
 - [LLM First](https://dais-polymtl.github.io/flock/aggregate-functions/llm-first): Top-ranked result.
 - [LLM Last](https://dais-polymtl.github.io/flock/aggregate-functions/llm-last): Bottom-ranked result.
 
-## Guides
+## Multimodal
 
 - [Image Support](https://dais-polymtl.github.io/flock/image-support): Vision models and image context columns.
 - [Audio Support](https://dais-polymtl.github.io/flock/audio-support): Audio transcription in SQL.
-- [Hybrid Search](https://dais-polymtl.github.io/flock/hybrid-search): Fusion functions (RRF, CombSum, etc.).
+
+## Patterns
+
 - [Structured Output](https://dais-polymtl.github.io/flock/structured-output): JSON schema responses from LLMs.
-- [LLM Metrics](https://dais-polymtl.github.io/flock/llm-metrics): `flock_get_metrics()` and observability.
+
+## Operations
+
 - [Performance and Cost](https://dais-polymtl.github.io/flock/performance): Batching, throttling, and tuning.
+- [LLM Metrics](https://dais-polymtl.github.io/flock/llm-metrics): `flock_get_metrics()` and observability.
+
+## Platform
+
 - [Browser and WASM](https://dais-polymtl.github.io/flock/wasm): DuckDB-WASM usage and limitations.
-- [Model Parameters](https://dais-polymtl.github.io/flock/model-parameters): Provider-specific generation settings.
-- [Developer Guide](https://dais-polymtl.github.io/flock/developer-guide): Build and contribute to Flock.
+
+## Help
+
 - [FAQ](https://dais-polymtl.github.io/flock/faq): Frequently asked questions.
+
+## Contributing
+
+- [Developer Guide](https://dais-polymtl.github.io/flock/developer-guide): Build and contribute to Flock.

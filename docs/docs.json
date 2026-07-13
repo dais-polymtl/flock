@@ -36,7 +36,8 @@
           "resource-management/overview",
           "resource-management/models",
           "resource-management/prompts",
-          "resource-management/api-keys"
+          "resource-management/api-keys",
+          "model-parameters"
         ]
       },
       {
@@ -45,7 +46,8 @@
           "scalar-functions/overview",
           "scalar-functions/llm-complete",
           "scalar-functions/llm-filter",
-          "scalar-functions/llm-embedding"
+          "scalar-functions/llm-embedding",
+          "hybrid-search"
         ]
       },
       {
@@ -59,18 +61,41 @@
         ]
       },
       {
-        "group": "Guides",
+        "group": "Multimodal",
         "pages": [
           "image-support",
-          "audio-support",
-          "hybrid-search",
-          "structured-output",
+          "audio-support"
+        ]
+      },
+      {
+        "group": "Patterns",
+        "pages": [
+          "structured-output"
+        ]
+      },
+      {
+        "group": "Operations",
+        "pages": [
           "performance",
-          "llm-metrics",
-          "model-parameters",
-          "wasm",
-          "developer-guide",
+          "llm-metrics"
+        ]
+      },
+      {
+        "group": "Platform",
+        "pages": [
+          "wasm"
+        ]
+      },
+      {
+        "group": "Help",
+        "pages": [
           "faq"
+        ]
+      },
+      {
+        "group": "Contributing",
+        "pages": [
+          "developer-guide"
         ]
       }
     ]

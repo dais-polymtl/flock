@@ -16,13 +16,8 @@ image analysis, and machine learning tasks directly within SQL queries.
 - [`llm_embedding`](/scalar-functions/llm-embedding): Generates vector embeddings for text data, used for
   similarity search and machine learning tasks (text only)
 
-For hybrid search, Flock also provides scalar fusion functions documented in [Hybrid Search](/hybrid-search):
-
-- `fusion_rrf` — Reciprocal Rank Fusion
-- `fusion_combsum` — sum of normalized scores
-- `fusion_combmnz` — sum multiplied by hit count
-- `fusion_combmed` — median of normalized scores
-- `fusion_combanz` — average of normalized scores
+- [Hybrid search](/hybrid-search): Scalar fusion functions (`fusion_rrf`, `fusion_combsum`, `fusion_combmnz`,
+  `fusion_combmed`, `fusion_combanz`) for combining BM25, vector, and other retrieval scores
 
 ## 2. Function Characteristics
 
