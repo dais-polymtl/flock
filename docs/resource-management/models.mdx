@@ -61,7 +61,7 @@ This automatic backoff is separate from `usage_limit`, which tracks cumulative t
 
 `batch_size` is a deprecated alias for `max_batch_size`. Existing models and inline overrides that use `batch_size` continue to work, but Flock logs a warning when `batch_size` is used.
 
-Prefer `max_batch_size` in new models and queries. If both are set, `max_batch_size` takes precedence.
+Prefer `max_batch_size` in new models and queries. **If both are set, `max_batch_size` takes precedence.**
 
 ```sql
 -- Deprecated
