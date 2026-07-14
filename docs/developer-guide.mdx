@@ -38,16 +38,6 @@ The interactive script will:
 
 See the root `README.md` for a concise overview of these steps.
 
-## Project Structure (High Level)
-
-- **DuckDB engine**: Vendored under `duckdb/`, used as the host engine.
-- **Extension sources**:
-  - `src/functions/` – scalar and aggregate LLM functions and helpers.
-  - `src/model_manager/` – model registry, providers, and adapters.
-  - `src/prompt_manager/` – prompt management and storage.
-  - `src/metrics/` – LLM metrics collection and SQL API.
-- **Docs site**: Mintlify site under `docs/` (this documentation).
-
 ## Building the Extension Manually
 
 While `./scripts/build_and_run.sh` is the recommended path, you can also build manually:
