@@ -17,3 +17,5 @@ tags/
 notebooks/data
 notebooks/*.ipynb
 /research_papers/
+docs-site/
+docs-site.zip
