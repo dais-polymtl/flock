@@ -68,12 +68,6 @@
         ]
       },
       {
-        "group": "Patterns",
-        "pages": [
-          "structured-output"
-        ]
-      },
-      {
         "group": "Operations",
         "pages": [
           "performance",
@@ -147,7 +141,8 @@
     { "source": "/docs/image-support", "destination": "/image-support" },
     { "source": "/docs/audio-support", "destination": "/audio-support" },
     { "source": "/docs/hybrid-search", "destination": "/hybrid-search" },
-    { "source": "/docs/structured-output", "destination": "/structured-output" },
+    { "source": "/docs/structured-output", "destination": "/scalar-functions/llm-complete" },
+    { "source": "/structured-output", "destination": "/scalar-functions/llm-complete" },
     { "source": "/docs/llm-metrics", "destination": "/llm-metrics" },
     { "source": "/docs/performance", "destination": "/performance" },
     { "source": "/docs/wasm", "destination": "/installation" },

@@ -206,3 +206,41 @@ For a query that reranks documents based on relevance, the result could look lik
   ```
 
 The output contains the documents ordered by relevance based on the prompt.
+
+## 5. Structured output
+
+`llm_rerank` accepts the same provider `model_parameters` as other LLM functions. Use a JSON schema when you need the underlying model responses constrained (OpenAI `response_format`, Ollama `format`, Anthropic `output_format` / tool-use). See [Model parameters](/model-parameters).
+
+```sql
+SELECT llm_rerank(
+  {
+    'model_name': 'gpt-4o',
+    'model_parameters': '{
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "relevance_score",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "score": { "type": "number" },
+              "reason": { "type": "string" }
+            },
+            "required": ["score", "reason"],
+            "additionalProperties": false
+          }
+        },
+        "strict": true
+      }
+    }'
+  },
+  {
+    'prompt': 'Rank documents by relevance to cutting-edge AI research',
+    'context_columns': [
+      {'data': document_title},
+      {'data': document_content}
+    ]
+  }
+)
+FROM documents;
+```

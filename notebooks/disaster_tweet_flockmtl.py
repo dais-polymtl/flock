@@ -4,7 +4,7 @@
 # This notebook demonstrates advanced text processing of disaster-related tweets using the **FlockMTL** extension for DuckDB. The pipeline includes cleaning, feature extraction, and data visualization.
 #
 # JSON field extraction uses `llm_complete` with dot notation (requires `LOAD JSON`).
-# See https://dais-polymtl.github.io/flock/structured-output
+# See https://dais-polymtl.github.io/flock/scalar-functions/llm-complete
 
 # %% [markdown]
 # ## Step 1: Install and Import Libraries

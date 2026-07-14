@@ -14,7 +14,7 @@
 # - Visualize insights for better understanding
 #
 # JSON outputs use `llm_complete` with prompts that specify JSON shape.
-# For schema-enforced responses, see https://dais-polymtl.github.io/flock/structured-output
+# For schema-enforced responses, see https://dais-polymtl.github.io/flock/scalar-functions/llm-complete
 
 # %% [markdown]
 # ## Step 1: Install Required Libraries

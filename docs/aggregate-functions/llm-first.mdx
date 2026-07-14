@@ -182,3 +182,42 @@ For a query that extracts the first relevant feature, the result could look like
   ```
 
 The output contains the values for `product_name` and `product_description` from the first relevant row based on the prompt.
+
+## 4. Structured output
+
+Constrain the ranking model with a JSON schema via `model_parameters` (OpenAI `response_format`, Ollama `format`, Anthropic `output_format` / tool-use). The function still returns the selected row's columns as JSON.
+
+```sql
+SELECT llm_first(
+  {
+    'model_name': 'gpt-4o',
+    'model_parameters': '{
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "relevance",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "relevant": { "type": "boolean" },
+              "reason": { "type": "string" }
+            },
+            "required": ["relevant", "reason"],
+            "additionalProperties": false
+          }
+        },
+        "strict": true
+      }
+    }'
+  },
+  {
+    'prompt': 'Pick the most relevant product for a runner',
+    'context_columns': [
+      {'data': product_name},
+      {'data': product_description}
+    ]
+  }
+)
+FROM products
+GROUP BY category;
+```

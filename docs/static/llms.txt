@@ -4,7 +4,7 @@
 
 **Flock** allows users to perform text generation, summarization, classification, filtering, fusion, embedding generation, and end-to-end RAG pipelines within DuckDB.
 
-Structured JSON output is provided via `llm_complete` and other LLM functions with `model_parameters` / structured output schemas (replacing the legacy `llm_complete_json` function).
+Structured JSON output is provided via `llm_complete` and other LLM functions with `model_parameters` / structured output schemas (replacing the legacy `llm_complete_json` function). See each function page for examples.
 
 ## Home
 
@@ -48,10 +48,6 @@ Structured JSON output is provided via `llm_complete` and other LLM functions wi
 
 - [Image Support](https://dais-polymtl.github.io/flock/image-support): Vision models and image context columns.
 - [Audio Support](https://dais-polymtl.github.io/flock/audio-support): Audio transcription in SQL.
-
-## Patterns
-
-- [Structured Output](https://dais-polymtl.github.io/flock/structured-output): JSON schema responses from LLMs.
 
 ## Operations
 

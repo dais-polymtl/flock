@@ -36,7 +36,6 @@ Sidebar sections in `docs.json`:
 - **Resource Management** — models, prompts, secrets, model parameters
 - **Scalar / Aggregate Functions** — map and reduce SQL APIs (hybrid search lives under Scalar)
 - **Multimodal** — image and audio inputs
-- **Patterns** — cross-cutting SQL patterns (structured output)
 - **Operations** — performance tuning and metrics
 - **Help** — FAQ
 - **Contributing** — developer guide

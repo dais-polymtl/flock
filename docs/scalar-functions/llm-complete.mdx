@@ -168,3 +168,50 @@ The function generates a text completion for each row based on the provided prom
 
 - **Column Type**: JSON
 - **Behavior**: Maps over each row and generates a response per tuple.
+
+## 5. Structured output
+
+Pass a JSON schema in `model_parameters` so the model returns schema-compliant JSON. Requires DuckDB's JSON extension to extract fields with dot notation (`LOAD JSON`).
+
+**OpenAI** uses `response_format` with `json_schema`. **Ollama** uses `format`. **Anthropic / Claude** uses `output_format` or tool-use — see [Anthropic](/getting-started/anthropic) and [Model parameters](/model-parameters).
+
+```sql
+LOAD JSON;
+
+SELECT
+  product_name,
+  response.category::VARCHAR AS category,
+  response.confidence::DOUBLE AS confidence
+FROM (
+  SELECT
+    product_name,
+    llm_complete(
+      {
+        'model_name': 'gpt-4o',
+        'model_parameters': '{
+          "response_format": {
+            "type": "json_schema",
+            "json_schema": {
+              "name": "product_categorization",
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "category": { "type": "string" },
+                  "confidence": { "type": "number" }
+                },
+                "required": ["category", "confidence"],
+                "additionalProperties": false
+              }
+            },
+            "strict": true
+          }
+        }'
+      },
+      {
+        'prompt': 'Categorize this product and provide a confidence score.',
+        'context_columns': [{'data': product_name}]
+      }
+    ) AS response
+  FROM UNNEST(['Wireless Bluetooth Headphones', 'Organic Cotton T-Shirt']) AS t(product_name)
+);
+```

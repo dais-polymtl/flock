@@ -73,9 +73,10 @@ to produce the best-fit results, and even create end-to-end RAG pipelines.
 
 ## Structured Output
 
-Flock provides [**structured output**](/structured-output) capabilities that allow users to obtain predictable,
-schema-compliant JSON responses from Large Language Models. This feature works with all Flock LLM functions and supports
-OpenAI, Ollama, and Anthropic/Claude providers, ensuring consistent data formats for downstream processing.
+Flock LLM functions that return model-generated content accept JSON schemas through `model_parameters` (OpenAI
+`response_format`, Ollama `format`, Anthropic `output_format` / tool-use). See examples on
+[`llm_complete`](/scalar-functions/llm-complete), [`llm_reduce`](/aggregate-functions/llm-reduce), and the other
+aggregate function pages.
 
 ## Resource Management
 
