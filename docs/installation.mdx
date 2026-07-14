@@ -36,7 +36,6 @@ DuckDB-WASM in the browser has constraints that do not apply to native DuckDB:
 - **Network**: LLM calls still go to external provider APIs; only DuckDB computation runs locally.
 - **CORS**: Browser fetches to provider endpoints may be blocked unless your app proxies requests.
 - **Secrets persistence**: DuckDB-WASM has no durable cross-session storage for `CREATE SECRET`; configure secrets per session.
-- **Feature parity**: Multimodal and provider support matches the WASM build you load.
 
 For production browser apps, prefer a backend that holds API keys and exposes a controlled SQL or API surface.
 

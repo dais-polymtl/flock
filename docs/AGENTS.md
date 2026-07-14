@@ -37,5 +37,4 @@ Sidebar sections in `docs.json`:
 - **Scalar / Aggregate Functions** — map and reduce SQL APIs (hybrid search lives under Scalar)
 - **Multimodal** — image and audio inputs
 - **Operations** — performance tuning and metrics
-- **Help** — FAQ
 - **Contributing** — developer guide

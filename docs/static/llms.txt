@@ -54,10 +54,6 @@ Structured JSON output is provided via `llm_complete` and other LLM functions wi
 - [Performance and Cost](https://dais-polymtl.github.io/flock/performance): Batching, throttling, and tuning.
 - [LLM Metrics](https://dais-polymtl.github.io/flock/llm-metrics): `flock_get_metrics()` and observability.
 
-## Help
-
-- [FAQ](https://dais-polymtl.github.io/flock/faq): Frequently asked questions.
-
 ## Contributing
 
 - [Developer Guide](https://dais-polymtl.github.io/flock/developer-guide): Build and contribute to Flock.

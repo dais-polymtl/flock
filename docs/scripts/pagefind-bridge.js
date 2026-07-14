@@ -85,7 +85,7 @@
   /**
    * Expand Pagefind page hits into section hits when possible.
    * Pagefind `sub_results` split on headings that have `id` attributes and
-   * include deep-link URLs (e.g. `/faq/#how-can-i-contact-support`).
+   * include deep-link URLs (e.g. `/installation/#browser-limitations`).
    */
   function flattenToSectionHits(pageResults, limit = 8) {
     const items = [];

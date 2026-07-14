@@ -75,12 +75,6 @@
         ]
       },
       {
-        "group": "Help",
-        "pages": [
-          "faq"
-        ]
-      },
-      {
         "group": "Contributing",
         "pages": [
           "developer-guide"
@@ -149,7 +143,8 @@
     { "source": "/wasm", "destination": "/installation" },
     { "source": "/docs/model-parameters", "destination": "/model-parameters" },
     { "source": "/docs/developer-guide", "destination": "/developer-guide" },
-    { "source": "/docs/faq", "destination": "/faq" },
+    { "source": "/docs/faq", "destination": "/what-is-flock" },
+    { "source": "/faq", "destination": "/what-is-flock" },
     { "source": "/getting-started", "destination": "/getting-started/overview" },
     { "source": "/resource-management", "destination": "/resource-management/overview" },
     { "source": "/scalar-functions", "destination": "/scalar-functions/overview" },
