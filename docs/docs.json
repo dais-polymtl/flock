@@ -15,7 +15,7 @@
   },
   "favicon": "/static/img/favicon.ico",
   "navigation": {
-    "pages": [
+    "groups": [
       {
         "group": "Home",
         "pages": ["index", "installation"]
@@ -46,8 +46,7 @@
           "scalar-functions/overview",
           "scalar-functions/llm-complete",
           "scalar-functions/llm-filter",
-          "scalar-functions/llm-embedding",
-          "hybrid-search"
+          "scalar-functions/llm-embedding"
         ]
       },
       {
@@ -61,6 +60,10 @@
         ]
       },
       {
+        "group": "Hybrid Search",
+        "pages": ["hybrid-search"]
+      },
+      {
         "group": "Operations",
         "pages": [
           "performance",
@@ -69,9 +72,7 @@
       },
       {
         "group": "Contributing",
-        "pages": [
-          "developer-guide"
-        ]
+        "pages": ["developer-guide"]
       }
     ]
   },

@@ -31,12 +31,29 @@ const bridgeInjection = `<script id="pagefind-bridge-config" type="application/j
 <script defer src="${basePath}/pagefind-bridge.js"></script>`;
 
 function rewriteContent(content) {
+  const basePrefix = basePath.replace(/^\//, ''); // e.g. flock
+  // Avoid double-prefixing paths that already include the base path
+  const notAlreadyPrefixed = `(?!\\/|${basePrefix}\\/)`;
+
   let updated = content.replace(/var b=""/g, `var b="${basePath}"`);
 
-  // Attributes like href="/..." and src="/..."
+  // HTML attributes: href="/...", src="/...", etc.
   updated = updated.replace(
-    /(href|src|content|action)=(["'])\/(?!\/|flock\/)/g,
-    (match, attr, quote) => `${attr}=${quote}${basePath}/`,
+    new RegExp(`(href|src|content|action)=(["'])\\/${notAlreadyPrefixed}`, 'g'),
+    (_match, attr, quote) => `${attr}=${quote}${basePath}/`,
+  );
+
+  // Embedded JS / RSC payloads / nav JSON where Cards keep href as a string:
+  //   href: "/installation"
+  //   "href":"/installation"
+  //   href: \"/installation\"
+  updated = updated.replace(
+    new RegExp(`(href\\\\?"\\s*:\\s*\\\\?")\\/${notAlreadyPrefixed}`, 'g'),
+    `$1${basePath}/`,
+  );
+  updated = updated.replace(
+    new RegExp(`((?:\\\\")?href(?:\\\\")?\\s*:\\s*")\\/${notAlreadyPrefixed}`, 'g'),
+    `$1${basePath}/`,
   );
 
   if (updated.includes('</body>') && !updated.includes('pagefind-bridge.js')) {

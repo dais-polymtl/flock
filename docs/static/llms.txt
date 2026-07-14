@@ -27,23 +27,24 @@ Structured JSON output is provided via `llm_complete` and other LLM functions wi
 - [API Keys Management](https://dais-polymtl.github.io/flock/resource-management/api-keys): Secure secret storage.
 - [Model Parameters](https://dais-polymtl.github.io/flock/model-parameters): Provider-specific generation settings.
 
-## Scalar Map Functions
+## Scalar Functions
 
 - [Scalar Functions Overview](https://dais-polymtl.github.io/flock/scalar-functions/overview): Row-by-row LLM operations.
 - [LLM Complete](https://dais-polymtl.github.io/flock/scalar-functions/llm-complete): Completions for text, image, and voice.
 - [LLM Filter](https://dais-polymtl.github.io/flock/scalar-functions/llm-filter): Boolean filtering for text, image, and voice.
 - [LLM Embedding](https://dais-polymtl.github.io/flock/scalar-functions/llm-embedding): Text embeddings (image/voice via two-step workflows).
-- [LLM Filter](https://dais-polymtl.github.io/flock/scalar-functions/llm-filter): LLM-based row filtering.
-- [LLM Embedding](https://dais-polymtl.github.io/flock/scalar-functions/llm-embedding): Text embeddings.
-- [Hybrid Search](https://dais-polymtl.github.io/flock/hybrid-search): Fusion functions (RRF, CombSum, etc.).
 
-## Aggregate Reduce Functions
+## Aggregate Functions
 
 - [Aggregate Functions Overview](https://dais-polymtl.github.io/flock/aggregate-functions/overview): Reduce and rerank operations.
 - [LLM Reduce](https://dais-polymtl.github.io/flock/aggregate-functions/llm-reduce): Summarize groups with an LLM.
 - [LLM Rerank](https://dais-polymtl.github.io/flock/aggregate-functions/llm-rerank): Relevance-based reranking.
 - [LLM First](https://dais-polymtl.github.io/flock/aggregate-functions/llm-first): Top-ranked result.
 - [LLM Last](https://dais-polymtl.github.io/flock/aggregate-functions/llm-last): Bottom-ranked result.
+
+## Hybrid Search
+
+- [Hybrid Search](https://dais-polymtl.github.io/flock/hybrid-search): Fusion functions (RRF, CombSum, etc.).
 
 ## Operations
 
