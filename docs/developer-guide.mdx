@@ -63,7 +63,12 @@ The resulting Flock extension library can then be loaded from DuckDB using `LOAD
 
 ## WASM builds
 
-Flock CI produces DuckDB-WASM extension artifacts via `extension-ci-tools` (see `.github/workflows/MainDistributionPipeline.yml`). For browser usage and limitations, see [Browser and WASM](/wasm).
+Flock CI produces DuckDB-WASM extension artifacts via `extension-ci-tools` (see `.github/workflows/MainDistributionPipeline.yml`). To build locally:
+
+1. Clone with submodules and follow the steps above.
+2. Use the extension distribution toolchain with `WASM_EXTENSIONS=1` and an Emscripten target, following the patterns in `extension-ci-tools/.github/workflows/_extension_distribution.yml`.
+
+Published WASM binaries ship through DuckDB's extension repository when released to the community catalog. For install commands and browser limitations, see [Installation](/installation).
 
 ## Running Tests
 

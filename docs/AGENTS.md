@@ -38,6 +38,5 @@ Sidebar sections in `docs.json`:
 - **Multimodal** — image and audio inputs
 - **Patterns** — cross-cutting SQL patterns (structured output)
 - **Operations** — performance tuning and metrics
-- **Platform** — WASM / browser deployment
 - **Help** — FAQ
 - **Contributing** — developer guide

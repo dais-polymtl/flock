@@ -81,12 +81,6 @@
         ]
       },
       {
-        "group": "Platform",
-        "pages": [
-          "wasm"
-        ]
-      },
-      {
         "group": "Help",
         "pages": [
           "faq"
@@ -156,7 +150,8 @@
     { "source": "/docs/structured-output", "destination": "/structured-output" },
     { "source": "/docs/llm-metrics", "destination": "/llm-metrics" },
     { "source": "/docs/performance", "destination": "/performance" },
-    { "source": "/docs/wasm", "destination": "/wasm" },
+    { "source": "/docs/wasm", "destination": "/installation" },
+    { "source": "/wasm", "destination": "/installation" },
     { "source": "/docs/model-parameters", "destination": "/model-parameters" },
     { "source": "/docs/developer-guide", "destination": "/developer-guide" },
     { "source": "/docs/faq", "destination": "/faq" },

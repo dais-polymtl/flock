@@ -10,7 +10,7 @@ Structured JSON output is provided via `llm_complete` and other LLM functions wi
 
 - [Flock Homepage](https://dais-polymtl.github.io/flock/): Landing page and paper overview.
 - [What is Flock?](https://dais-polymtl.github.io/flock/what-is-flock): Purpose, features, and capabilities.
-- [Installation](https://dais-polymtl.github.io/flock/installation): Install DuckDB and load Flock from the community catalog.
+- [Installation](https://dais-polymtl.github.io/flock/installation): Install DuckDB and load Flock (native or DuckDB-WASM).
 
 ## Getting Started
 
@@ -57,10 +57,6 @@ Structured JSON output is provided via `llm_complete` and other LLM functions wi
 
 - [Performance and Cost](https://dais-polymtl.github.io/flock/performance): Batching, throttling, and tuning.
 - [LLM Metrics](https://dais-polymtl.github.io/flock/llm-metrics): `flock_get_metrics()` and observability.
-
-## Platform
-
-- [Browser and WASM](https://dais-polymtl.github.io/flock/wasm): DuckDB-WASM usage and limitations.
 
 ## Help
 

@@ -2,16 +2,16 @@
 title: "Installation"
 ---
 
-Install DuckDB, then load Flock from DuckDB's community extension catalog.
+Install DuckDB, then load Flock from DuckDB's community extension catalog. The same SQL works in the native CLI / Python clients and in DuckDB-WASM in the browser.
 
 ## Prerequisites
 
-- DuckDB **v1.5.0 or later**
+- DuckDB **v1.5.0 or later** (native or [DuckDB-WASM](https://duckdb.org/docs/stable/clients/wasm/overview))
 - API keys or credentials for at least one supported provider ([OpenAI](/getting-started/openai), [Azure](/getting-started/azure), [Ollama](/getting-started/ollama), or [Anthropic / Claude](/getting-started/anthropic))
 
 ## Install DuckDB
 
-Visit the [DuckDB installation guide](https://duckdb.org/docs/installation/) and choose options for your environment (CLI, Python, platform, and download method).
+Visit the [DuckDB installation guide](https://duckdb.org/docs/installation/) and choose options for your environment (CLI, Python, platform, and download method). For the browser, use [shell.duckdb.org](https://shell.duckdb.org) or embed [@duckdb/duckdb-wasm](https://duckdb.org/docs/stable/clients/wasm/overview).
 
 ## Install Flock
 
@@ -24,6 +24,22 @@ LOAD flock;
 
 Flock is now ready to use. Configure a provider next — see [Getting Started](/getting-started/overview).
 
+In DuckDB-WASM, `INSTALL` records extension metadata and the `.wasm` binary is fetched when you `LOAD`. See the [DuckDB-WASM extensions guide](https://duckdb.org/docs/stable/clients/wasm/extensions) for details. After loading, Flock SQL (`llm_complete`, `llm_filter`, and so on) matches the native extension.
+
+## WASM (Browser) limitations
+
+<Warning>
+DuckDB-WASM in the browser has constraints that do not apply to native DuckDB:
+</Warning>
+
+- **API keys**: Provider credentials must be available to the browser session. Avoid embedding production secrets in client-side code.
+- **Network**: LLM calls still go to external provider APIs; only DuckDB computation runs locally.
+- **CORS**: Browser fetches to provider endpoints may be blocked unless your app proxies requests.
+- **Secrets persistence**: DuckDB-WASM has no durable cross-session storage for `CREATE SECRET`; configure secrets per session.
+- **Feature parity**: Multimodal and provider support matches the WASM build you load.
+
+For production browser apps, prefer a backend that holds API keys and exposes a controlled SQL or API surface.
+
 ## Build from source
 
-To build Flock locally or contribute to the project, see the [Developer Guide](/developer-guide) or run `./scripts/build_and_run.sh` from the [GitHub repository](https://github.com/dais-polymtl/flock).
+To build Flock locally (including WASM artifacts) or contribute to the project, see the [Developer Guide](/developer-guide) or run `./scripts/build_and_run.sh` from the [GitHub repository](https://github.com/dais-polymtl/flock).
