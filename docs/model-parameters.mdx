@@ -17,6 +17,11 @@ For model configuration options such as `max_batch_size`, `is_async`, and `rate_
 **Compatibility**: Works with all Flock LLM functions - `llm_complete`, `llm_filter`, `llm_embedding`, `llm_reduce`,
 `llm_rerank`, `llm_first`, `llm_last`
 
+Each provider expresses structured JSON differently in `model_parameters` (for example OpenAI `response_format`, Ollama
+`format`, Anthropic `output_format` / tool-use). Check the **Output** section on each function page for examples — start
+with [`llm_complete`](/scalar-functions/llm-complete) and [`llm_reduce`](/aggregate-functions/llm-reduce) — and the
+provider pages under [Getting Started](/getting-started/overview) for API-specific details.
+
 ## OpenAI Parameters
 
 OpenAI models support a comprehensive set of parameters for controlling generation behavior. For complete parameter
@@ -186,5 +191,3 @@ Anthropic Claude models use the [Anthropic Messages API](https://docs.anthropic.
   }'
 }
 ```
-
-For structured output with Claude, use `output_format` (Claude 4.x) or rely on Flock's tool-use fallback (Claude 3.x). See the [Anthropic guide](/getting-started/anthropic) and examples on [`llm_complete`](/scalar-functions/llm-complete).

@@ -164,16 +164,10 @@ columns.
 
 ## 4. Output
 
-The function generates a text completion for each row based on the provided prompt and input data.
+The function generates a completion for each row based on the provided prompt and input data.
 
 - **Column Type**: JSON
-- **Behavior**: Maps over each row and generates a response per tuple.
-
-## 5. Structured output
-
-Pass a JSON schema in `model_parameters` so the model returns schema-compliant JSON. Requires DuckDB's JSON extension to extract fields with dot notation (`LOAD JSON`).
-
-**OpenAI** uses `response_format` with `json_schema`. **Ollama** uses `format`. **Anthropic / Claude** uses `output_format` or tool-use — see [Anthropic](/getting-started/anthropic) and [Model parameters](/model-parameters).
+- **Behavior**: Maps over each row and generates a response per tuple. By default the JSON holds free-form model text. Pass a JSON schema in `model_parameters` to constrain the response shape (OpenAI `response_format`, Ollama `format`, Anthropic `output_format` / tool-use — see [Anthropic](/getting-started/anthropic) and [Model parameters](/model-parameters)). Use `LOAD JSON` and dot notation to extract fields.
 
 ```sql
 LOAD JSON;

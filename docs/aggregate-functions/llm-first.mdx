@@ -163,29 +163,7 @@ Two types of prompts can be used:
 ## 3. **Output**
 
 - **Type**: JSON object.
-- **Behavior**: The function returns a JSON object containing the values of the columns you provided in the input. The structure of the returned JSON will mirror the input columns' values.
-
-**Output Example**:  
-For a query that extracts the first relevant feature, the result could look like:
-
-- **Input Rows**:
-
-  - `product_name`: _"Wireless Headphones"_
-  - `product_description`: _"High-quality wireless headphones with noise cancellation."_
-
-- **Output JSON**:
-  ```json
-  {
-    "product_name": "Wireless Headphones",
-    "product_description": "High-quality wireless headphones with noise cancellation."
-  }
-  ```
-
-The output contains the values for `product_name` and `product_description` from the first relevant row based on the prompt.
-
-## 4. Structured output
-
-Constrain the ranking model with a JSON schema via `model_parameters` (OpenAI `response_format`, Ollama `format`, Anthropic `output_format` / tool-use). The function still returns the selected row's columns as JSON.
+- **Behavior**: Returns the selected row's input columns as JSON (the most relevant row for the prompt). Optionally pass a JSON schema in `model_parameters` to constrain the ranking model (OpenAI `response_format`, Ollama `format`, Anthropic `output_format` / tool-use); the SQL return value is still the chosen row.
 
 ```sql
 SELECT llm_first(
@@ -220,4 +198,13 @@ SELECT llm_first(
 )
 FROM products
 GROUP BY category;
+```
+
+Example return value for the selected row:
+
+```json
+{
+  "product_name": "Wireless Headphones",
+  "product_description": "High-quality wireless headphones with noise cancellation."
+}
 ```

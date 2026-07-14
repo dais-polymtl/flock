@@ -181,35 +181,9 @@ Two types of prompts can be used:
 ## 4. **Output**
 
 - **Type**: JSON object.
-- **Behavior**: The function returns a JSON object containing the reranked documents, ordered by relevance to the prompt. The structure of the returned JSON will mirror the input columns' values.
+- **Behavior**: Returns the input rows reordered by relevance to the prompt. The JSON mirrors the input column values. You can still pass provider `model_parameters` (including JSON schemas) to constrain how the ranking model responds — see [Model parameters](/model-parameters).
 
-**Output Example**:  
-For a query that reranks documents based on relevance, the result could look like:
-
-- **Input Rows**:
-
-  - `document_title`: _"Introduction to AI"_
-  - `document_content`: _"This document covers the basics of artificial intelligence."_
-
-- **Output JSON**:
-  ```json
-  [
-    {
-      "document_title": "Introduction to AI",
-      "document_content": "This document covers the basics of artificial intelligence."
-    },
-    {
-      "document_title": "Advanced AI Techniques",
-      "document_content": "This document explores advanced topics in AI."
-    }
-  ]
-  ```
-
-The output contains the documents ordered by relevance based on the prompt.
-
-## 5. Structured output
-
-`llm_rerank` accepts the same provider `model_parameters` as other LLM functions. Use a JSON schema when you need the underlying model responses constrained (OpenAI `response_format`, Ollama `format`, Anthropic `output_format` / tool-use). See [Model parameters](/model-parameters).
+**Example** (with schema-constrained ranking model):
 
 ```sql
 SELECT llm_rerank(
@@ -243,4 +217,19 @@ SELECT llm_rerank(
   }
 )
 FROM documents;
+```
+
+Typical output is an ordered JSON array of the input documents, for example:
+
+```json
+[
+  {
+    "document_title": "Introduction to AI",
+    "document_content": "This document covers the basics of artificial intelligence."
+  },
+  {
+    "document_title": "Advanced AI Techniques",
+    "document_content": "This document explores advanced topics in AI."
+  }
+]
 ```
