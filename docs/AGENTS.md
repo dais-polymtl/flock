@@ -34,7 +34,6 @@
 Sidebar sections in `docs.json`:
 
 - **Resource Management** — models, prompts, secrets, model parameters
-- **Scalar / Aggregate Functions** — map and reduce SQL APIs (hybrid search lives under Scalar)
-- **Multimodal** — image and audio inputs
+- **Scalar / Aggregate Functions** — map and reduce SQL APIs; each LLM function documents Text / Image / Voice (hybrid search lives under Scalar)
 - **Operations** — performance tuning and metrics
 - **Contributing** — developer guide

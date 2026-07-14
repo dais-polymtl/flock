@@ -5,6 +5,70 @@ title: "llm_reduce"
 The `llm_reduce` function in Flock consolidates multiple rows of text-based results into a single output. It is used
 in SQL queries with the `GROUP BY` clause to combine multiple values into a summary or reduced form.
 
+## Modalities
+
+### Text
+
+Aggregate tabular text columns across a group.
+
+```sql
+SELECT llm_reduce(
+  {'model_name': 'gpt-4o'},
+  {
+    'prompt': 'Summarize the following product descriptions',
+    'context_columns': [{'data': product_description}]
+  }
+) AS product_summary
+FROM UNNEST([
+  'High-performance laptop with M2 chip and stunning Retina display',
+  'Wireless earbuds with active noise cancellation and spatial audio',
+  'Lightweight tablet perfect for creativity and productivity on the go'
+]) AS t(product_description);
+```
+
+### Image
+
+Summarize visual themes across a group with `type: 'image'`.
+
+```sql
+SELECT
+  album_id,
+  llm_reduce(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'What visual themes appear across these images?',
+      'context_columns': [
+        {'data': image_url, 'type': 'image'},
+        {'data': caption}
+      ]
+    }
+  ) AS visual_summary
+FROM album_images
+GROUP BY album_id;
+```
+
+### Voice
+
+Summarize spoken content with `type: 'audio'` and `transcription_model` (OpenAI / Azure).
+
+```sql
+SELECT
+  meeting_id,
+  llm_reduce(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Summarize the key decisions from these audio clips.',
+      'context_columns': [{
+        'data': file_path,
+        'type': 'audio',
+        'transcription_model': 'whisper-1'
+      }]
+    }
+  ) AS meeting_summary
+FROM meeting_clips
+GROUP BY meeting_id;
+```
+
 ## 1. **Usage Examples**
 
 ### 1.1. **Example without `GROUP BY`**
@@ -151,13 +215,14 @@ Two types of prompts can be used:
 - **Purpose**: Maps table columns to provide input data for the model. Each column can have three properties:
     - `data`: The SQL column data (required)
     - `name`: Custom name for the column to be referenced in the prompt (optional)
-    - `type`: Data type - "tabular" (default) or "image" (optional)
+    - `type`: Data type — `"tabular"` (default), `"image"`, or `"audio"` (audio requires `transcription_model`)
 - **Example**:
   ```sql
   'context_columns': [
     {'data': product_name, 'name': 'product'},
     {'data': product_description},
-    {'data': image_url, 'type': 'image'}
+    {'data': image_url, 'type': 'image'},
+    {'data': audio_path, 'type': 'audio', 'transcription_model': 'whisper-1'}
   ]
   ```
 

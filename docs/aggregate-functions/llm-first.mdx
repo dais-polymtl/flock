@@ -4,6 +4,69 @@ title: "llm_first"
 
 The `llm_first` function is used to extract the first matching result that satisfies a condition defined by a model's prompt and column data. It operates across rows, typically combined with a `GROUP BY` clause, to return the first relevant row for each group.
 
+## Modalities
+
+### Text
+
+Select the most relevant row using tabular text columns.
+
+```sql
+SELECT llm_first(
+  {'model_name': 'gpt-4o'},
+  {
+    'prompt': 'high-performance computing',
+    'context_columns': [
+      {'data': product_name},
+      {'data': product_description}
+    ]
+  }
+)
+FROM products;
+```
+
+### Image
+
+Select by visual criteria with `type: 'image'`.
+
+```sql
+SELECT
+  category,
+  llm_first(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Which product has the most appealing product image?',
+      'context_columns': [
+        {'data': product_name},
+        {'data': image_url, 'type': 'image'}
+      ]
+    }
+  ) AS best_image
+FROM product_catalog
+GROUP BY category;
+```
+
+### Voice
+
+Select using spoken content via `type: 'audio'` and `transcription_model` (OpenAI / Azure).
+
+```sql
+SELECT
+  agent_id,
+  llm_first(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Pick the call that best resolves the customer issue',
+      'context_columns': [{
+        'data': file_path,
+        'type': 'audio',
+        'transcription_model': 'whisper-1'
+      }]
+    }
+  ) AS best_call
+FROM support_calls
+GROUP BY agent_id;
+```
+
 ## 1. **Usage Examples**
 
 ### 1.1. **Example without `GROUP BY`**
@@ -150,13 +213,14 @@ Two types of prompts can be used:
 - **Purpose**: Maps table columns to provide input data for the model. Each column can have three properties:
   - `data`: The SQL column data (required)
   - `name`: Custom name for the column to be referenced in the prompt (optional)
-  - `type`: Data type - "tabular" (default) or "image" (optional)
+  - `type`: Data type — `"tabular"` (default), `"image"`, or `"audio"` (audio requires `transcription_model`)
 - **Example**:
   ```sql
   'context_columns': [
     {'data': product_name, 'name': 'product'},
     {'data': product_description},
-    {'data': image_url, 'type': 'image'}
+    {'data': image_url, 'type': 'image'},
+    {'data': audio_path, 'type': 'audio', 'transcription_model': 'whisper-1'}
   ]
   ```
 

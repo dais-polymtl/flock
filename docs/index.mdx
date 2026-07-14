@@ -1,75 +1,75 @@
 ---
-title: "Beyond Quacking"
+title: "What is Flock?"
 description: "Deep Integration of Language Models and RAG into DuckDB — Proc. VLDB Endow. 2025"
 ---
 
 <Tip>
-  Proc. VLDB Endow. 2025 · Vol. 18, No. 12
+  Proc. VLDB Endow. 2025 · Vol. 18, No. 12 · *Beyond Quacking*
 </Tip>
 
-# Beyond Quacking: Deep Integration of Language Models and RAG into DuckDB
+# What is Flock?
 
-Anas Dorbani · Sunny Yasser · Jimmy Lin · Amine Mhedhbi
+**Flock** is a DuckDB extension that deeply integrates LLM and RAG capabilities into OLAP systems. Mix analytics with
+semantic analysis in SQL using map and reduce functions for generation, classification, embeddings, and more. It runs on
+native platforms and in the browser via DuckDB-WASM.
 
-Flock is a DuckDB extension that deeply integrates LLM and RAG capabilities into OLAP systems, so you can mix analytics with semantic analysis in SQL using map and reduce functions for generation, classification, embeddings, and more.
+## Integrating LM and IR capabilities in SQL
 
-<Columns cols={3}>
-  <Card
-    title="Paper"
-    icon="file-lines"
-    href="https://dl.acm.org/doi/10.14778/3750601.3750685"
-  >
-    Read the VLDB 2025 paper on ACM.
-  </Card>
-  <Card
-    title="Source Code"
-    icon="github"
-    href="https://github.com/dais-polymtl/flock"
-  >
-    Explore and contribute on GitHub.
-  </Card>
-  <Card title="Docs" icon="book-open" href="/installation">
-    Install Flock and start querying.
-  </Card>
-</Columns>
-
-## Flock today
-
-<Columns cols={3}>
-  <Card title="Four providers" icon="sparkles" href="/getting-started/overview">
-    OpenAI, Azure, Ollama, and Anthropic / Claude through one SQL API.
-  </Card>
-  <Card title="Multimodal SQL" icon="image" href="/image-support">
-    Text, image, and audio inputs via `context_columns`.
-  </Card>
-  <Card title="LLM metrics" icon="chart-line" href="/llm-metrics">
-    Token usage and latency with `flock_get_metrics()`.
-  </Card>
-</Columns>
-
-## Overview
-
-Flock brings language models and retrieval into DuckDB so semantic analysis runs alongside ordinary SQL analytics.
+Flock integrates advanced language models into RDBMSs, enabling powerful tasks like text generation, classification,
+filtering, and embeddings directly through SQL queries. Streamline your data workflows with AI-driven insights.
 
 <Columns cols={1}>
   <Card title="Administrative Views for Managing Prompts and Models" icon="database">
-    Treat models and prompts as resources similar to tables. You can CREATE PROMPT(s) and MODEL(s) and iterate on them without making changes to SQL queries.
+    Treat models and prompts as resources similar to tables. You can CREATE PROMPT(s) and MODEL(s) and iterate on them
+    without making changes to SQL queries.
   </Card>
   <Card title="Scalar / Map Functions for Tuple and Passage Transformation" icon="filter">
-    Map tuples or text passages to new text, boolean, or JSON values using LLMs to support various types of semantic analysis such as extraction and classification.
+    Map tuples or text passages to new text, boolean, or JSON values using LLMs to support various types of semantic
+    analysis such as extraction and classification.
   </Card>
   <Card title="Aggregate / Reduce Functions to Reduce over Tuples and Passages" icon="layer-group">
-    Use Aggregate / Reduce functions to reduce tuples or text passages using LLMs to support various types of semantic analysis such as reranking and summarization.
+    Use Aggregate / Reduce functions to reduce tuples or text passages using LLMs to support various types of semantic
+    analysis such as reranking and summarization.
   </Card>
 </Columns>
 
-## Why Use Flock?
+```sql
+-- 1) Create a model
+CREATE MODEL(
+  'product_summarizer',
+  'gpt-4o',
+  'openai'
+);
+
+-- 2) Call it from SQL
+SELECT
+  product_id,
+  name,
+  llm_complete(
+    {'model_name': 'product_summarizer'},
+    {
+      'prompt': 'Summarize this product in one sentence.',
+      'context_columns': [{'data': name}]
+    }
+  ) AS short_description
+FROM products
+LIMIT 3;
+```
+
+| ID | Product | Short Description (from LLM) |
+| --- | --- | --- |
+| 1 | Wireless Headphones | Comfortable Bluetooth headphones with clear sound and long battery life. |
+| 2 | Gaming Laptop | High-performance laptop designed for modern games and creative workloads. |
+| 3 | Smart Watch | Everyday smartwatch that tracks activity, notifications, and heart rate. |
+
+## Why use Flock?
 
 - Create reusable models and prompts once, then call them from simple SQL.
 - Run LLM workloads next to your data without custom services or glue code.
 - Keep results in tables you can join, filter, and visualize with regular DuckDB queries.
 
-See [Installation](/installation) for DuckDB setup and loading Flock from the community catalog.
+See [Installation](/installation) to get started, then [Getting Started](/getting-started/overview) for provider setup.
+Browse [Scalar](/scalar-functions/overview) and [Aggregate](/aggregate-functions/overview) functions for the full API.
 
 ## Paper
 
@@ -78,6 +78,8 @@ See [Installation](/installation) for DuckDB setup and loading Flock from the co
 Anas Dorbani, Sunny Yasser, Jimmy Lin, Amine Mhedhbi
 
 Proc. VLDB Endow. 2025, Vol. 18, No. 12
+
+If you found Flock useful, cite us!
 
 [https://doi.org/10.14778/3750601.3750685](https://doi.org/10.14778/3750601.3750685)
 
@@ -93,20 +95,3 @@ Proc. VLDB Endow. 2025, Vol. 18, No. 12
   url     = {https://doi.org/10.14778/3750601.3750685}
 }
 ```
-
-## Authors
-
-<Columns cols={2}>
-  <Card title="Anas Dorbani" href="https://github.com/anasdorbani">
-    PhD Student · Data & AI Systems Lab, Polytechnique Montréal
-  </Card>
-  <Card title="Sunny Yasser" href="https://github.com/SunnyYasser">
-    PhD Student · Data & AI Systems Lab, Polytechnique Montréal
-  </Card>
-  <Card title="Jimmy Lin" href="https://github.com/lintool">
-    Faculty · University of Waterloo
-  </Card>
-  <Card title="Amine Mhedhbi" href="https://github.com/queryproc/">
-    Faculty · Polytechnique Montréal
-  </Card>
-</Columns>

@@ -4,6 +4,74 @@ title: "llm_filter"
 
 The `llm_filter` function evaluates a condition based on a given prompt and returns a boolean value (`TRUE` or `FALSE`). This function mostly used in the workload of `WHERE` clause of a query.
 
+## Modalities
+
+### Text
+
+Filter rows using tabular string columns in `context_columns`.
+
+```sql
+SELECT *
+FROM VALUES
+    (1, 'Eco-friendly bamboo toothbrush made from sustainable materials'),
+    (2, 'Plastic water bottle made from recycled content'),
+    (3, 'Organic cotton t-shirt with natural dyes')
+AS t(product_id, product_description)
+WHERE llm_filter(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Is this product description eco-friendly?',
+      'context_columns': [{'data': product_description, 'name': 'description'}]
+    }
+);
+```
+
+### Image
+
+Use `type: 'image'` with a vision-capable model to filter on visual criteria.
+
+```sql
+SELECT product_id, product_name, image_url
+FROM VALUES
+    (1, 'Premium Headphones', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400', 150.00),
+    (2, 'Gaming Mouse', 'https://images.unsplash.com/photo-1527814050087-3793815479db?w=400', 75.00)
+AS t(product_id, product_name, image_url, price)
+WHERE llm_filter(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Is this a high-quality professional product photo?',
+      'context_columns': [
+        {'data': image_url, 'type': 'image'},
+        {'data': product_name}
+      ]
+    }
+)
+AND price > 50;
+```
+
+### Voice
+
+Filter on spoken content with `type: 'audio'` and `transcription_model` (OpenAI / Azure).
+
+```sql
+SELECT audio_id, customer_id, file_path
+FROM VALUES
+    (1, 101, '/data/audio/call_01.wav'),
+    (2, 102, '/data/audio/call_02.wav')
+AS t(audio_id, customer_id, file_path)
+WHERE llm_filter(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Does this call mention cancelling a subscription? Answer true or false.',
+      'context_columns': [{
+        'data': file_path,
+        'type': 'audio',
+        'transcription_model': 'whisper-1'
+      }]
+    }
+);
+```
+
 ## 1. Simple Usage (without data)
 
 ### 1.1 Using an Inline Prompt
@@ -90,32 +158,6 @@ WHERE LENGTH(review_content) > 50;
 
 **Description**: This actual example uses `llm_filter` to filter reviews based on positive sentiment. It then further filters the results to only include reviews with content longer than 50 characters.
 
-### 1.5 Image Filtering Example
-
-```sql
--- Filter products with high-quality product images
-SELECT
-    product_id,
-    product_name,
-    image_url
-FROM VALUES
-    (1, 'Premium Headphones', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400', 150.00),
-    (2, 'Gaming Mouse', 'https://images.unsplash.com/photo-1527814050087-3793815479db?w=400', 75.00),
-    (3, 'Wireless Keyboard', 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400', 120.00)
-AS t(product_id, product_name, image_url, price)
-WHERE llm_filter(
-    {'model_name': 'gpt-4o'},
-    {
-        'prompt': 'Is this a high-quality, professional product photo with good lighting and clear visibility of the product?',
-        'context_columns': [
-            {'data': image_url, 'type': 'image'},
-            {'data': product_name}
-        ]
-    }
-)
-AND price > 50;
-```
-
 ## 2. Input Parameters
 
 The `llm_filter` function accepts three structured inputs: model configuration, prompt configuration, and input data columns.
@@ -177,13 +219,13 @@ The `llm_filter` function accepts three structured inputs: model configuration, 
 - **Description**: Specifies the columns from the table to be passed to the model as input. Each column can have three properties:
   - `data`: The SQL column data (required)
   - `name`: Custom name for the column to be referenced in the prompt (optional)
-  - `type`: Data type - "tabular" (default) or "image" (optional)
+  - `type`: Data type — `"tabular"` (default), `"image"`, or `"audio"` (audio requires `transcription_model`)
 - **Example**:
   ```sql
   'context_columns': [
     {'data': product_name, 'name': 'product'},
     {'data': image_url, 'type': 'image'},
-    {'data': description}
+    {'data': audio_path, 'type': 'audio', 'transcription_model': 'whisper-1'}
   ]
   ```
 

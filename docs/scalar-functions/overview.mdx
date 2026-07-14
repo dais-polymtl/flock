@@ -3,54 +3,41 @@ title: "Overview"
 ---
 
 Scalar functions in Flock operate on data row-by-row, providing powerful operations for text processing, embeddings,
-image analysis, and machine learning tasks directly within SQL queries.
+and machine learning tasks directly within SQL queries.
 
 ## 1. Available Functions
 
-- [`llm_complete`](/scalar-functions/llm-complete): Generates text completions based on model and prompt, supports
-  both text and image inputs
-
-- [`llm_filter`](/scalar-functions/llm-filter): Filters rows based on a prompt and returns boolean values, supports
-  both text and image inputs
-
-- [`llm_embedding`](/scalar-functions/llm-embedding): Generates vector embeddings for text data, used for
-  similarity search and machine learning tasks (text only)
-
-- [Hybrid search](/hybrid-search): Scalar fusion functions (`fusion_rrf`, `fusion_combsum`, `fusion_combmnz`,
-  `fusion_combmed`, `fusion_combanz`) for combining BM25, vector, and other retrieval scores
+- [`llm_complete`](/scalar-functions/llm-complete): Generates completions — text, image, and voice (audio)
+- [`llm_filter`](/scalar-functions/llm-filter): Filters rows — text, image, and voice (audio)
+- [`llm_embedding`](/scalar-functions/llm-embedding): Text embeddings (image/voice via describe or transcribe first)
+- [Hybrid search](/hybrid-search): Scalar fusion functions (`fusion_rrf`, `fusion_combsum`, …) for combining retrieval scores
 
 ## 2. Function Characteristics
 
 - Applied row-by-row to table data
-- Supports text generation, filtering, and embeddings
-- **Multimodal support**: Process text, image, and audio data using the same functions
-- **Context columns**: New API design using `context_columns` arrays for flexible data input
-- **Structured output**: `llm_complete` can return schema-shaped JSON via `model_parameters` (see Output on that page)
+- **Modalities**: Each LLM function page documents **Text**, **Image**, and **Voice** support with examples
+- **Context columns**: Unified `context_columns` array for tabular, image, and audio inputs
+- **Structured output**: Schema-shaped JSON via `model_parameters` where applicable (see each function's **Output**)
 
 ## 3. Context Columns API
 
-All scalar functions now use a unified `context_columns` API structure:
-
 ```sql
 'context_columns': [
-  {'data': column_name},                    -- Basic text column
-  {'data': column_name, 'name': 'alias'},   -- Text column with custom name
-  {'data': image_url, 'type': 'image'},     -- Image column
-  {'data': audio_path, 'type': 'audio', 'transcription_model': 'whisper-1'}  -- Audio column
+  {'data': column_name},                    -- Text (default type: tabular)
+  {'data': column_name, 'name': 'alias'},   -- Text with prompt alias
+  {'data': image_url, 'type': 'image'},     -- Image
+  {'data': audio_path, 'type': 'audio', 'transcription_model': 'whisper-1'}  -- Voice
 ]
 ```
 
-Each context column supports three properties:
+- **`data`** _(required)_: SQL column value
+- **`name`** _(optional)_: Alias for the prompt
+- **`type`** _(optional)_: `"tabular"` (default), `"image"`, or `"audio"`
+- **`transcription_model`** _(required for audio)_: e.g. `whisper-1` (OpenAI / Azure)
 
-- **`data`** _(required)_: The SQL column data
-- **`name`** _(optional)_: Custom name for referencing in prompts
-- **`type`** _(optional)_: Data type — `"tabular"` (default), `"image"`, or `"audio"`. Audio requires `transcription_model`; see [Audio Support](/audio-support).
+## 4. Common Use Cases
 
-## 4. Use Cases
-
-- Text generation and content creation
-- Dynamic filtering with visual and textual criteria
-- Semantic text and image representation
-- Machine learning feature creation
-- Multimodal analysis combining text and visual data
-- Content moderation for both text and images
+- Text generation, classification, and filtering
+- Image description and visual filtering
+- Voice transcription and call analytics
+- Embeddings and similarity search (text; image/voice via two-step workflows)

@@ -4,6 +4,82 @@ title: "llm_embedding"
 
 The `llm_embedding` function generates vector embeddings that represent the semantic meaning of text from specified table columns.
 
+## Modalities
+
+### Text
+
+Supported. Pass one or more text columns in `context_columns`.
+
+```sql
+SELECT llm_embedding(
+  {'model_name': 'text-embedding-3-small'},
+  {'context_columns': [{'data': product_name}, {'data': product_description}]}
+) AS product_embedding
+FROM VALUES
+  ('Wireless Headphones', 'Premium noise-cancelling headphones with 30-hour battery life'),
+  ('Gaming Laptop', 'High-performance laptop with RTX graphics and 16GB RAM')
+AS t(product_name, product_description);
+```
+
+### Image
+
+Not supported directly. Describe the image with [`llm_complete`](/scalar-functions/llm-complete) (`type: 'image'`), then embed the description.
+
+```sql
+WITH image_descriptions AS (
+  SELECT
+    image_id,
+    llm_complete(
+      {'model_name': 'gpt-4o'},
+      {
+        'prompt': 'Describe this image in detail.',
+        'context_columns': [{'data': image_url, 'type': 'image'}]
+      }
+    ) AS generated_description
+  FROM image_catalog
+)
+SELECT
+  image_id,
+  llm_embedding(
+    {'model_name': 'text-embedding-3-small'},
+    {'context_columns': [{'data': generated_description}]}
+  ) AS image_embedding
+FROM image_descriptions;
+```
+
+### Voice
+
+Not supported on raw audio. Transcribe with [`llm_complete`](/scalar-functions/llm-complete) (`type: 'audio'`), then embed the transcript.
+
+```sql
+WITH transcripts AS (
+  SELECT
+    audio_id,
+    llm_complete(
+      {'model_name': 'gpt-4o'},
+      {
+        'prompt': 'Transcribe the following audio file.',
+        'context_columns': [{
+          'data': file_path,
+          'type': 'audio',
+          'transcription_model': 'whisper-1'
+        }]
+      }
+    ) AS transcript
+  FROM VALUES
+    (1, '/data/audio/note_01.m4a'),
+    (2, '/data/audio/note_02.m4a')
+  AS t(audio_id, file_path)
+)
+SELECT
+  audio_id,
+  llm_embedding(
+    {'model_name': 'text-embedding-3-small'},
+    {'context_columns': [{'data': transcript}]}
+  ) AS embedding
+FROM transcripts;
+```
+
 ## 1. Simple Usage (without data)
 
 ### 1.1 Basic Embedding Generation
@@ -86,7 +162,7 @@ The `llm_embedding` function accepts two primary inputs: model configuration and
 - **Description**: Specifies the text columns from the table to be passed to the model for embedding generation. Each column can have two properties:
   - `data`: The SQL column data (required)
   - `name`: Custom name for the column (optional)
-- **Note**: The `llm_embedding` function currently supports only text data (no image support)
+- **Note**: Embeddings are text-only. For image or voice content, derive text first (see **Modalities** above).
 - **Example**:
   ```sql
   { 'context_columns': [{'data': product_name}, {'data': product_description}] }

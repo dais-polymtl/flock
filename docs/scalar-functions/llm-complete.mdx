@@ -4,6 +4,72 @@ title: "llm_complete"
 
 The `llm_complete` function generates text completions using specified models and prompts for dynamic data generation.
 
+## Modalities
+
+### Text
+
+Pass tabular columns in `context_columns` (default `type: 'tabular'`).
+
+```sql
+SELECT
+  product_name,
+  llm_complete(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Write a one-sentence product blurb.',
+      'context_columns': [{'data': product_name}]
+    }
+  ) AS blurb
+FROM UNNEST(['Wireless Headphones', 'Gaming Laptop', 'Smart Watch']) AS t(product_name);
+```
+
+### Image
+
+Use a vision-capable model and set `type: 'image'` (URL, path, or base64). Optional OpenAI `detail`: `'low'` or `'high'`.
+
+```sql
+SELECT
+  product_name,
+  llm_complete(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Describe this product image, focusing on key features.',
+      'context_columns': [
+        {'data': product_name},
+        {'data': image_url, 'type': 'image'}
+      ]
+    }
+  ) AS image_analysis
+FROM VALUES
+  ('Wireless Headphones', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400'),
+  ('Gaming Laptop', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400')
+AS t(product_name, image_url);
+```
+
+### Voice
+
+Pass audio with `type: 'audio'` and a required `transcription_model` (OpenAI or Azure Whisper, e.g. `whisper-1`). Anthropic and Ollama do not support audio.
+
+```sql
+SELECT
+  audio_id,
+  llm_complete(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Transcribe this audio verbatim.',
+      'context_columns': [{
+        'data': file_path,
+        'type': 'audio',
+        'transcription_model': 'whisper-1'
+      }]
+    }
+  ) AS transcript
+FROM VALUES
+  (1, '/data/audio/meeting_01.mp3'),
+  (2, '/data/audio/meeting_02.mp3')
+AS t(audio_id, file_path);
+```
+
 ## 1. Simple Usage (without data)
 
 ### 1.1 Inline Prompt
@@ -60,33 +126,6 @@ WHERE LENGTH(enhanced_description) > 50;
 **Description**: This actual example demonstrates the use of a pre-configured prompt `summarize-content` with version
 `2` and the `reduce-model`. It processes the `product_name` column and generates a summarized description. The query
 then filters out rows where the generated description is shorter than 50 characters.
-
-### 2.1 Image Analysis Example
-
-```sql
--- Analyze product images and generate descriptions
-SELECT
-    product_id,
-    product_name,
-    llm_complete(
-        {'model_name': 'gpt-4o'},
-        {
-            'prompt': 'Describe this product image in detail, focusing on key features and quality.',
-            'context_columns': [
-                {'data': product_name},
-                {'data': image_url, 'type': 'image'}
-            ]
-        }
-    ) AS image_analysis
-FROM VALUES
-    (1, 'Wireless Headphones', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400'),
-    (2, 'Gaming Laptop', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400'),
-    (3, 'Smart Watch', 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400')
-AS t(product_id, product_name, image_url);
-```
-
-**Description**: This example demonstrates using `llm_complete` with image data. It analyzes product images and
-generates detailed descriptions, combining the product name with visual analysis of the image content.
 
 ## 3. Input Parameters
 
@@ -152,13 +191,13 @@ columns.
   properties:
     - `data`: The SQL column data (required)
     - `name`: Custom name for the column to be referenced in the prompt (optional)
-    - `type`: Data type - "tabular" (default) or "image" (optional)
+    - `type`: Data type — `"tabular"` (default), `"image"`, or `"audio"` (audio requires `transcription_model`)
 - **Example**:
   ```sql
   'context_columns': [
     {'data': product_name, 'name': 'product'},
     {'data': image_url, 'type': 'image'},
-    {'data': description}
+    {'data': audio_path, 'type': 'audio', 'transcription_model': 'whisper-1'}
   ]
   ```
 

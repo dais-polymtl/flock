@@ -4,6 +4,69 @@ title: "llm_last"
 
 The `llm_last` function is used to extract the least relevant result from a set of rows based on a model's prompt and input columns. It operates over a set of rows, generally combined with a `GROUP BY` clause, to return the least relevant row for each group.
 
+## Modalities
+
+### Text
+
+Select the least relevant row using tabular text columns.
+
+```sql
+SELECT llm_last(
+  {'model_name': 'gpt-4o'},
+  {
+    'prompt': 'professional work productivity',
+    'context_columns': [
+      {'data': product_name},
+      {'data': product_description}
+    ]
+  }
+)
+FROM products;
+```
+
+### Image
+
+Select the least matching visual example with `type: 'image'`.
+
+```sql
+SELECT
+  category,
+  llm_last(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Which product image looks least professional?',
+      'context_columns': [
+        {'data': product_name},
+        {'data': image_url, 'type': 'image'}
+      ]
+    }
+  ) AS weakest_image
+FROM product_catalog
+GROUP BY category;
+```
+
+### Voice
+
+Select using spoken content via `type: 'audio'` and `transcription_model` (OpenAI / Azure).
+
+```sql
+SELECT
+  agent_id,
+  llm_last(
+    {'model_name': 'gpt-4o'},
+    {
+      'prompt': 'Pick the call least relevant to resolving billing issues',
+      'context_columns': [{
+        'data': file_path,
+        'type': 'audio',
+        'transcription_model': 'whisper-1'
+      }]
+    }
+  ) AS least_relevant_call
+FROM support_calls
+GROUP BY agent_id;
+```
+
 ## 1. **Usage Examples**
 
 ### 1.1. **Example without `GROUP BY`**
@@ -150,13 +213,14 @@ Two types of prompts can be used:
 - **Purpose**: Maps table columns to provide input data for the model. Each column can have three properties:
   - `data`: The SQL column data (required)
   - `name`: Custom name for the column to be referenced in the prompt (optional)
-  - `type`: Data type - "tabular" (default) or "image" (optional)
+  - `type`: Data type — `"tabular"` (default), `"image"`, or `"audio"` (audio requires `transcription_model`)
 - **Example**:
   ```sql
   'context_columns': [
     {'data': product_name, 'name': 'product'},
     {'data': product_description},
-    {'data': image_url, 'type': 'image'}
+    {'data': image_url, 'type': 'image'},
+    {'data': audio_path, 'type': 'audio', 'transcription_model': 'whisper-1'}
   ]
   ```
 

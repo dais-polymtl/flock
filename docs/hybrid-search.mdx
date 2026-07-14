@@ -12,6 +12,8 @@ Flock offers two types of fusion functions: rank-based and score-based.
 
 See also the [Scalar Functions overview](/scalar-functions/overview) for how fusion functions fit alongside `llm_complete` and related map functions.
 
+Fusion functions operate on **numeric ranks or scores**, not on raw text, images, or audio. Build those scores however you like — including from multimodal LLM pipelines — then fuse them with `fusion_*`.
+
 ## Rank-Based Fusion Algorithm
 
 The input to the rank-based fusion algorithm is each document's ranking in n scoring systems, from best to worst, where
