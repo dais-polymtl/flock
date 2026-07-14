@@ -1,0 +1,141 @@
+---
+title: "Performance and Cost"
+---
+
+Flock LLM workloads are network-bound: API latency, token volume, and batch configuration dominate cost and response time.
+This guide summarizes the knobs that matter most. For full parameter reference, see [Models Management](/resource-management/models).
+
+## Start small
+
+Before running LLM functions over a full table:
+
+1. Use `LIMIT` on a representative sample.
+2. Reset metrics, run the sample, then inspect results:
+
+```sql
+SELECT flock_reset_metrics();
+
+SELECT llm_complete(
+    {'model_name': 'gpt-4o'},
+    {'prompt': 'Summarize: {text}', 'context_columns': [{'data': text, 'name': 'text'}]}
+)
+FROM my_table
+LIMIT 10;
+
+SELECT flock_get_metrics() AS metrics;
+```
+
+See [LLM Metrics](/llm-metrics) for parsing token counts and latency.
+
+## Batching with `max_batch_size`
+
+`max_batch_size` controls how many input tuples Flock groups into a single provider request (default: **16**).
+
+```sql
+CREATE MODEL('batched-gpt4o', 'gpt-4o', 'openai', {"max_batch_size": 64});
+```
+
+- **Higher values**: fewer API calls, lower overhead, but larger payloads and higher risk of context-window errors.
+- **Lower values**: more API calls, but safer for long prompts or multimodal inputs.
+
+You can override inline per query:
+
+```sql
+SELECT llm_complete(
+    {'model_name': 'gpt-4o', 'max_batch_size': 8},
+    {'prompt': 'Summarize', 'context_columns': [{'data': text}]}
+) FROM my_table;
+```
+
+### Automatic retries on context overflow
+
+If a batch exceeds the model context window, Flock retries with smaller batches instead of failing the entire query:
+
+- **Scalar functions** (`llm_complete`, `llm_filter`, `llm_embedding`): halve batch size on failure (`64 → 32 → 16 → …`).
+- **Aggregate functions** (`llm_reduce`, `llm_rerank`, `llm_first`, `llm_last`): shrink by 10% per retry.
+
+Prefer tuning `max_batch_size` upfront for multimodal workloads rather than relying on retries.
+
+<Note>
+`batch_size` is a deprecated alias for `max_batch_size`. Use `max_batch_size` in new models and queries.
+</Note>
+
+## Concurrency with `is_async`
+
+For `llm_complete` and `llm_filter`, `is_async` defaults to **`true`**: batches are queued in parallel and responses collected together.
+
+```sql
+-- Parallel batching (default)
+CREATE MODEL('async-model', 'gpt-4o', 'openai', {"max_batch_size": 16});
+
+-- Sequential batching (lower provider concurrency)
+CREATE MODEL('sync-model', 'gpt-4o', 'openai', {"max_batch_size": 16, "is_async": false});
+```
+
+Use synchronous mode when provider rate limits or connection stability are a concern.
+
+## Throttling with `rate_limit` and `usage_limit`
+
+### `rate_limit`
+
+Caps provider **requests per minute** for a Flock model name:
+
+```sql
+CREATE MODEL('limited-gpt4o', 'gpt-4o', 'openai', {
+    "max_batch_size": 64,
+    "rate_limit": 30
+});
+```
+
+`max_batch_size` and `rate_limit` are independent: batch size controls tuples per request; rate limit throttles how many requests are sent per minute.
+
+### `usage_limit`
+
+Enforces cumulative **token quotas** per model. When exceeded, Flock raises an error immediately (unlike context-window retries):
+
+```sql
+CREATE MODEL('budget-gpt4o', 'gpt-4o', 'openai', {
+    "max_batch_size": 16,
+    "usage_limit": {"total_tokens_limit": 50000}
+});
+```
+
+## Multimodal workloads
+
+Images and audio increase payload size and processing time:
+
+- Use **smaller `max_batch_size`** for vision or transcription queries.
+- Prefer URLs or file paths over large inline base64 when possible.
+- Audio requires `type: 'audio'` and a `transcription_model` — see **Voice** on [`llm_complete`](/scalar-functions/llm-complete) and related function pages.
+
+## Recommended workflow
+
+```sql
+-- 1. Clear previous metrics
+SELECT flock_reset_metrics();
+
+-- 2. Run a bounded sample with tuned batch size
+SELECT llm_complete(
+    {'model_name': 'gpt-4o', 'max_batch_size': 16},
+    {'prompt': 'Classify sentiment of: {text}', 'context_columns': [{'data': text, 'name': 'text'}]}
+)
+FROM reviews
+LIMIT 100;
+
+-- 3. Review cost and latency
+SELECT flock_get_metrics() AS metrics;
+```
+
+Adjust `max_batch_size`, `is_async`, and `rate_limit` based on metrics, then scale to the full dataset.
+
+## When to tune what
+
+| Symptom | Try |
+|---------|-----|
+| Too many API calls / high overhead | Increase `max_batch_size` |
+| Context window / token limit errors | Decrease `max_batch_size` |
+| Provider 429 / rate limit errors | Set `rate_limit` or use `is_async: false` |
+| Runaway token spend | Set `usage_limit` and monitor with `flock_get_metrics()` |
+| Slow multimodal queries | Lower `max_batch_size`; sample with `LIMIT` first |
+
+For provider-specific generation settings, see [Model Parameters](/model-parameters).

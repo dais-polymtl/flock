@@ -12,6 +12,9 @@
 # - Extract key themes from customer feedback
 # - Use advanced LLM aggregation functions to summarize and rank reviews
 # - Visualize insights for better understanding
+#
+# JSON outputs use `llm_complete` with prompts that specify JSON shape.
+# For schema-enforced responses, see https://dais-polymtl.github.io/flock/scalar-functions/llm-complete
 
 # %% [markdown]
 # ## Step 1: Install Required Libraries
@@ -143,7 +146,7 @@ SELECT
     ID AS review_id,
     Text AS review_text,
     Score AS star_rating,
-    llm_complete_json(
+    llm_complete(
         {'model_name': 'product_review_model'},
         {'prompt_name': 'sentiment-analysis'},
         {'review': review_text, 'rating': star_rating}
@@ -311,7 +314,7 @@ SELECT
     review_id,
     review_text,
     star_rating,
-    llm_complete_json(
+    llm_complete(
         {'model_name': 'product_review_model'},
         {'prompt_name': 'extract-themes'},
         {'sentiment_json': sentiment_json}
@@ -365,7 +368,7 @@ SELECT
     ID AS review_id,
     Text AS review_text,
     Score AS star_rating,
-    llm_complete_json(
+    llm_complete(
         {'model_name': 'product_review_model'},
         {'prompt_name': 'low-rating-sentiment-analysis'},
         {'review': review_text, 'rating': star_rating}
@@ -402,7 +405,7 @@ SELECT
     review_id,
     review_text,
     star_rating,
-    llm_complete_json(
+    llm_complete(
         {'model_name': 'product_review_model'},
         {'prompt_name': 'product-improvement-suggestions'},
         {'review': review_text, 'rating': star_rating}

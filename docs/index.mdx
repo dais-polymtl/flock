@@ -1,0 +1,97 @@
+---
+title: "What is Flock?"
+description: "Deep Integration of Language Models and RAG into DuckDB — Proc. VLDB Endow. 2025"
+---
+
+<Tip>
+  Proc. VLDB Endow. 2025 · Vol. 18, No. 12 · *Beyond Quacking*
+</Tip>
+
+# What is Flock?
+
+**Flock** is a DuckDB extension that deeply integrates LLM and RAG capabilities into OLAP systems. Mix analytics with
+semantic analysis in SQL using map and reduce functions for generation, classification, embeddings, and more. It runs on
+native platforms and in the browser via DuckDB-WASM.
+
+## Integrating LM and IR capabilities in SQL
+
+Flock integrates advanced language models into RDBMSs, enabling powerful tasks like text generation, classification,
+filtering, and embeddings directly through SQL queries. Streamline your data workflows with AI-driven insights.
+
+<Columns cols={1}>
+  <Card title="Administrative Views for Managing Prompts and Models" icon="database">
+    Treat models and prompts as resources similar to tables. You can CREATE PROMPT(s) and MODEL(s) and iterate on them
+    without making changes to SQL queries.
+  </Card>
+  <Card title="Scalar / Map Functions for Tuple and Passage Transformation" icon="filter">
+    Map tuples or text passages to new text, boolean, or JSON values using LLMs to support various types of semantic
+    analysis such as extraction and classification.
+  </Card>
+  <Card title="Aggregate / Reduce Functions to Reduce over Tuples and Passages" icon="layer-group">
+    Use Aggregate / Reduce functions to reduce tuples or text passages using LLMs to support various types of semantic
+    analysis such as reranking and summarization.
+  </Card>
+</Columns>
+
+```sql
+-- 1) Create a model
+CREATE MODEL(
+  'product_summarizer',
+  'gpt-4o',
+  'openai'
+);
+
+-- 2) Call it from SQL
+SELECT
+  product_id,
+  name,
+  llm_complete(
+    {'model_name': 'product_summarizer'},
+    {
+      'prompt': 'Summarize this product in one sentence.',
+      'context_columns': [{'data': name}]
+    }
+  ) AS short_description
+FROM products
+LIMIT 3;
+```
+
+| ID | Product | Short Description (from LLM) |
+| --- | --- | --- |
+| 1 | Wireless Headphones | Comfortable Bluetooth headphones with clear sound and long battery life. |
+| 2 | Gaming Laptop | High-performance laptop designed for modern games and creative workloads. |
+| 3 | Smart Watch | Everyday smartwatch that tracks activity, notifications, and heart rate. |
+
+## Why use Flock?
+
+- Create reusable models and prompts once, then call them from simple SQL.
+- Run LLM workloads next to your data without custom services or glue code.
+- Keep results in tables you can join, filter, and visualize with regular DuckDB queries.
+
+See [Installation](/installation) to get started, then [Getting Started](/getting-started/overview) for provider setup.
+Browse [Scalar](/scalar-functions/overview) and [Aggregate](/aggregate-functions/overview) functions for the full API.
+
+## Paper
+
+**Beyond Quacking: Deep Integration of Language Models and RAG into DuckDB**
+
+Anas Dorbani, Sunny Yasser, Jimmy Lin, Amine Mhedhbi
+
+Proc. VLDB Endow. 2025, Vol. 18, No. 12
+
+If you found Flock useful, cite us!
+
+[https://doi.org/10.14778/3750601.3750685](https://doi.org/10.14778/3750601.3750685)
+
+```bibtex
+@article{10.14778/3750601.3750685,
+  author  = {Dorbani, Anas and Yasser, Sunny and Lin, Jimmy and Mhedhbi, Amine},
+  title   = {Beyond Quacking: Deep Integration of Language Models and RAG into DuckDB},
+  journal = {Proc. VLDB Endow.},
+  year    = {2025},
+  volume  = {18},
+  number  = {12},
+  doi     = {10.14778/3750601.3750685},
+  url     = {https://doi.org/10.14778/3750601.3750685}
+}
+```

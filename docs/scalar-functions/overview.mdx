@@ -1,0 +1,44 @@
+---
+title: "Overview"
+---
+
+Scalar functions in Flock operate on data row-by-row, providing powerful operations for text processing, embeddings,
+and machine learning tasks directly within SQL queries.
+
+## 1. Available Functions
+
+- [`llm_complete`](/scalar-functions/llm-complete): Generates completions — text, image, and voice (audio)
+- [`llm_filter`](/scalar-functions/llm-filter): Filters rows — text, image, and voice (audio)
+- [`llm_embedding`](/scalar-functions/llm-embedding): Text embeddings (image/voice via describe or transcribe first)
+
+For combining retrieval scores, see [Hybrid Search](/hybrid-search).
+
+## 2. Function Characteristics
+
+- Applied row-by-row to table data
+- **Modalities**: Each LLM function page documents **Text**, **Image**, and **Voice** support with examples
+- **Context columns**: Unified `context_columns` array for tabular, image, and audio inputs
+- **Structured output**: Schema-shaped JSON via `model_parameters` where applicable (see each function's **Output**)
+
+## 3. Context Columns API
+
+```sql
+'context_columns': [
+  {'data': column_name},                    -- Text (default type: tabular)
+  {'data': column_name, 'name': 'alias'},   -- Text with prompt alias
+  {'data': image_url, 'type': 'image'},     -- Image
+  {'data': audio_path, 'type': 'audio', 'transcription_model': 'whisper-1'}  -- Voice
+]
+```
+
+- **`data`** _(required)_: SQL column value
+- **`name`** _(optional)_: Alias for the prompt
+- **`type`** _(optional)_: `"tabular"` (default), `"image"`, or `"audio"`
+- **`transcription_model`** _(required for audio)_: e.g. `whisper-1` (OpenAI / Azure)
+
+## 4. Common Use Cases
+
+- Text generation, classification, and filtering
+- Image description and visual filtering
+- Voice transcription and call analytics
+- Embeddings and similarity search (text; image/voice via two-step workflows)

@@ -1,41 +1,70 @@
-# Website
+# Flock documentation
 
-This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
+This site is built with [Mintlify](https://mintlify.com) and published to [GitHub Pages](https://dais-polymtl.github.io/flock/).
 
-### Installation
+## Local preview
 
-```
-$ npm install
-```
+Two workflows — see the [Developer Guide](/developer-guide) section on docs.
 
-### Local Development
+### Fast editing (`mint dev`)
 
-```
-$ npm start
-```
-
-This command starts a local development server and opens up a browser window. Most changes are reflected live without having to restart the server.
-
-### Build
-
-```
-$ npm run build
+```bash
+npm i -g mint
+cd docs
+mint dev
 ```
 
-This command generates static content into the `build` directory and can be served using any static content hosting service.
+Open [http://localhost:3000](http://localhost:3000). Hot reload; no GitHub Pages base path; search uses Mintlify cloud (if logged in), not Pagefind.
 
-### Deployment
+### Production parity (`build-and-serve.sh`)
 
-Using SSH:
-
-```
-$ USE_SSH=true npm run deploy
+```bash
+./docs/scripts/build-and-serve.sh
 ```
 
-Not using SSH:
+Open **`http://localhost:3000/flock/`**. Runs export, GitHub Pages path prep, Pagefind indexing, and local serve — same pipeline as deploy.
 
-```
-$ GIT_USER=<Your GitHub username> npm run deploy
+## Deploy
+
+Docs deploy automatically when changes land on `main` under `docs/`. The workflow:
+
+1. Runs `mint export` to generate a static site
+2. Rewrites paths for the `/flock` GitHub Pages base URL
+3. Indexes the site with [Pagefind](https://pagefind.app/) (free, client-side search)
+4. Injects a Pagefind bridge for Cmd+K search (Mintlify cloud search is unavailable on static export)
+5. Publishes to GitHub Pages via `actions/deploy-pages`
+
+You can also trigger a deploy manually from the **Website Deploy to GitHub Pages** workflow in GitHub Actions.
+
+### Local export test
+
+```bash
+cd docs
+TMPDIR=/tmp mint export --output ../docs-site.zip
+mkdir -p ../docs-site && unzip -q ../docs-site.zip -d ../docs-site
+node scripts/prepare-github-pages.mjs ../docs-site
+npx -y pagefind --site ../docs-site --output-subdir pagefind
 ```
 
-If you are using GitHub Pages for hosting, this command is a convenient way to build the website and push to the `gh-pages` branch.
+### Build and serve in one command
+
+```bash
+./docs/scripts/build-and-serve.sh
+```
+
+Optional environment variables:
+- `PORT` (default `3000`)
+- `GITHUB_PAGES_BASE_PATH` (default `/flock`)
+- `SITE_DIR` (default `./docs-site`)
+- `SITE_ZIP` (default `./docs-site.zip`)
+- `DOCS_TMPDIR` (default `/tmp`)
+
+Then serve `../docs-site` and open `http://localhost:3000/flock/`.
+
+If your shell points `TMPDIR` to a small ramdisk (for example `/private/ramdisk`), `mint export` can fail with `ENOSPC` even when your main disk has free space. Prefixing with `TMPDIR=/tmp` avoids that by using disk-backed temp storage.
+
+## Writing
+
+- Pages are MDX with YAML frontmatter
+- Navigation and branding live in `docs.json`
+- See `AGENTS.md` for project writing preferences

@@ -1,19 +1,17 @@
-# Dependencies
+# Dependencies / local tooling
 /node_modules
+.DS_Store
 
-# Production
-/build
-
-# Generated files
-.docusaurus
-.cache-loader
+# Mintlify
+.mintlify
+_next/
+export.zip
+docs-site/
+docs-site.zip
 
 # Misc
-.DS_Store
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*.local
 
 npm-debug.log*
 yarn-debug.log*
