@@ -24,6 +24,8 @@
   const basePath = config.basePath || '';
   const bundlePath = config.bundlePath || `${basePath}/pagefind/`;
   const pagefindModuleUrl = `${bundlePath}pagefind.js`;
+  const SIDEBAR_SCROLL_KEY = 'flock-sidebar-scroll';
+  const SIDEBAR_RESTORE_MS = 400;
 
   const SEARCH_ICON =
     '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500 dark:text-gray-400"><path d="M15.25 15.25L11.285 11.285"></path><path d="M7.75 12.75C10.5114 12.75 12.75 10.5114 12.75 7.75C12.75 4.98858 10.5114 2.75 7.75 2.75C4.98858 2.75 2.75 4.98858 2.75 7.75C2.75 10.5114 4.98858 12.75 7.75 12.75Z"></path></svg>';
@@ -46,6 +48,123 @@
   let activeIndex = -1;
   let activeRequest = 0;
   let isOpen = false;
+  let sidebarRestoreTimers = [];
+  let sidebarRestoreFrames = [];
+  let suppressSidebarAutoScroll = false;
+
+  function getSidebarScroller() {
+    const candidates = ['sidebar-content', 'sidebar']
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+
+    for (const root of candidates) {
+      const stack = [root];
+      while (stack.length) {
+        const node = stack.pop();
+        if (!(node instanceof HTMLElement)) continue;
+        if (node === root || node.offsetParent !== null) {
+          const overflowY = getComputedStyle(node).overflowY;
+          if (overflowY === 'auto' || overflowY === 'scroll') {
+            return node;
+          }
+        }
+        for (let i = node.children.length - 1; i >= 0; i -= 1) {
+          stack.push(node.children[i]);
+        }
+      }
+    }
+    return candidates[0] || null;
+  }
+
+  function saveSidebarScroll() {
+    const scroller = getSidebarScroller();
+    if (!scroller) return;
+    try {
+      sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(scroller.scrollTop));
+    } catch {
+      // ignore
+    }
+  }
+
+  function readSavedSidebarScroll() {
+    try {
+      const raw = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+      if (raw == null || raw === '') return null;
+      const top = Number(raw);
+      return Number.isFinite(top) ? top : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function clearSidebarRestoreTimers() {
+    sidebarRestoreTimers.forEach((timerId) => window.clearTimeout(timerId));
+    sidebarRestoreFrames.forEach((frameId) => window.cancelAnimationFrame(frameId));
+    sidebarRestoreTimers = [];
+    sidebarRestoreFrames = [];
+    suppressSidebarAutoScroll = false;
+  }
+
+  function restoreSidebarScroll() {
+    const top = readSavedSidebarScroll();
+    if (top == null) return false;
+    const scroller = getSidebarScroller();
+    if (!scroller) return false;
+    scroller.scrollTop = top;
+    return true;
+  }
+
+  function ensureActiveSidebarItemVisible() {
+    const scroller = getSidebarScroller();
+    if (!scroller) return;
+    const active =
+      scroller.querySelector('[data-active="true"]') ||
+      scroller.querySelector('[aria-current="page"]') ||
+      document.querySelector('#sidebar-content [data-active="true"], #sidebar [data-active="true"]');
+    if (!(active instanceof HTMLElement)) return;
+
+    const parentRect = scroller.getBoundingClientRect();
+    const itemRect = active.getBoundingClientRect();
+    if (itemRect.height === 0) return;
+
+    if (itemRect.top < parentRect.top) {
+      scroller.scrollTop -= parentRect.top - itemRect.top;
+      saveSidebarScroll();
+      return;
+    }
+    if (itemRect.bottom > parentRect.bottom) {
+      scroller.scrollTop += itemRect.bottom - parentRect.bottom;
+      saveSidebarScroll();
+    }
+  }
+
+  function scheduleSidebarScrollRestore() {
+    clearSidebarRestoreTimers();
+    suppressSidebarAutoScroll = true;
+
+    const run = () => {
+      if (!suppressSidebarAutoScroll) return;
+      restoreSidebarScroll();
+      ensureActiveSidebarItemVisible();
+    };
+
+    run();
+    sidebarRestoreFrames.push(window.requestAnimationFrame(run));
+    for (const delay of [0, 50, 100, 200, SIDEBAR_RESTORE_MS]) {
+      sidebarRestoreTimers.push(window.setTimeout(run, delay));
+    }
+    sidebarRestoreTimers.push(
+      window.setTimeout(() => {
+        clearSidebarRestoreTimers();
+        saveSidebarScroll();
+      }, SIDEBAR_RESTORE_MS + 50),
+    );
+  }
+
+  function isSidebarNavClick(target) {
+    if (!(target instanceof Element)) return false;
+    return !!target.closest('#sidebar a[href], #sidebar-content a[href]');
+  }
 
   function ensurePagefind() {
     if (!pagefindReady) {
@@ -402,6 +521,12 @@
   }
 
   function handleOpen(event) {
+    if (event.type === 'click' && isSidebarNavClick(event.target)) {
+      saveSidebarScroll();
+      // Soft client navigations still remount the sidebar; restore after route change.
+      scheduleSidebarScrollRestore();
+    }
+
     const themeMode = themeModeFromTarget(event.target);
     if (themeMode) {
       event.preventDefault();
@@ -431,6 +556,31 @@
   document.addEventListener('click', handleOpen, true);
   document.addEventListener('keydown', handleOpen, true);
 
+  // Let the user regain control immediately if they scroll/touch the sidebar mid-restore.
+  document.addEventListener(
+    'scroll',
+    (event) => {
+      if (!suppressSidebarAutoScroll) return;
+      const scroller = getSidebarScroller();
+      if (scroller && event.target === scroller) {
+        clearSidebarRestoreTimers();
+        saveSidebarScroll();
+      }
+    },
+    true,
+  );
+  document.addEventListener(
+    'wheel',
+    (event) => {
+      if (!suppressSidebarAutoScroll) return;
+      if (event.target instanceof Element && event.target.closest('#sidebar, #sidebar-content')) {
+        clearSidebarRestoreTimers();
+        saveSidebarScroll();
+      }
+    },
+    { capture: true, passive: true },
+  );
+
   document.addEventListener(
     'keydown',
     (event) => {
@@ -450,11 +600,23 @@
     attributeFilter: ['data-open'],
   });
 
+  // Mintlify recenters the active nav item on every route change, which often
+  // jumps the sidebar so the highlighted link is out of view on static exports.
+  const originalScrollIntoView = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = function scrollIntoViewPatched(...args) {
+    if (
+      suppressSidebarAutoScroll &&
+      this instanceof Element &&
+      this.closest('#sidebar, #sidebar-content')
+    ) {
+      return;
+    }
+    return originalScrollIntoView.apply(this, args);
+  };
+
   function boot() {
-    try {
-      sessionStorage.removeItem('flock-sidebar-scroll');
-    } catch {
-      // ignore
+    if (readSavedSidebarScroll() != null) {
+      scheduleSidebarScrollRestore();
     }
     const storedTheme = (localStorage.getItem('isDarkMode') || 'system').toLowerCase();
     if (storedTheme === 'system' || storedTheme === 'light' || storedTheme === 'dark') {
