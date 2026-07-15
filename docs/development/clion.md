@@ -35,7 +35,7 @@
     - In the CMake configuration settings, click the **+** button to add a new build profile named **Release**.
     - Configure the **CMake Options** and **Build Directory** in the same way as the Debug profile.
     - The result should look like this:
-    ![assets/clion/image%207.png](assets/clion/image%207.png)
+    ![assets/clion/release_profile.png](assets/clion/release_profile.png)
 
 6. **Apply Changes and Wait for Setup**
     - Click **OK** to apply changes.
