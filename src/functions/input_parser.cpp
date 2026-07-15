@@ -133,7 +133,10 @@ nlohmann::json CastValueToJson(const duckdb::Value& value) {
             }
         }
     }
-
+    else {
+        result = nlohmann::json(value.ToString());
+    }
+    
     return result;
 }
 
