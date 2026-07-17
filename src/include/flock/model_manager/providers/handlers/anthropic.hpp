@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -151,6 +152,93 @@ protected:
             }
         }
         return {input_tokens, output_tokens};
+    }
+
+    // Anthropic streaming format uses event types:
+    // message_start: {"type":"message_start","message":{"...","usage":{"input_tokens":N}}, ...}
+    // content_block_start: {"type":"content_block_start","index":0,...}
+    // content_block_delta: {"type":"content_block_delta","delta":{"type":"text_delta","text":"..."}}
+    // message_delta: {"type":"message_delta","delta":{"stop_reason":"..."},"usage":{"output_tokens":N}}
+    // message_stop: {"type":"message_stop"}
+    nlohmann::json ReconstructFromStreamedChunks(const std::string& sse_raw) const override {
+        std::string accumulated_content;
+        std::string finish_reason;
+        int64_t input_tokens = 0;
+        int64_t output_tokens = 0;
+
+        std::istringstream stream(sse_raw);
+        std::string line;
+        std::string current_event;
+
+        while (std::getline(stream, line)) {
+            // Trim
+            while (!line.empty() && (line.front() == ' ' || line.front() == '\t')) line.erase(line.begin());
+            while (!line.empty() && (line.back() == ' ' || line.back() == '\t' || line.back() == '\r')) line.pop_back();
+
+            if (line.rfind("event: ", 0) == 0) {
+                current_event = line.substr(7);
+                continue;
+            }
+            if (line.rfind("data: ", 0) == 0) {
+                std::string json_str = line.substr(6);
+                if (json_str.empty() || json_str[0] != '{') continue;
+
+                nlohmann::json chunk;
+                try {
+                    chunk = nlohmann::json::parse(json_str);
+                } catch (...) { continue; }
+
+                if (chunk.contains("error")) return nlohmann::json();
+
+                // message_start: get input_tokens
+                if (current_event == "message_start" && chunk.contains("message")) {
+                    const auto& msg = chunk["message"];
+                    if (msg.contains("usage") && msg["usage"].is_object()) {
+                        const auto& usage = msg["usage"];
+                        if (usage.contains("input_tokens") && usage["input_tokens"].is_number()) {
+                            input_tokens = usage["input_tokens"].get<int64_t>();
+                        }
+                    }
+                }
+
+                // content_block_delta: accumulate text
+                if (current_event == "content_block_delta" && chunk.contains("delta") && chunk["delta"].contains("text") && chunk["delta"]["text"].is_string()) {
+                    accumulated_content += chunk["delta"]["text"].get<std::string>();
+                }
+
+                // message_delta: get stop_reason and output_tokens
+                if (current_event == "message_delta") {
+                    if (chunk.contains("delta") && chunk["delta"].contains("stop_reason")) {
+                        auto& sr = chunk["delta"]["stop_reason"];
+                        if (sr.is_string()) finish_reason = sr.get<std::string>();
+                    }
+                    if (chunk.contains("usage") && chunk["usage"].is_object()) {
+                        const auto& usage = chunk["usage"];
+                        if (usage.contains("output_tokens") && usage["output_tokens"].is_number()) {
+                            output_tokens = usage["output_tokens"].get<int64_t>();
+                        }
+                    }
+                }
+            }
+        }
+
+        if (accumulated_content.empty()) {
+            return nlohmann::json();
+        }
+
+        // Reconstruct in the same shape Anthropic's non-streaming response would have
+        // (content array with text blocks that contain JSON strings)
+        nlohmann::json reconstructed = {
+                {"content", nlohmann::json::array({{"type", "text"}, {"text", accumulated_content}})}};
+        if (!finish_reason.empty()) reconstructed["stop_reason"] = finish_reason;
+
+        if (input_tokens > 0 || output_tokens > 0) {
+            reconstructed["usage"] = {
+                    {"input_tokens", input_tokens},
+                    {"output_tokens", output_tokens}};
+        }
+
+        return reconstructed;
     }
 };
 

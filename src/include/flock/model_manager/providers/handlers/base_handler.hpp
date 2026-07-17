@@ -89,6 +89,20 @@ protected:
 
         EnsureUsageLimitNotExceeded();
 
+        // Detect streaming: check if the first completion request has "stream": true
+        bool is_streamed = false;
+        if (request_type == RequestType::Completion) {
+            for (const auto& json: jsons) {
+                if (json.contains("stream") && json["stream"].is_boolean() && json["stream"].get<bool>()) {
+                    is_streamed = true;
+                    break;
+                }
+            }
+        }
+        if (is_streamed) {
+            return ExecuteBatchStreamed(jsons, contentType);
+        }
+
 #ifdef __EMSCRIPTEN__
         // WASM: Process requests sequentially using emscripten fetch
         std::vector<nlohmann::json> results(jsons.size());
@@ -296,6 +310,137 @@ protected:
 #endif
     }
 
+    // Streaming execution path for SSE responses
+    std::vector<nlohmann::json> ExecuteBatchStreamed(const std::vector<nlohmann::json>& jsons, const std::string& contentType = "application/json") {
+#ifdef __EMSCRIPTEN__
+        // WASM: Process streaming requests sequentially
+        std::vector<nlohmann::json> results(jsons.size());
+        for (size_t i = 0; i < jsons.size(); ++i) {
+            prepareSessionForRequest(getCompletionUrl());
+            setParameters(jsons[i].dump(), contentType);
+            auto response = postRequest(contentType);
+
+            if (response.is_error || response.text.empty()) {
+                trigger_error(response.error_message);
+            } else {
+                auto reconstructed = ReconstructFromStreamedChunks(response.text);
+                if (reconstructed.is_null()) {
+                    trigger_error("Failed to reconstruct streaming response");
+                } else {
+                    try {
+                        checkResponse(reconstructed, RequestType::Completion);
+                        results[i] = ExtractOutput(reconstructed, RequestType::Completion);
+                    } catch (const TokenLimitExceededError&) {
+                        results[i] = TokenLimitExceededMarker();
+                    } catch (const std::exception& e) {
+                        trigger_error(std::string("Response processing error: ") + e.what());
+                    }
+                }
+            }
+        }
+        return results;
+#else
+        // Native: Use curl multi-handle with SSE accumulation
+        struct CurlRequestData {
+            std::string response;
+            CURL* easy = nullptr;
+            std::string payload;
+        };
+        std::vector<CurlRequestData> requests(jsons.size());
+        CURLM* multi_handle = curl_multi_init();
+        std::string url = getCompletionUrl();
+
+        for (size_t i = 0; i < jsons.size(); ++i) {
+            requests[i].easy = curl_easy_init();
+            curl_easy_setopt(requests[i].easy, CURLOPT_URL, url.c_str());
+            requests[i].payload = jsons[i].dump();
+            struct curl_slist* headers = nullptr;
+            headers = curl_slist_append(headers, "Content-Type: application/json");
+            for (const auto& h: getExtraHeaders()) {
+                headers = curl_slist_append(headers, h.c_str());
+            }
+            headers = curl_slist_append(headers, "Accept: text/event-stream");
+            curl_easy_setopt(requests[i].easy, CURLOPT_HTTPHEADER, headers);
+            curl_easy_setopt(requests[i].easy, CURLOPT_POST, 1L);
+            curl_easy_setopt(requests[i].easy, CURLOPT_POSTFIELDS, requests[i].payload.c_str());
+
+            curl_easy_setopt(
+                    requests[i].easy, CURLOPT_WRITEFUNCTION, +[](char* ptr, size_t size, size_t nmemb, void* userdata) -> size_t {
+                        std::string* resp = static_cast<std::string*>(userdata);
+                        resp->append(ptr, size * nmemb);
+                        return size * nmemb;
+                    });
+            curl_easy_setopt(requests[i].easy, CURLOPT_WRITEDATA, &requests[i].response);
+            curl_easy_setopt(requests[i].easy, CURLOPT_TIMEOUT, 600L);
+
+            curl_multi_add_handle(multi_handle, requests[i].easy);
+        }
+
+        auto api_start = std::chrono::high_resolution_clock::now();
+        int still_running = 0;
+        curl_multi_perform(multi_handle, &still_running);
+        while (still_running) {
+            int numfds;
+            curl_multi_wait(multi_handle, NULL, 0, 1000, &numfds);
+            curl_multi_perform(multi_handle, &still_running);
+        }
+        auto api_end = std::chrono::high_resolution_clock::now();
+        double api_duration_ms = std::chrono::duration<double, std::milli>(api_end - api_start).count();
+
+        int64_t batch_input_tokens = 0;
+        int64_t batch_output_tokens = 0;
+        std::vector<nlohmann::json> results(jsons.size());
+
+        for (size_t i = 0; i < requests.size(); ++i) {
+            long http_code = 0;
+            curl_easy_getinfo(requests[i].easy, CURLINFO_RESPONSE_CODE, &http_code);
+
+            if (requests[i].response.empty()) {
+                trigger_error("Empty streaming response from provider (HTTP " + std::to_string(http_code) + ", URL: " + url + ")");
+            } else {
+                auto reconstructed = ReconstructFromStreamedChunks(requests[i].response);
+                if (reconstructed.is_null()) {
+                    trigger_error("Failed to parse streaming response (HTTP " + std::to_string(http_code) + ")");
+                } else {
+                    try {
+                        checkResponse(reconstructed, RequestType::Completion);
+                        auto [input_tokens, output_tokens] = ExtractTokenUsage(reconstructed);
+                        batch_input_tokens += input_tokens;
+                        batch_output_tokens += output_tokens;
+                        try {
+                            results[i] = ExtractOutput(reconstructed, RequestType::Completion);
+                        } catch (const std::exception& e) {
+                            std::string msg = e.what();
+                            if (msg.rfind("[ModelProvider]", 0) == 0) {
+                                throw;
+                            }
+                            trigger_error(std::string("Output extraction error: ") + msg);
+                        }
+                    } catch (const TokenLimitExceededError&) {
+                        results[i] = TokenLimitExceededMarker();
+                    } catch (const std::exception& e) {
+                        std::string msg = e.what();
+                        if (msg.rfind("[ModelProvider]", 0) == 0) {
+                            throw;
+                        }
+                        trigger_error(std::string("Streaming response processing error: ") + msg);
+                    }
+                }
+            }
+            curl_easy_cleanup(requests[i].easy);
+        }
+
+        MetricsManager::UpdateTokens(batch_input_tokens, batch_output_tokens);
+        MetricsManager::AddApiDuration(api_duration_ms);
+        for (size_t i = 0; i < jsons.size(); ++i) {
+            MetricsManager::IncrementApiCalls();
+        }
+
+        curl_multi_cleanup(multi_handle);
+        return results;
+#endif
+    }
+
     virtual void setParameters(const std::string& data, const std::string& contentType = "") = 0;
     virtual auto postRequest(const std::string& contentType) -> decltype(((Session*) nullptr)->postPrepare(contentType)) = 0;
 
@@ -318,6 +463,91 @@ protected:
     virtual nlohmann::json ExtractCompletionOutput(const nlohmann::json&) const { return {}; }
     virtual nlohmann::json ExtractEmbeddingVector(const nlohmann::json&) const { return {}; }
     virtual nlohmann::json ExtractTranscriptionOutput(const nlohmann::json&) const = 0;
+
+    // Reconstruct a full completion JSON from raw SSE streaming text.
+    // Returns nlohmann::json() (null) on failure on failure.
+    virtual nlohmann::json ReconstructFromStreamedChunks(const std::string& sse_raw) const {
+        // Default: no streaming support
+        (void) sse_raw;
+        return nlohmann::json();
+    }
+
+    // Shared utility: Reconstruct OpenAI-compatible completion JSON from SSE chunks.
+    // Handles the standard format with content in delta.content.
+    // Returns the reconstructed JSON in OpenAI non-streaming format shape.
+    static nlohmann::json ReconstructOpenAIStreamingChunks(const std::string& sse_raw) {
+        std::string accumulated_content;
+        std::string finish_reason;
+        nlohmann::json usage;
+
+        std::istringstream stream(sse_raw);
+        std::string line;
+
+        while (std::getline(stream, line)) {
+            // Trim whitespace
+            while (!line.empty() && (line.front() == ' ' || line.front() == '\t')) line.erase(line.begin());
+            while (!line.empty() && (line.back() == ' ' || line.back() == '\t' || line.back() == '\r')) line.pop_back();
+
+            if (line.rfind("data: ", 0) == 0) {
+                std::string json_str = line.substr(6);
+                if (json_str.empty() || json_str == "[DONE]") continue;
+                if (json_str[0] != '{' && json_str[0] != '[') continue;
+
+                nlohmann::json chunk;
+                try {
+                    chunk = nlohmann::json::parse(json_str);
+                } catch (...) {
+                    continue;
+                }
+
+                // Accumulate delta content from choices.
+                // Standard OpenAI: content is in delta.content.
+                // vLLM: may send content="" on first chunk, content with answer on last chunk.
+                // Reasoning (thinking) is always in delta.reasoning and should NOT be mixed into the final answer.
+                if (chunk.contains("choices") && chunk["choices"].is_array()) {
+                    for (const auto& choice: chunk["choices"]) {
+                        if (choice.contains("delta") && choice["delta"].is_object()) {
+                            auto& delta = choice["delta"];
+                            if (delta.contains("content") && delta["content"].is_string()) {
+                                std::string c = delta["content"].get<std::string>();
+                                if (!c.empty()) {
+                                    accumulated_content += c;
+                                }
+                            }
+                            // Note: we intentionally DO NOT accumulate delta.reasoning.
+                            // Reasoning is the model's thinking process and should be excluded from the final answer.
+                        }
+                        // Capture finish_reason from the last chunk that has it
+                        if (choice.contains("finish_reason") && choice["finish_reason"].is_string()) {
+                            finish_reason = choice["finish_reason"].get<std::string>();
+                        }
+                    }
+                }
+
+                // Capture usage - usually in the last chunk (can be at top level)
+                if (chunk.contains("usage")) {
+                    usage = chunk["usage"];
+                }
+            }
+        }
+
+        // Build the reconstructed JSON in the same shape as non-streaming response
+        nlohmann::json message;
+        message["role"] = "assistant";
+        message["content"] = accumulated_content;
+        nlohmann::json choice;
+        choice["index"] = 0;
+        choice["message"] = message;
+        if (!finish_reason.empty()) choice["finish_reason"] = finish_reason;
+        nlohmann::json reconstructed = {
+                {"choices", nlohmann::json::array({choice})}};
+
+        if (!usage.empty()) {
+            reconstructed["usage"] = usage;
+        }
+
+        return reconstructed;
+    }
 
     // Unified extraction method - delegates to specific Extract* methods based on request type
     nlohmann::json ExtractOutput(const nlohmann::json& parsed, RequestType request_type) const {

@@ -3,6 +3,7 @@
 #include "flock/model_manager/providers/handlers/base_handler.hpp"
 #include "session.hpp"
 #include <cstdlib>
+#include <sstream>
 
 namespace flock {
 
@@ -82,6 +83,7 @@ protected:
             }
         }
     }
+
     nlohmann::json ExtractCompletionOutput(const nlohmann::json& response) const override {
         if (response.contains("choices") && response["choices"].is_array() && !response["choices"].empty()) {
             const auto& choice = response["choices"][0];
@@ -125,6 +127,11 @@ protected:
             return response["text"].get<std::string>();
         }
         return "";
+    }
+
+    // Reconstruct full completion JSON from SSE streaming chunks (delegates to shared utility).
+    nlohmann::json ReconstructFromStreamedChunks(const std::string& sse_raw) const override {
+        return ReconstructOpenAIStreamingChunks(sse_raw);
     }
 };
 
