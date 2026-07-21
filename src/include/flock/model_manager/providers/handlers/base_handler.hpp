@@ -109,7 +109,6 @@ protected:
         bool is_completion = (request_type == RequestType::Completion);
         bool is_transcription = (request_type == RequestType::Transcription);
         auto url = is_completion ? getCompletionUrl() : getEmbedUrl();
-        bool usage_limit_reached = false;
 
         for (size_t i = 0; i < jsons.size(); ++i) {
             EnsureUsageLimitNotExceeded();
@@ -124,7 +123,11 @@ protected:
                     checkResponse(parsed, request_type);
                     if (!is_transcription) {
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
-                        RecordTokenUsageWithSoftCap(input_tokens, output_tokens, usage_limit_reached);
+                        try {
+                            RecordTokenUsage(input_tokens, output_tokens);
+                        } catch (const UsageLimitExceededError&) {
+                            // Silently ignore — next EnsureUsageLimitNotExceeded() will block
+                        }
                     }
                     ExtractOutputWithErrorHandling(parsed, request_type, results[i]);
                 } catch (const TokenLimitExceededError&) {
@@ -254,7 +257,6 @@ protected:
         int64_t batch_output_tokens = 0;
 
         std::vector<nlohmann::json> results(jsons.size());
-        bool usage_limit_reached = false;
         for (size_t i = 0; i < requests.size(); ++i) {
             // Clean up temp files for transcriptions
             if (is_transcription && requests[i].is_temp_file && !requests[i].temp_file_path.empty()) {
@@ -276,7 +278,11 @@ protected:
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
                         batch_input_tokens += input_tokens;
                         batch_output_tokens += output_tokens;
-                        RecordTokenUsageWithSoftCap(input_tokens, output_tokens, usage_limit_reached);
+                        try {
+                            RecordTokenUsage(input_tokens, output_tokens);
+                        } catch (const UsageLimitExceededError&) {
+                            // Silently ignore — next EnsureUsageLimitNotExceeded() will block
+                        }
                     }
 
                     ExtractOutputWithErrorHandling(parsed, request_type, results[i]);
@@ -316,6 +322,8 @@ protected:
         // WASM: Process streaming requests sequentially
         std::vector<nlohmann::json> results(jsons.size());
         for (size_t i = 0; i < jsons.size(); ++i) {
+            EnsureUsageLimitNotExceeded();
+
             prepareSessionForRequest(getCompletionUrl());
             setParameters(jsons[i].dump(), contentType);
             auto response = postRequest(contentType);
@@ -329,6 +337,12 @@ protected:
                 } else {
                     try {
                         checkResponse(reconstructed, RequestType::Completion);
+                        auto [input_tokens, output_tokens] = ExtractTokenUsage(reconstructed);
+                        try {
+                            RecordTokenUsage(input_tokens, output_tokens);
+                        } catch (const UsageLimitExceededError&) {
+                            // Silently ignore — next EnsureUsageLimitNotExceeded() will block
+                        }
                         results[i] = ExtractOutput(reconstructed, RequestType::Completion);
                     } catch (const TokenLimitExceededError&) {
                         results[i] = TokenLimitExceededMarker();
@@ -392,6 +406,8 @@ protected:
         std::vector<nlohmann::json> results(jsons.size());
 
         for (size_t i = 0; i < requests.size(); ++i) {
+            EnsureUsageLimitNotExceeded();
+
             long http_code = 0;
             curl_easy_getinfo(requests[i].easy, CURLINFO_RESPONSE_CODE, &http_code);
 
@@ -407,6 +423,11 @@ protected:
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(reconstructed);
                         batch_input_tokens += input_tokens;
                         batch_output_tokens += output_tokens;
+                        try {
+                            RecordTokenUsage(input_tokens, output_tokens);
+                        } catch (const UsageLimitExceededError&) {
+                            // Silently ignore — next EnsureUsageLimitNotExceeded() will block
+                        }
                         try {
                             results[i] = ExtractOutput(reconstructed, RequestType::Completion);
                         } catch (const std::exception& e) {
@@ -570,17 +591,6 @@ protected:
     void EnsureUsageLimitNotExceeded() const {
         if (_usage_limit.has_value() && _usage_limiter != nullptr) {
             _usage_limiter->ThrowIfLimitExceeded(*_usage_limit);
-        }
-    }
-
-    void RecordTokenUsageWithSoftCap(int64_t prompt_tokens, int64_t completion_tokens, bool& usage_limit_reached) {
-        if (usage_limit_reached) {
-            return;
-        }
-        try {
-            RecordTokenUsage(prompt_tokens, completion_tokens);
-        } catch (const UsageLimitExceededError&) {
-            usage_limit_reached = true;
         }
     }
 

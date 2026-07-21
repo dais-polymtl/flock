@@ -15,16 +15,27 @@ namespace flock {
 class AnthropicModelManager : public BaseModelProviderHandler {
 public:
     AnthropicModelManager(std::string api_key, std::string api_version, bool throw_exception,
-                          const std::string& model_name = "", std::optional<int> rate_limit = std::nullopt,
+                          const std::string& model_name = "",
+                          std::optional<int> rate_limit = std::nullopt,
                           std::optional<UsageLimit> usage_limit = std::nullopt,
                           std::shared_ptr<ModelRateLimiter> rate_limiter = nullptr,
-                          std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr)
+                          std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr,
+                          std::string custom_api_url = "")
         : BaseModelProviderHandler(throw_exception, model_name, rate_limit, std::move(usage_limit),
                                    std::move(rate_limiter), std::move(usage_limiter)),
           _api_key(std::move(api_key)),
           _api_version(std::move(api_version)),
-          _session("Anthropic", throw_exception) {
-        _api_base_url = "https://api.anthropic.com/v1/";
+          _session("Anthropic", throw_exception),
+          _custom_api_url(std::move(custom_api_url)) {
+        if (!_custom_api_url.empty()) {
+            _api_base_url = _custom_api_url;
+            // Ensure trailing slash for URL concatenation with getCompletionUrl
+            if (_api_base_url.back() != '/') {
+                _api_base_url += '/';
+            }
+        } else {
+            _api_base_url = "https://api.anthropic.com/v1/";
+        }
         _session.setUrl(_api_base_url);
     }
 
@@ -37,6 +48,7 @@ protected:
     std::string _api_key;
     std::string _api_version;
     std::string _api_base_url;
+    std::string _custom_api_url;
     Session _session;
 
     std::string getCompletionUrl() const override {
@@ -96,7 +108,9 @@ protected:
     }
 
     nlohmann::json ExtractCompletionOutput(const nlohmann::json& response) const override {
+
         if (!response.contains("content") || !response["content"].is_array() || response["content"].empty()) {
+
             return {};
         }
         const auto& content = response["content"];
@@ -127,6 +141,23 @@ protected:
                 }
             }
         }
+
+        // Finally, fall back to thinking blocks (Qwen models via Ollama's Anthropic API)
+        for (const auto& block: content) {
+            if (block.contains("type") && block["type"] == "thinking" && block.contains("thinking")) {
+                std::string text = block["thinking"].get<std::string>();
+                try {
+                    auto parsed = nlohmann::json::parse(text);
+                    if (parsed.contains("items") && !parsed["items"].is_array()) {
+                        parsed["items"] = nlohmann::json::array({parsed["items"]});
+                    }
+                    return parsed;
+                } catch (...) {
+                    return nlohmann::json({{"items", nlohmann::json::array({text})}});
+                }
+            }
+        }
+
         return {};
     }
 
@@ -158,13 +189,17 @@ protected:
     // message_start: {"type":"message_start","message":{"...","usage":{"input_tokens":N}}, ...}
     // content_block_start: {"type":"content_block_start","index":0,...}
     // content_block_delta: {"type":"content_block_delta","delta":{"type":"text_delta","text":"..."}}
+    //                    or: {"type":"content_block_delta","delta":{"type":"input_json_delta","partial_json":"..."}}
+    //                    (for tool_use, input_json_delta carries the partial JSON arguments)
     // message_delta: {"type":"message_delta","delta":{"stop_reason":"..."},"usage":{"output_tokens":N}}
     // message_stop: {"type":"message_stop"}
     nlohmann::json ReconstructFromStreamedChunks(const std::string& sse_raw) const override {
         std::string accumulated_content;
+        std::string accumulated_input_json;
         std::string finish_reason;
         int64_t input_tokens = 0;
         int64_t output_tokens = 0;
+        bool has_tool_use = false;
 
         std::istringstream stream(sse_raw);
         std::string line;
@@ -201,9 +236,22 @@ protected:
                     }
                 }
 
-                // content_block_delta: accumulate text
-                if (current_event == "content_block_delta" && chunk.contains("delta") && chunk["delta"].contains("text") && chunk["delta"]["text"].is_string()) {
-                    accumulated_content += chunk["delta"]["text"].get<std::string>();
+                // content_block_delta: accumulate text or tool input JSON
+                if (current_event == "content_block_delta" && chunk.contains("delta")) {
+                    auto& delta = chunk["delta"];
+                    // Text content from text_delta
+                    if (delta.contains("text") && delta["text"].is_string()) {
+                        accumulated_content += delta["text"].get<std::string>();
+                    }
+                    // Thinking content from thinking_delta (skip - it's reasoning, not the answer)
+                    if (delta.contains("type") && delta["type"] == "thinking_delta") {
+                        // Intentionally skip thinking content
+                    }
+                    // Tool call arguments from input_json_delta (streaming tool_use)
+                    if (delta.contains("type") && delta["type"] == "input_json_delta" && delta.contains("partial_json")) {
+                        has_tool_use = true;
+                        accumulated_input_json += delta["partial_json"].get<std::string>();
+                    }
                 }
 
                 // message_delta: get stop_reason and output_tokens
@@ -222,14 +270,42 @@ protected:
             }
         }
 
-        if (accumulated_content.empty()) {
+        if (accumulated_content.empty() && accumulated_input_json.empty()) {
             return nlohmann::json();
         }
 
-        // Reconstruct in the same shape Anthropic's non-streaming response would have
-        // (content array with text blocks that contain JSON strings)
-        nlohmann::json reconstructed = {
-                {"content", nlohmann::json::array({{"type", "text"}, {"text", accumulated_content}})}};
+        nlohmann::json reconstructed;
+
+        if (has_tool_use && !accumulated_input_json.empty()) {
+            // Reconstruct tool_use response for streaming structured output
+            // Non-streaming format: {"content": [{"type": "tool_use", "id": "...", "name": "flock_response", "input": {...}}]}
+            try {
+                auto input_json = nlohmann::json::parse(accumulated_input_json);
+                if (input_json.contains("items") && !input_json["items"].is_array()) {
+                    input_json["items"] = nlohmann::json::array({input_json["items"]});
+                }
+                nlohmann::json tool_block;
+                tool_block["type"] = "tool_use";
+                tool_block["id"] = "call_0";
+                tool_block["name"] = "flock_response";
+                tool_block["input"] = input_json;
+                reconstructed["content"] = nlohmann::json::array({tool_block});
+            } catch (...) {
+                // If input JSON parsing fails, fall back to text
+                nlohmann::json text_block;
+                text_block["type"] = "text";
+                text_block["text"] = accumulated_input_json;
+                reconstructed["content"] = nlohmann::json::array({text_block});
+            }
+        } else {
+            // Reconstruct in the same shape Anthropic's non-streaming response would have
+            // (content array with text blocks that contain JSON strings)
+            nlohmann::json text_block;
+            text_block["type"] = "text";
+            text_block["text"] = accumulated_content;
+            reconstructed["content"] = nlohmann::json::array({text_block});
+        }
+
         if (!finish_reason.empty()) reconstructed["stop_reason"] = finish_reason;
 
         if (input_tokens > 0 || output_tokens > 0) {

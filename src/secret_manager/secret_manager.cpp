@@ -19,7 +19,7 @@ SecretDetails get_ollama_secret_details() {
 }
 
 SecretDetails get_anthropic_secret_details() {
-    return {"anthropic", "flock", "anthropic://", {"api_key", "api_version"}, {"api_key"}, {"api_key"}};
+    return {"anthropic", "flock", "anthropic://", {"api_key", "api_version", "api_url"}, {"api_key"}, {"api_key"}};
 }
 
 std::vector<SecretDetails> get_secret_details_list() {
