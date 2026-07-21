@@ -59,7 +59,8 @@ void AnthropicProvider::AddCompletionRequest(const std::string& prompt, const in
     }
 
     nlohmann::json request_payload = {{"model", model_details_.model},
-                                      {"messages", {{{"role", "user"}, {"content", message_content}}}}};
+                                      {"messages", {{{"role", "user"}, {"content", message_content}}}},
+                                      {"stream", true}};
 
     if (!model_details_.model_parameters.empty()) {
         request_payload.update(model_details_.model_parameters);

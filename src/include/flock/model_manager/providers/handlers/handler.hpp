@@ -9,7 +9,8 @@ class IModelProviderHandler {
 public:
     enum class RequestType { Completion,
                              Embedding,
-                             Transcription };
+                             Transcription,
+                             CompletionStreamed };
 
     virtual ~IModelProviderHandler() = default;
     // AddRequest: type distinguishes between completion, embedding, and transcription (default: Completion)
