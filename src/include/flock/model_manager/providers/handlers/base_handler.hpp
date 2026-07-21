@@ -123,11 +123,7 @@ protected:
                     checkResponse(parsed, request_type);
                     if (!is_transcription) {
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
-                        try {
-                            RecordTokenUsage(input_tokens, output_tokens);
-                        } catch (const UsageLimitExceededError&) {
-                            // Silently ignore — next EnsureUsageLimitNotExceeded() will block
-                        }
+                        RecordTokenUsageWithSoftCap(input_tokens, output_tokens);
                     }
                     ExtractOutputWithErrorHandling(parsed, request_type, results[i]);
                 } catch (const TokenLimitExceededError&) {
@@ -278,11 +274,7 @@ protected:
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(parsed);
                         batch_input_tokens += input_tokens;
                         batch_output_tokens += output_tokens;
-                        try {
-                            RecordTokenUsage(input_tokens, output_tokens);
-                        } catch (const UsageLimitExceededError&) {
-                            // Silently ignore — next EnsureUsageLimitNotExceeded() will block
-                        }
+                        RecordTokenUsageWithSoftCap(input_tokens, output_tokens);
                     }
 
                     ExtractOutputWithErrorHandling(parsed, request_type, results[i]);
@@ -338,11 +330,7 @@ protected:
                     try {
                         checkResponse(reconstructed, RequestType::Completion);
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(reconstructed);
-                        try {
-                            RecordTokenUsage(input_tokens, output_tokens);
-                        } catch (const UsageLimitExceededError&) {
-                            // Silently ignore — next EnsureUsageLimitNotExceeded() will block
-                        }
+                        RecordTokenUsageWithSoftCap(input_tokens, output_tokens);
                         results[i] = ExtractOutput(reconstructed, RequestType::Completion);
                     } catch (const TokenLimitExceededError&) {
                         results[i] = TokenLimitExceededMarker();
@@ -423,11 +411,7 @@ protected:
                         auto [input_tokens, output_tokens] = ExtractTokenUsage(reconstructed);
                         batch_input_tokens += input_tokens;
                         batch_output_tokens += output_tokens;
-                        try {
-                            RecordTokenUsage(input_tokens, output_tokens);
-                        } catch (const UsageLimitExceededError&) {
-                            // Silently ignore — next EnsureUsageLimitNotExceeded() will block
-                        }
+                        RecordTokenUsageWithSoftCap(input_tokens, output_tokens);
                         try {
                             results[i] = ExtractOutput(reconstructed, RequestType::Completion);
                         } catch (const std::exception& e) {
@@ -585,6 +569,14 @@ protected:
     void RecordTokenUsage(int64_t prompt_tokens, int64_t completion_tokens) {
         if (_usage_limit.has_value() && _usage_limiter != nullptr) {
             _usage_limiter->RecordUsage(prompt_tokens, completion_tokens, _usage_limit);
+        }
+    }
+
+    void RecordTokenUsageWithSoftCap(int64_t prompt_tokens, int64_t completion_tokens) {
+        try {
+            RecordTokenUsage(prompt_tokens, completion_tokens);
+        } catch (const UsageLimitExceededError&) {
+            // Silently ignore — next EnsureUsageLimitNotExceeded() will block
         }
     }
 
