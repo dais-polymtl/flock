@@ -91,6 +91,11 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
                     throw std::runtime_error("Expected 'is_async' to be a boolean.");
                 }
                 struct_json[key] = value.GetValue<bool>();
+            } else if (key == "stream") {
+                if (value.GetTypeMutable().id() != duckdb::LogicalTypeId::BOOLEAN) {
+                    throw std::runtime_error("Expected 'stream' to be a boolean.");
+                }
+                struct_json[key] = value.GetValue<bool>();
             } else {
                 struct_json[key] = value.ToString();
             }
