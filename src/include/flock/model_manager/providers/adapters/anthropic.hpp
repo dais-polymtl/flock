@@ -15,9 +15,23 @@ public:
             it != model_details_.secret.end()) {
             api_version = it->second;
         }
+        std::string api_key = "";
+        if (model_details_.secret.count("api_key")) {
+            api_key = model_details_.secret.at("api_key");
+        }
+        std::string api_url = "";
+        if (model_details_.secret.count("api_url")) {
+            api_url = model_details_.secret.at("api_url");
+            // Strip trailing path segments that will be added by getCompletionUrl
+            // e.g., "http://localhost:11434/v1/messages" → "http://localhost:11434/v1/"
+            if (api_url.size() > 10 && api_url.substr(api_url.size() - 8) == "/messages") {
+                api_url = api_url.substr(0, api_url.size() - 8);
+            }
+        }
         model_handler_ = std::make_unique<AnthropicModelManager>(
-                model_details_.secret.at("api_key"), api_version, true, model_details_.model_name,
-                model_details_.rate_limit, model_details_.usage_limit, rate_limiter_, usage_limiter_);
+                api_key, api_version, true, model_details_.model_name,
+                model_details_.rate_limit, model_details_.usage_limit, rate_limiter_, usage_limiter_,
+                api_url);
     }
 
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples,
