@@ -1,4 +1,5 @@
 #include "flock/model_manager/providers/handlers/base_handler.hpp"
+#include <sstream>
 
 namespace flock {
 
@@ -103,6 +104,12 @@ protected:
             return response["text"].get<std::string>();
         }
         return "";
+    }
+
+    // Azure uses the same streaming format as OpenAI
+    // Azure uses the same OpenAI-compatible streaming format as OpenAI.
+    nlohmann::json ReconstructFromStreamedChunks(const std::string& sse_raw) const override {
+        return ReconstructOpenAIStreamingChunks(sse_raw);
     }
 
 

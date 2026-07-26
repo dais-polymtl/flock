@@ -4,6 +4,7 @@
 #include "session.hpp"
 #include <cstdlib>
 #include <curl/curl.h>
+#include <sstream>
 
 namespace flock {
 
@@ -27,6 +28,10 @@ protected:
     std::string getCompletionUrl() const override { return _url + "/api/chat"; }
     std::string getEmbedUrl() const override { return _url + "/api/embed"; }
     std::string getTranscriptionUrl() const override { return ""; }
+    std::vector<std::string> getExtraHeaders() const override {
+        // Add Connection: close to prevent curl_multi_wait from hanging on keepalive
+        return {"Connection: close"};
+    }
     void prepareSessionForRequest(const std::string& url) override { _session.setUrl(url); }
     void setParameters(const std::string& data, const std::string& contentType = "") override {
         if (contentType != "multipart/form-data") {
@@ -117,6 +122,73 @@ protected:
 
     nlohmann::json ExtractTranscriptionOutput(const nlohmann::json& response) const override {
         throw std::runtime_error("Audio transcription is not supported for Ollama provider, use Azure or OpenAI instead.");
+    }
+
+    // Ollama streaming format (native /api/chat): plain JSON lines, not SSE.
+    // Each line is a complete JSON object: {"message":{"content":"..."},"done":false}
+    nlohmann::json ReconstructFromStreamedChunks(const std::string& sse_raw) const override {
+        std::string accumulated_content;
+        std::string finish_reason;
+        int64_t input_tokens = 0;
+        int64_t output_tokens = 0;
+        bool done = false;
+
+        std::istringstream stream(sse_raw);
+        std::string line;
+
+        while (std::getline(stream, line)) {
+            while (!line.empty() && (line.front() == ' ' || line.front() == '\t')) line.erase(line.begin());
+            while (!line.empty() && (line.back() == ' ' || line.back() == '\t' || line.back() == '\r')) line.pop_back();
+
+            if (line.empty() || line[0] != '{') continue;
+
+            nlohmann::json chunk;
+            try {
+                chunk = nlohmann::json::parse(line);
+            } catch (...) { continue; }
+
+            if (chunk.contains("message") && chunk["message"].is_object()) {
+                // When think=true, the model outputs to BOTH fields:
+                // - thinking: raw trace (reasoning + answer)
+                // - content: clean answer (only at end)
+                // Since content always exists (even empty), first if matches during thinking,
+                // and we only accumulate the clean content at the end.
+                if (chunk["message"].contains("content") && chunk["message"]["content"].is_string()) {
+                    accumulated_content += chunk["message"]["content"].get<std::string>();
+                }
+            }
+
+            if (chunk.contains("done")) done = chunk["done"].get<bool>();
+
+            // Capture finish_reason and usage from the last chunk
+            if (chunk.contains("error")) {
+                return nlohmann::json();
+            }
+            if (done) {
+                if (chunk.contains("done_reason")) {
+                    auto& dr = chunk["done_reason"];
+                    if (dr.is_string()) finish_reason = dr.get<std::string>();
+                }
+                if (chunk.contains("prompt_eval_count")) input_tokens = chunk["prompt_eval_count"].get<int64_t>();
+                if (chunk.contains("eval_count")) output_tokens = chunk["eval_count"].get<int64_t>();
+            }
+        }
+
+        if (accumulated_content.empty()) {
+            return nlohmann::json();
+        }
+
+        nlohmann::json reconstructed;
+        reconstructed["message"]["content"] = accumulated_content;
+        reconstructed["message"]["role"] = "assistant";
+        if (!finish_reason.empty()) {
+            reconstructed["done_reason"] = finish_reason;
+        }
+        reconstructed["done"] = true;
+        if (input_tokens > 0) reconstructed["prompt_eval_count"] = input_tokens;
+        if (output_tokens > 0) reconstructed["eval_count"] = output_tokens;
+
+        return reconstructed;
     }
 
 
