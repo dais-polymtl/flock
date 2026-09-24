@@ -32,7 +32,7 @@ void LlmFilter::ValidateArguments(duckdb::DataChunk& args) {
     }
 }
 
-std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args, LlmFunctionBindData* bind_data) {
+std::vector<std::optional<std::string>> LlmFilter::Operation(duckdb::DataChunk& args, LlmFunctionBindData* bind_data) {
     Model model = bind_data->CreateModel();
 
     auto model_details = model.GetModelDetails();
@@ -46,13 +46,13 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args, LlmFuncti
 
     auto prompt = bind_data->prompt;
 
-    std::vector<std::string> results;
+    std::vector<std::optional<std::string>> results;
     if (context_columns.empty()) {
         auto template_str = prompt;
         model.AddCompletionRequest(template_str, 1, OutputType::BOOL);
         auto response = model.CollectCompletions()[0]["items"][0];
         if (response.is_null()) {
-            results.push_back("true");
+            results.push_back(std::nullopt);
         } else {
             results.push_back(response.dump());
         }
@@ -62,7 +62,7 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args, LlmFuncti
         results.reserve(responses.size());
         for (const auto& response: responses) {
             if (response.is_null()) {
-                results.emplace_back("true");
+                results.emplace_back(std::nullopt);
                 continue;
             }
             results.push_back(response.dump());
@@ -85,14 +85,21 @@ void LlmFilter::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state,
     auto* bind_data = &func_expr.bind_info->Cast<LlmFunctionBindData>();
 
     if (const auto results = LlmFilter::Operation(args, bind_data); static_cast<int>(results.size()) == 1) {
-        auto empty_vec = duckdb::Vector(std::string());
-        duckdb::UnaryExecutor::Execute<duckdb::string_t, duckdb::string_t>(
-                empty_vec, result, args.size(),
-                [&](duckdb::string_t name) { return duckdb::StringVector::AddString(result, results[0]); });
+        if (results[0].has_value()) {
+            const auto& verdict = *results[0];
+            auto empty_vec = duckdb::Vector(std::string());
+            duckdb::UnaryExecutor::Execute<duckdb::string_t, duckdb::string_t>(
+                    empty_vec, result, args.size(),
+                    [&](duckdb::string_t) { return duckdb::StringVector::AddString(result, verdict); });
+        } else {
+            result.SetVectorType(duckdb::VectorType::CONSTANT_VECTOR);
+            duckdb::ConstantVector::SetNull(result, true);
+        }
     } else {
         auto index = 0;
         for (const auto& res: results) {
-            result.SetValue(index++, duckdb::Value(res));
+            result.SetValue(index++, res.has_value() ? duckdb::Value(*res)
+                                                     : duckdb::Value(duckdb::LogicalType::VARCHAR));
         }
     }
 
