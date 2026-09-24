@@ -8,6 +8,7 @@
 #include <cctype>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <regex>
 #include <stdexcept>
 
@@ -30,6 +31,7 @@ struct StructuredCompletionRequest {
     BatchContext batch;
     std::string user_prompt;
     ScalarFunctionType function_type;
+    std::optional<double> threshold = std::nullopt;
 };
 
 class IProvider {

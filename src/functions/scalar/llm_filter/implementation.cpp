@@ -57,7 +57,7 @@ std::vector<std::string> LlmFilter::Operation(duckdb::DataChunk& args, LlmFuncti
             results.push_back(response.dump());
         }
     } else {
-        auto responses = BatchAndComplete(context_columns, prompt, ScalarFunctionType::FILTER, model);
+        auto responses = BatchAndComplete(context_columns, prompt, ScalarFunctionType::FILTER, model, bind_data->threshold);
 
         results.reserve(responses.size());
         for (const auto& response: responses) {

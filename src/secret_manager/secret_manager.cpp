@@ -22,15 +22,20 @@ SecretDetails get_anthropic_secret_details() {
     return {"anthropic", "flock", "anthropic://", {"api_key", "api_version", "api_url"}, {"api_key"}, {"api_key"}};
 }
 
+SecretDetails get_typesafe_secret_details() {
+    return {"typesafe", "flock", "typesafe://", {"api_key", "base_url"}, {"api_key"}, {"api_key"}};
+}
+
 std::vector<SecretDetails> get_secret_details_list() {
-    return {get_openai_secret_details(), get_azure_secret_details(), get_ollama_secret_details(), get_anthropic_secret_details()};
+    return {get_openai_secret_details(), get_azure_secret_details(), get_ollama_secret_details(), get_anthropic_secret_details(), get_typesafe_secret_details()};
 }
 
 std::unordered_map<std::string, SecretManager::SupportedProviders> SecretManager::providerNames = {
         {"openai", OPENAI},
         {"azure_llm", AZURE},
         {"ollama", OLLAMA},
-        {"anthropic", ANTHROPIC}};
+        {"anthropic", ANTHROPIC},
+        {"typesafe", TYPESAFE}};
 
 SecretManager::SupportedProviders SecretManager::GetProviderType(const std::string& provider) {
     auto it = providerNames.find(provider);
@@ -80,6 +85,8 @@ duckdb::unique_ptr<duckdb::BaseSecret> SecretManager::CreateSecret(duckdb::Clien
         selected_details = get_ollama_secret_details();
     } else if (GetProviderType(input.type) == SupportedProviders::ANTHROPIC) {
         selected_details = get_anthropic_secret_details();
+    } else if (GetProviderType(input.type) == SupportedProviders::TYPESAFE) {
+        selected_details = get_typesafe_secret_details();
     } else {
         throw duckdb::InvalidInputException("Unsupported secret type: %s", input.type.c_str());
     }
@@ -135,6 +142,9 @@ std::unordered_map<std::string, std::string> SecretManager::GetSecret(const std:
             break;
         case SupportedProviders::OLLAMA:
             secret_details = get_ollama_secret_details();
+            break;
+        case SupportedProviders::TYPESAFE:
+            secret_details = get_typesafe_secret_details();
             break;
         case SupportedProviders::ANTHROPIC:
             secret_details = get_anthropic_secret_details();

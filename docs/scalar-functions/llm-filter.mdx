@@ -213,6 +213,15 @@ The `llm_filter` function accepts three structured inputs: model configuration, 
     { 'prompt_name': 'summarize-content', 'version': 2, 'context_columns': [{'data': article_content}] }
     ```
 
+  #### 2.2.4 Decision Threshold (TypeSafe models)
+
+  A `typesafe` model answers with the probability that a row satisfies the prompt. `threshold` sets the probability at or above which the row counts as `true`, overriding the model's own (default `0.5`). It must be a constant between 0 and 1, and other providers refuse it.
+
+  - **Example**:
+    ```sql
+    { 'prompt': 'The review complains about battery life.', 'context_columns': [{'data': review}], 'threshold': 0.9 }
+    ```
+
 ### 2.3 Context Columns Configuration
 
 - **Parameter**: `context_columns` array

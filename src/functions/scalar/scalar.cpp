@@ -161,23 +161,27 @@ void ScalarFunctionBase::InitializeModelJson(
     auto model_value = duckdb::ExpressionExecutor::EvaluateScalar(context, *model_expr);
     auto user_model_json = CastValueToJson(model_value);
     bind_data.model_json = Model::ResolveModelDetailsToJson(user_model_json);
+    Model::RejectInapplicableInlineModelArgs(user_model_json, bind_data.model_json);
 }
 
 void ScalarFunctionBase::QueueCompletion(BatchContext batch, const std::string& user_prompt,
-                                         ScalarFunctionType function_type, Model& model) {
-    model.AddStructuredCompletionRequest({std::move(batch), user_prompt, function_type});
+                                         ScalarFunctionType function_type, Model& model,
+                                         std::optional<double> threshold) {
+    model.AddStructuredCompletionRequest({std::move(batch), user_prompt, function_type, threshold});
 }
 
 nlohmann::json ScalarFunctionBase::Complete(BatchContext batch, const std::string& user_prompt,
-                                            ScalarFunctionType function_type, Model& model) {
-    QueueCompletion(std::move(batch), user_prompt, function_type, model);
+                                            ScalarFunctionType function_type, Model& model,
+                                            std::optional<double> threshold) {
+    QueueCompletion(std::move(batch), user_prompt, function_type, model, threshold);
     auto response = model.CollectCompletions();
     return response[0]["items"];
 };
 
 nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tuples,
                                                         const std::string& user_prompt,
-                                                        const ScalarFunctionType function_type, Model& model) {
+                                                        const ScalarFunctionType function_type, Model& model,
+                                                        std::optional<double> threshold) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
     const int configured = std::min<int>(model.GetModelDetails().max_batch_size, row_count);
     auto batch_size = configured;
@@ -193,7 +197,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
         start_index += batch_size;
 
         try {
-            auto response = Complete(std::move(batch), user_prompt, function_type, model);
+            auto response = Complete(std::move(batch), user_prompt, function_type, model, threshold);
             NormalizeAndAppendBatchResponse(response, batch_rows, responses);
             batch_size = configured;
         } catch (const TokenLimitExceededError&) {
@@ -224,7 +228,8 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
 
 nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& tuples,
                                                          const std::string& user_prompt,
-                                                         const ScalarFunctionType function_type, Model& model) {
+                                                         const ScalarFunctionType function_type, Model& model,
+                                                         std::optional<double> threshold) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
     const int configured = std::min<int>(model.GetModelDetails().max_batch_size, row_count);
 
@@ -242,7 +247,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
 
         for (const auto& work: current_round) {
             QueueCompletion(BatchContext(BuildBatchTuples(tuples, work.start_index, work.batch_size)), user_prompt,
-                            function_type, attempt_model);
+                            function_type, attempt_model, threshold);
         }
 
         std::vector<nlohmann::json> batch_responses;
@@ -291,12 +296,49 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
 
 nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples,
                                                     const std::string& user_prompt,
-                                                    const ScalarFunctionType function_type, Model& model) {
+                                                    const ScalarFunctionType function_type, Model& model,
+                                                    std::optional<double> threshold) {
     if (model.GetModelDetails().is_async) {
-        return BatchAndCompleteAsync(tuples, user_prompt, function_type, model);
+        return BatchAndCompleteAsync(tuples, user_prompt, function_type, model, threshold);
     }
 
-    return BatchAndCompleteSync(tuples, user_prompt, function_type, model);
+    return BatchAndCompleteSync(tuples, user_prompt, function_type, model, threshold);
+}
+
+std::optional<double> ScalarFunctionBase::ExtractConstantThreshold(
+        duckdb::ClientContext& context, const duckdb::unique_ptr<duckdb::Expression>& prompt_expr,
+        const std::string& function_name) {
+    const auto& struct_type = prompt_expr->return_type;
+    for (idx_t i = 0; i < duckdb::StructType::GetChildCount(struct_type); i++) {
+        if (duckdb::StructType::GetChildName(struct_type, i) != "threshold") {
+            continue;
+        }
+        // One threshold per query: it must not come from a column.
+        duckdb::Value value;
+        if (prompt_expr->IsFoldable()) {
+            value = duckdb::StructValue::GetChildren(duckdb::ExpressionExecutor::EvaluateScalar(context, *prompt_expr))[i];
+        } else if (prompt_expr->expression_class == duckdb::ExpressionClass::BOUND_FUNCTION &&
+                   prompt_expr->Cast<duckdb::BoundFunctionExpression>().children[i]->IsFoldable()) {
+            value = duckdb::ExpressionExecutor::EvaluateScalar(
+                    context, *prompt_expr->Cast<duckdb::BoundFunctionExpression>().children[i]);
+        } else {
+            throw duckdb::BinderException(function_name + ": 'threshold' must be a constant. It cannot vary from row to row.");
+        }
+        try {
+            if (value.IsNull() || !value.type().IsNumeric()) {
+                throw std::runtime_error("'threshold' must be a number between 0 and 1.");
+            }
+            return ParseThresholdFromJson(value.GetValue<double>());
+        } catch (const std::runtime_error& error) {
+            throw duckdb::BinderException(function_name + ": " + error.what());
+        }
+    }
+    return std::nullopt;
+}
+
+// Settings that travel in the prompt struct but are not part of the prompt.
+static bool IsPromptField(const std::string& field_name) {
+    return field_name != "context_columns" && field_name != "threshold";
 }
 
 void ScalarFunctionBase::InitializePrompt(
@@ -306,8 +348,13 @@ void ScalarFunctionBase::InitializePrompt(
     nlohmann::json prompt_json;
 
     if (prompt_expr->IsFoldable()) {
-        auto prompt_value = duckdb::ExpressionExecutor::EvaluateScalar(context, *prompt_expr);
-        prompt_json = CastValueToJson(prompt_value);
+        const auto fields = CastValueToJson(duckdb::ExpressionExecutor::EvaluateScalar(context, *prompt_expr));
+        prompt_json = nlohmann::json::object();
+        for (const auto& field: fields.items()) {
+            if (IsPromptField(field.key())) {
+                prompt_json[field.key()] = field.value();
+            }
+        }
     } else if (prompt_expr->expression_class == duckdb::ExpressionClass::BOUND_FUNCTION) {
         auto& func_expr = prompt_expr->Cast<duckdb::BoundFunctionExpression>();
         const auto& struct_type = prompt_expr->return_type;
@@ -316,7 +363,7 @@ void ScalarFunctionBase::InitializePrompt(
             auto field_name = duckdb::StructType::GetChildName(struct_type, i);
             auto& child = func_expr.children[i];
 
-            if (field_name != "context_columns" && child->IsFoldable()) {
+            if (IsPromptField(field_name) && child->IsFoldable()) {
                 try {
                     auto field_value = duckdb::ExpressionExecutor::EvaluateScalar(context, *child);
                     if (field_value.type().id() == duckdb::LogicalTypeId::VARCHAR) {
@@ -329,10 +376,6 @@ void ScalarFunctionBase::InitializePrompt(
                 }
             }
         }
-    }
-
-    if (prompt_json.contains("context_columns")) {
-        prompt_json.erase("context_columns");
     }
 
     auto prompt_details = PromptManager::CreatePromptDetails(prompt_json);
@@ -356,6 +399,27 @@ duckdb::unique_ptr<LlmFunctionBindData> ScalarFunctionBase::ValidateAndInitializ
     auto bind_data = duckdb::make_uniq<LlmFunctionBindData>();
 
     InitializeModelJson(context, arguments[0], *bind_data);
+    bind_data->threshold = ExtractConstantThreshold(context, arguments[1], function_name);
+    if (bind_data->threshold.has_value() && function_name != "llm_filter") {
+        throw duckdb::BinderException(function_name + ": 'threshold' applies only to llm_filter.");
+    }
+    // A model given as a non-constant expression is resolved only at execution.
+    if (bind_data->model_json.contains("provider")) {
+        Model::RejectUnsupportedFunction(bind_data->model_json, function_name);
+        const auto provider_name = bind_data->model_json["provider"].get<std::string>();
+        const auto is_typesafe = GetProviderType(provider_name) == FLOCKMTL_TYPESAFE;
+        // TypeSafe judges rows, so it has nothing to judge without them.
+        if (is_typesafe && !prompt_info.has_context_columns) {
+            throw duckdb::BinderException(function_name + ": the '" + provider_name +
+                                          "' provider requires 'context_columns'.");
+        }
+        // Only TypeSafe returns a probability to compare a threshold against.
+        if (bind_data->threshold.has_value() && !is_typesafe) {
+            throw duckdb::BinderException(function_name + ": 'threshold' has no effect on the '" + provider_name +
+                                          "' provider, which does not return probabilities.");
+        }
+    }
+
     if (initialize_prompt) {
         InitializePrompt(context, arguments[1], *bind_data);
     }

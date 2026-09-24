@@ -134,7 +134,10 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         if (hasBatchSizeConfig(db_model_args)) {
             model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(db_model_args);
         } else {
-            model_details_.max_batch_size = DEFAULT_MAX_BATCH_SIZE;
+            // A TypeSafe request carries a fixed overhead, so larger batches are cheaper per row.
+            model_details_.max_batch_size = GetProviderType(model_details_.provider_name) == FLOCKMTL_TYPESAFE
+                                                    ? TYPESAFE_DEFAULT_MAX_BATCH_SIZE
+                                                    : DEFAULT_MAX_BATCH_SIZE;
         }
     }
 
@@ -148,6 +151,15 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
             model_details_.is_async = db_model_args.at("is_async").get<bool>();
         } else {
             model_details_.is_async = true;
+        }
+    }
+
+    if (model_json.contains("threshold")) {
+        model_details_.threshold = ParseThresholdFromJson(model_json.at("threshold"));
+    } else if (!is_fully_resolved) {
+        ensure_db_loaded();
+        if (db_model_args.contains("threshold")) {
+            model_details_.threshold = ParseThresholdFromJson(db_model_args.at("threshold"));
         }
     }
 
@@ -274,6 +286,9 @@ void Model::ConstructProvider() {
         case FLOCKMTL_OLLAMA:
             provider_ = std::make_shared<OllamaProvider>(model_details_, rate_limiter, usage_limiter);
             break;
+        case FLOCKMTL_TYPESAFE:
+            provider_ = std::make_shared<TypeSafeProvider>(model_details_, rate_limiter, usage_limiter);
+            break;
         case FLOCKMTL_ANTHROPIC:
             provider_ = std::make_shared<AnthropicProvider>(model_details_, rate_limiter, usage_limiter);
             break;
@@ -292,6 +307,7 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["tuple_format"] = static_cast<int>(model_details_.tuple_format);
     result["max_batch_size"] = model_details_.max_batch_size;
     result["is_async"] = model_details_.is_async;
+    result["threshold"] = model_details_.threshold;
     result["secret"] = model_details_.secret;
     if (model_details_.rate_limit.has_value()) {
         result["rate_limit"] = *model_details_.rate_limit;
@@ -303,6 +319,33 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
         result["model_parameters"] = model_details_.model_parameters;
     }
     return result;
+}
+
+void Model::RejectInapplicableInlineModelArgs(const nlohmann::json& user_model_json,
+                                              const nlohmann::json& resolved_model_json) {
+    if (!user_model_json.is_object() || !resolved_model_json.contains("provider")) {
+        return;
+    }
+    const auto provider_name = resolved_model_json["provider"].get<std::string>();
+    for (const auto& [key, _]: user_model_json.items()) {
+        if (const auto reason = DescribeInapplicableModelArg(provider_name, key)) {
+            throw duckdb::BinderException(*reason);
+        }
+    }
+}
+
+void Model::RejectUnsupportedFunction(const nlohmann::json& resolved_model_json, const std::string& function_name) {
+    if (!resolved_model_json.contains("provider")) {
+        return;
+    }
+    const auto provider_name = resolved_model_json["provider"].get<std::string>();
+    // TypeSafe cannot generate text, so it serves only the operators that judge rows.
+    if (GetProviderType(provider_name) == FLOCKMTL_TYPESAFE && function_name != "llm_filter") {
+        throw duckdb::BinderException(function_name + " is not supported by the '" + provider_name +
+                                      "' provider, which answers typed questions and cannot generate text. It supports llm_filter. Use a "
+                                      "generative provider for " +
+                                      function_name + ".");
+    }
 }
 
 nlohmann::json Model::ResolveModelDetailsToJson(const nlohmann::json& user_model_json) {

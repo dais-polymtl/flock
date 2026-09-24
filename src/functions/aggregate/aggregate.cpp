@@ -65,6 +65,7 @@ void AggregateFunctionBase::InitializeModelJson(
     auto model_value = duckdb::ExpressionExecutor::EvaluateScalar(context, *model_expr);
     auto user_model_json = CastValueToJson(model_value);
     bind_data.model_json = Model::ResolveModelDetailsToJson(user_model_json);
+    Model::RejectInapplicableInlineModelArgs(user_model_json, bind_data.model_json);
 }
 
 void AggregateFunctionBase::InitializePrompt(
@@ -118,6 +119,7 @@ duckdb::unique_ptr<LlmFunctionBindData> AggregateFunctionBase::ValidateAndInitia
     auto bind_data = duckdb::make_uniq<LlmFunctionBindData>();
 
     InitializeModelJson(context, arguments[0], *bind_data);
+    Model::RejectUnsupportedFunction(bind_data->model_json, function_name);
     InitializePrompt(context, arguments[1], *bind_data);
 
     return bind_data;

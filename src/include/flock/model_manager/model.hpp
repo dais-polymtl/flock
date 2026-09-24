@@ -12,6 +12,7 @@
 #include "flock/model_manager/providers/adapters/azure.hpp"
 #include "flock/model_manager/providers/adapters/ollama.hpp"
 #include "flock/model_manager/providers/adapters/openai.hpp"
+#include "flock/model_manager/providers/adapters/typesafe.hpp"
 #include "flock/model_manager/providers/handlers/ollama.hpp"
 #include "flock/model_manager/rate_limiter.hpp"
 #include "flock/model_manager/repository.hpp"
@@ -40,6 +41,12 @@ public:
 
     // Static helper method for binders to resolve model details to JSON
     static nlohmann::json ResolveModelDetailsToJson(const nlohmann::json& user_model_json);
+
+    static void RejectInapplicableInlineModelArgs(const nlohmann::json& user_model_json,
+                                                  const nlohmann::json& resolved_model_json);
+
+    static void RejectUnsupportedFunction(const nlohmann::json& resolved_model_json,
+                                          const std::string& function_name);
 
     // Factory function type for creating mock providers
     using MockProviderFactory = std::function<std::shared_ptr<IProvider>(

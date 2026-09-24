@@ -3,6 +3,7 @@
 #include "flock/core/common.hpp"
 #include "flock/core/config.hpp"
 #include "flock/custom_parser/query_parser.hpp"
+#include "flock/model_manager/repository.hpp"
 #include "flock/prompt_manager/repository.hpp"
 #include <sstream>
 #include <stdexcept>
@@ -13,7 +14,7 @@ namespace {
 
 bool IsAllowedModelArgKey(const std::string& key) {
     return key == "tuple_format" || key == "batch_size" || key == "max_batch_size" || key == "model_parameters" ||
-           key == "is_async" || key == "rate_limit" || key == "usage_limit";
+           key == "is_async" || key == "rate_limit" || key == "usage_limit" || key == "threshold";
 }
 
 void ValidateAndAssignBatchSizeArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
@@ -55,12 +56,17 @@ nlohmann::json ValidateUsageLimitObject(const nlohmann::json& value) {
     return result;
 }
 
-void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
+void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value,
+                               const std::string& provider_name) {
     if (!IsAllowedModelArgKey(key)) {
         throw std::runtime_error(
                 "Unknown model_args parameter: '" + key +
-                "'. Only tuple_format, batch_size, max_batch_size, model_parameters, is_async, rate_limit, and "
-                "usage_limit are allowed.");
+                "'. Only tuple_format, batch_size, max_batch_size, model_parameters, is_async, rate_limit, "
+                "usage_limit, and threshold are allowed.");
+    }
+
+    if (const auto reason = DescribeInapplicableModelArg(provider_name, key)) {
+        throw std::runtime_error(*reason);
     }
 
     if (key == "batch_size" || key == "max_batch_size") {
@@ -107,6 +113,11 @@ void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& ke
 
     if (key == "usage_limit") {
         model_args[key] = ValidateUsageLimitObject(value);
+        return;
+    }
+
+    if (key == "threshold") {
+        model_args[key] = ParseThresholdFromJson(value);
         return;
     }
 }
@@ -194,7 +205,7 @@ void ModelParser::ParseCreateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
             nlohmann::json input_args = nlohmann::json::parse(token.value);
             for (auto it = input_args.begin(); it != input_args.end(); ++it) {
                 const std::string& key = it.key();
-                ValidateAndAssignModelArg(model_args, key, it.value());
+                ValidateAndAssignModelArg(model_args, key, it.value(), provider_name);
             }
         } catch (const std::exception& e) {
             throw std::runtime_error(std::string("Failed to parse model_args JSON: ") + e.what());
@@ -319,7 +330,7 @@ void ModelParser::ParseUpdateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
                 nlohmann::json input_args = nlohmann::json::parse(token.value);
                 for (auto it = input_args.begin(); it != input_args.end(); ++it) {
                     const std::string& key = it.key();
-                    ValidateAndAssignModelArg(new_model_args, key, it.value());
+                    ValidateAndAssignModelArg(new_model_args, key, it.value(), provider_name);
                 }
             } catch (const std::exception& e) {
                 throw std::runtime_error(std::string("Failed to parse model_args JSON: ") + e.what());

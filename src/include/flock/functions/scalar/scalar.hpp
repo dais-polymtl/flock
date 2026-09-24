@@ -34,6 +34,10 @@ private:
                                     const duckdb::unique_ptr<duckdb::Expression>& model_expr,
                                     LlmFunctionBindData& bind_data);
 
+    static std::optional<double> ExtractConstantThreshold(duckdb::ClientContext& context,
+                                                          const duckdb::unique_ptr<duckdb::Expression>& prompt_expr,
+                                                          const std::string& function_name);
+
     static void InitializePrompt(duckdb::ClientContext& context,
                                  const duckdb::unique_ptr<duckdb::Expression>& prompt_expr,
                                  LlmFunctionBindData& bind_data);
@@ -45,21 +49,26 @@ public:
     static std::vector<std::any> Operation(duckdb::DataChunk& args);
     static void Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
 
+    // Call-site decision threshold; only providers that return probabilities use it.
     static void QueueCompletion(BatchContext batch, const std::string& user_prompt,
-                                ScalarFunctionType function_type, Model& model);
+                                ScalarFunctionType function_type, Model& model,
+                                std::optional<double> threshold = std::nullopt);
     static nlohmann::json Complete(BatchContext batch, const std::string& user_prompt,
-                                   ScalarFunctionType function_type, Model& model);
+                                   ScalarFunctionType function_type, Model& model,
+                                   std::optional<double> threshold = std::nullopt);
     static nlohmann::json BatchAndCompleteSync(const nlohmann::json& tuples,
                                                const std::string& user_prompt_name,
                                                ScalarFunctionType function_type,
-                                               Model& model);
+                                               Model& model,
+                                               std::optional<double> threshold = std::nullopt);
     static nlohmann::json BatchAndCompleteAsync(const nlohmann::json& tuples,
                                                 const std::string& user_prompt_name,
                                                 ScalarFunctionType function_type,
-                                                Model& model);
+                                                Model& model,
+                                                std::optional<double> threshold = std::nullopt);
     static nlohmann::json BatchAndComplete(const nlohmann::json& tuples,
                                            const std::string& user_prompt_name, ScalarFunctionType function_type,
-                                           Model& model);
+                                           Model& model, std::optional<double> threshold = std::nullopt);
 
     static duckdb::unique_ptr<LlmFunctionBindData> ValidateAndInitializeBindData(
             duckdb::ClientContext& context,

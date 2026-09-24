@@ -27,7 +27,8 @@
           "getting-started/openai",
           "getting-started/azure",
           "getting-started/ollama",
-          "getting-started/anthropic"
+          "getting-started/anthropic",
+          "getting-started/typesafe"
         ]
       },
       {

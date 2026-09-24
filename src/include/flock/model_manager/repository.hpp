@@ -45,6 +45,32 @@ inline size_t ParsePositiveSizeFromJson(const nlohmann::json& value, const std::
     return static_cast<size_t>(parsed);
 }
 
+inline double ParseThresholdFromJson(const nlohmann::json& value) {
+    constexpr const char* message = "'threshold' must be a number between 0 and 1.";
+    double threshold = 0.0;
+    if (value.is_number()) {
+        threshold = value.get<double>();
+    } else if (value.is_string()) {
+        const auto text = value.get<std::string>();
+        size_t consumed = 0;
+        try {
+            threshold = std::stod(text, &consumed);
+        } catch (const std::exception&) {
+            throw std::runtime_error(message);
+        }
+        if (consumed != text.size()) {
+            throw std::runtime_error(message);
+        }
+    } else {
+        throw std::runtime_error(message);
+    }
+    // Written so that NaN, which compares false against every bound, fails.
+    if (!(threshold >= 0.0 && threshold <= 1.0)) {
+        throw std::runtime_error(message);
+    }
+    return threshold;
+}
+
 inline UsageLimit ParseUsageLimitFromJson(const nlohmann::json& value) {
     UsageLimit limit;
     if (value.contains("prompt_tokens_limit")) {
@@ -85,6 +111,7 @@ struct ModelDetails {
     bool is_async = true;
     std::optional<size_t> rate_limit;
     std::optional<UsageLimit> usage_limit;
+    double threshold = 0.5;
 };
 
 
@@ -112,6 +139,7 @@ const std::string OLLAMA = "ollama";
 const std::string OPENAI = "openai";
 const std::string AZURE = "azure";
 const std::string ANTHROPIC = "anthropic";
+const std::string TYPESAFE = "typesafe";
 const std::string DEFAULT_PROVIDER = "default";
 const std::string EMPTY_PROVIDER = "";
 
@@ -123,6 +151,7 @@ enum SupportedProviders {
     FLOCKMTL_AZURE,
     FLOCKMTL_OLLAMA,
     FLOCKMTL_ANTHROPIC,
+    FLOCKMTL_TYPESAFE,
     FLOCKMTL_UNSUPPORTED_PROVIDER,
     FLOCKMTL_SUPPORTED_PROVIDER_COUNT
 };
@@ -137,6 +166,8 @@ inline SupportedProviders GetProviderType(std::string provider) {
         return FLOCKMTL_OLLAMA;
     if (provider == ANTHROPIC)
         return FLOCKMTL_ANTHROPIC;
+    if (provider == TYPESAFE)
+        return FLOCKMTL_TYPESAFE;
 
     return FLOCKMTL_UNSUPPORTED_PROVIDER;
 }
@@ -151,9 +182,35 @@ inline std::string GetProviderName(SupportedProviders provider) {
             return OLLAMA;
         case FLOCKMTL_ANTHROPIC:
             return ANTHROPIC;
+        case FLOCKMTL_TYPESAFE:
+            return TYPESAFE;
         default:
             return "";
     }
+}
+
+inline constexpr size_t TYPESAFE_DEFAULT_MAX_BATCH_SIZE = 128;
+
+// Settings a provider cannot act on, with the reason.
+inline std::optional<std::string> DescribeInapplicableModelArg(const std::string& provider_name,
+                                                               const std::string& key) {
+    if (key == "threshold" && GetProviderType(provider_name) != FLOCKMTL_TYPESAFE) {
+        return "'threshold' is not accepted by the '" + provider_name +
+               "' provider: it returns no probability to compare the threshold against.";
+    }
+    if (GetProviderType(provider_name) != FLOCKMTL_TYPESAFE) {
+        return std::nullopt;
+    }
+    if (key == "model_parameters") {
+        return "'model_parameters' is not accepted by the '" + provider_name +
+               "' provider: a System One request carries only a model, a state and questions, so there is nothing "
+               "to tune.";
+    }
+    if (key == "tuple_format") {
+        return "'tuple_format' is not accepted by the '" + provider_name +
+               "' provider: it builds a structured state instead of rendering tuples into a prompt.";
+    }
+    return std::nullopt;
 }
 
 }// namespace flock
