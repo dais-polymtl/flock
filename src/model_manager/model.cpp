@@ -1,4 +1,5 @@
 #include "flock/model_manager/model.hpp"
+#include "flock/prompt_manager/prompt_manager.hpp"
 #include "flock/prompt_manager/repository.hpp"
 #include "flock/secret_manager/secret_manager.hpp"
 #include <algorithm>
@@ -317,6 +318,18 @@ nlohmann::json Model::ResolveModelDetailsToJson(const nlohmann::json& user_model
 
 void Model::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
     provider_->AddCompletionRequest(prompt, num_output_tuples, output_type, media_data);
+}
+
+void Model::AddStructuredCompletionRequest(const StructuredCompletionRequest& request) {
+    if (provider_->AcceptsStructuredTuples()) {
+        provider_->AddStructuredCompletionRequest(request);
+        return;
+    }
+    const auto& [prompt, media_data] = PromptManager::Render(request.user_prompt, request.batch.Columns(),
+                                                             request.function_type, model_details_.tuple_format);
+    const auto output_type =
+            request.function_type == ScalarFunctionType::FILTER ? OutputType::BOOL : OutputType::STRING;
+    provider_->AddCompletionRequest(prompt, static_cast<int>(request.batch.RowCount()), output_type, media_data);
 }
 
 void Model::AddEmbeddingRequest(const std::vector<std::string>& inputs) {

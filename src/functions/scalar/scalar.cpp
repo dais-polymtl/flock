@@ -163,20 +163,14 @@ void ScalarFunctionBase::InitializeModelJson(
     bind_data.model_json = Model::ResolveModelDetailsToJson(user_model_json);
 }
 
-void ScalarFunctionBase::QueueCompletion(nlohmann::json& tuples, const std::string& user_prompt,
+void ScalarFunctionBase::QueueCompletion(BatchContext batch, const std::string& user_prompt,
                                          ScalarFunctionType function_type, Model& model) {
-    const auto [prompt, media_data] = PromptManager::Render(user_prompt, tuples, function_type, model.GetModelDetails().tuple_format);
-    OutputType output_type = OutputType::STRING;
-    if (function_type == ScalarFunctionType::FILTER) {
-        output_type = OutputType::BOOL;
-    }
-
-    model.AddCompletionRequest(prompt, static_cast<int>(tuples[0]["data"].size()), output_type, media_data);
+    model.AddStructuredCompletionRequest({std::move(batch), user_prompt, function_type});
 }
 
-nlohmann::json ScalarFunctionBase::Complete(nlohmann::json& columns, const std::string& user_prompt,
+nlohmann::json ScalarFunctionBase::Complete(BatchContext batch, const std::string& user_prompt,
                                             ScalarFunctionType function_type, Model& model) {
-    QueueCompletion(columns, user_prompt, function_type, model);
+    QueueCompletion(std::move(batch), user_prompt, function_type, model);
     auto response = model.CollectCompletions();
     return response[0]["items"];
 };
@@ -193,13 +187,14 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
     int start_index = 0;
 
     do {
-        auto batch_tuples = BuildBatchTuples(tuples, start_index, batch_size);
+        auto batch = BatchContext(BuildBatchTuples(tuples, start_index, batch_size));
+        const auto batch_rows = batch.RowCount();
 
         start_index += batch_size;
 
         try {
-            auto response = Complete(batch_tuples, user_prompt, function_type, model);
-            NormalizeAndAppendBatchResponse(response, batch_tuples[0]["data"].size(), responses);
+            auto response = Complete(std::move(batch), user_prompt, function_type, model);
+            NormalizeAndAppendBatchResponse(response, batch_rows, responses);
             batch_size = configured;
         } catch (const TokenLimitExceededError&) {
             start_index -= batch_size;
@@ -246,8 +241,8 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
         pending.clear();
 
         for (const auto& work: current_round) {
-            auto batch_tuples = BuildBatchTuples(tuples, work.start_index, work.batch_size);
-            QueueCompletion(batch_tuples, user_prompt, function_type, attempt_model);
+            QueueCompletion(BatchContext(BuildBatchTuples(tuples, work.start_index, work.batch_size)), user_prompt,
+                            function_type, attempt_model);
         }
 
         std::vector<nlohmann::json> batch_responses;

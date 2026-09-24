@@ -1,6 +1,7 @@
 #pragma once
 
 #include "duckdb/common/exception/http_exception.hpp"
+#include "flock/core/batch_context.hpp"
 #include "flock/core/common.hpp"
 #include "flock/model_manager/providers/handlers/handler.hpp"
 #include "flock/model_manager/repository.hpp"
@@ -8,6 +9,7 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <regex>
+#include <stdexcept>
 
 namespace flock {
 
@@ -21,6 +23,13 @@ enum class OutputType {
     OBJECT,
     BOOL,
     INTEGER
+};
+
+// A batch handed to a provider before it is rendered into a prompt.
+struct StructuredCompletionRequest {
+    BatchContext batch;
+    std::string user_prompt;
+    ScalarFunctionType function_type;
 };
 
 class IProvider {
@@ -41,6 +50,14 @@ public:
     virtual ~IProvider() = default;
 
     virtual void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) = 0;
+
+    // Overridden by providers that build requests from the rows; Model renders a prompt for the rest.
+    virtual bool AcceptsStructuredTuples() const {
+        return false;
+    }
+    virtual void AddStructuredCompletionRequest(const StructuredCompletionRequest&) {
+        throw std::logic_error("This provider does not accept structured tuples");
+    }
     virtual void AddEmbeddingRequest(const std::vector<std::string>& inputs) = 0;
     virtual void AddTranscriptionRequest(const nlohmann::json& audio_files) = 0;
 
