@@ -34,10 +34,6 @@ private:
                                     const duckdb::unique_ptr<duckdb::Expression>& model_expr,
                                     LlmFunctionBindData& bind_data);
 
-    static std::optional<double> ExtractConstantThreshold(duckdb::ClientContext& context,
-                                                          const duckdb::unique_ptr<duckdb::Expression>& prompt_expr,
-                                                          const std::string& function_name);
-
     static void InitializePrompt(duckdb::ClientContext& context,
                                  const duckdb::unique_ptr<duckdb::Expression>& prompt_expr,
                                  LlmFunctionBindData& bind_data);

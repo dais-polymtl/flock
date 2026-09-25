@@ -31,7 +31,7 @@ public:
     }
 };
 
-ModelDetails MakeModelDetails(const double threshold = 0.5) {
+ModelDetails MakeModelDetails(const std::optional<double> threshold = 0.5) {
     ModelDetails details;
     details.provider_name = TYPESAFE;
     details.model_name = "jev";
@@ -155,6 +155,14 @@ TEST(TypeSafeProviderTest, TreatsTheNullStringAsMissing) {
     const auto items = provider.CollectCompletions()[0]["items"];
     EXPECT_TRUE(items[0].get<bool>());
     EXPECT_TRUE(items[1].is_null());
+}
+
+TEST(TypeSafeProviderTest, FilterRequiresAThreshold) {
+    auto provider = TypeSafeProvider(MakeModelDetails(std::nullopt));
+    InstallRecordingHandler(provider);
+    EXPECT_THROW(provider.AddStructuredCompletionRequest(
+                         {BatchContext(MakeTuples({"a"})), "predicate", ScalarFunctionType::FILTER}),
+                 std::runtime_error);
 }
 
 TEST(TypeSafeProviderTest, AppliesTheConfiguredThreshold) {
@@ -493,42 +501,6 @@ TEST_F(LlmFilterTypeSafeTest, RejectsAnInvalidThreshold) {
     }
 }
 
-TEST_F(LlmFilterTypeSafeTest,
-       RejectsAThresholdOnAProviderWithoutProbabilities) {
-    auto con = Config::GetConnection();
-    for (const auto& [query, reason]:
-         std::vector<std::pair<std::string, std::string>>{
-                 {"SELECT llm_filter({'model_name': 'gpt-4o'}, {'prompt': "
-                  "'complains', 'context_columns': "
-                  "[{'data': t}], 'threshold': 0.8}) FROM unnest(['a']) AS tbl(t);",
-                  "has no effect"}}) {
-        const auto results = con.Query(query);
-        ASSERT_TRUE(results->HasError()) << query;
-        EXPECT_NE(results->GetError().find(reason), std::string::npos)
-                << results->GetError();
-    }
-}
-
-TEST_F(LlmFilterTypeSafeTest, TypeSafeRequiresAThreshold) {
-    auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT llm_filter({'model_name': 'jev'}, {'prompt': 'complains', "
-                                   "'context_columns': [{'data': t}]}) FROM unnest(['a']) AS tbl(t);");
-    ASSERT_TRUE(results->HasError());
-    EXPECT_NE(results->GetError().find("needs a 'threshold'"), std::string::npos) << results->GetError();
-    EXPECT_TRUE(RecordingDecisionProvider::seen_thresholds.empty());
-}
-
-TEST_F(LlmFilterTypeSafeTest, TypeSafeRequiresContextColumns) {
-    auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT llm_filter({'model_name': 'jev'}, "
-                                   "{'prompt': 'Are you a robot?'});");
-    ASSERT_TRUE(results->HasError());
-    EXPECT_NE(results->GetError().find("requires 'context_columns'"),
-              std::string::npos)
-            << results->GetError();
-}
-
-// The adapter relies on a NULL arriving as the string "NULL".
 TEST_F(LlmFilterTypeSafeTest,
        NullContextValuesReachTheProviderAsTheNullString) {
     auto con = Config::GetConnection();

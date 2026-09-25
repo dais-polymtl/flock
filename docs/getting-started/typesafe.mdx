@@ -78,7 +78,7 @@ The threshold must be a constant between 0 and 1.
 | `llm_embedding` | No: TypeSafe serves no embeddings |
 | `llm_rerank` | No |
 
-Using an unsupported function with a TypeSafe model fails when the query is planned, before any request is sent, and so does `llm_filter` without `context_columns`. Context columns must be text; image and audio columns are refused.
+Using an unsupported function with a TypeSafe model fails when the query is planned, before any request is sent. Context columns must be text; image and audio columns are refused.
 
 ## Picking a Row
 

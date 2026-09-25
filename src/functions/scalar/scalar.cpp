@@ -300,32 +300,6 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples
     return BatchAndCompleteSync(tuples, user_prompt, function_type, model, threshold);
 }
 
-std::optional<double> ScalarFunctionBase::ExtractConstantThreshold(
-        duckdb::ClientContext& context, const duckdb::unique_ptr<duckdb::Expression>& prompt_expr,
-        const std::string& function_name) {
-    if (prompt_expr->expression_class != duckdb::ExpressionClass::BOUND_FUNCTION) {
-        return std::nullopt;
-    }
-    const auto& children = prompt_expr->Cast<duckdb::BoundFunctionExpression>().children;
-    for (idx_t i = 0; i < children.size(); i++) {
-        if (duckdb::StructType::GetChildName(prompt_expr->return_type, i) != "threshold") {
-            continue;
-        }
-        try {
-            const auto value = duckdb::ExpressionExecutor::EvaluateScalar(context, *children[i]);
-            return ParseThresholdFromJson(value.IsNull() ? nlohmann::json() : nlohmann::json(value.GetValue<double>()));
-        } catch (...) {
-            throw duckdb::BinderException(function_name + ": 'threshold' must be a number between 0 and 1.");
-        }
-    }
-    return std::nullopt;
-}
-
-// Settings that travel in the prompt struct but are not part of the prompt.
-static bool IsPromptField(const std::string& field_name) {
-    return field_name != "context_columns" && field_name != "threshold";
-}
-
 void ScalarFunctionBase::InitializePrompt(
         duckdb::ClientContext& context,
         const duckdb::unique_ptr<duckdb::Expression>& prompt_expr,
@@ -333,13 +307,8 @@ void ScalarFunctionBase::InitializePrompt(
     nlohmann::json prompt_json;
 
     if (prompt_expr->IsFoldable()) {
-        const auto fields = CastValueToJson(duckdb::ExpressionExecutor::EvaluateScalar(context, *prompt_expr));
-        prompt_json = nlohmann::json::object();
-        for (const auto& field: fields.items()) {
-            if (IsPromptField(field.key())) {
-                prompt_json[field.key()] = field.value();
-            }
-        }
+        auto prompt_value = duckdb::ExpressionExecutor::EvaluateScalar(context, *prompt_expr);
+        prompt_json = CastValueToJson(prompt_value);
     } else if (prompt_expr->expression_class == duckdb::ExpressionClass::BOUND_FUNCTION) {
         auto& func_expr = prompt_expr->Cast<duckdb::BoundFunctionExpression>();
         const auto& struct_type = prompt_expr->return_type;
@@ -348,19 +317,24 @@ void ScalarFunctionBase::InitializePrompt(
             auto field_name = duckdb::StructType::GetChildName(struct_type, i);
             auto& child = func_expr.children[i];
 
-            if (IsPromptField(field_name) && child->IsFoldable()) {
+            if (field_name != "context_columns" && child->IsFoldable()) {
                 try {
                     auto field_value = duckdb::ExpressionExecutor::EvaluateScalar(context, *child);
-                    if (field_value.type().id() == duckdb::LogicalTypeId::VARCHAR) {
-                        prompt_json[field_name] = field_value.GetValue<std::string>();
-                    } else {
-                        prompt_json[field_name] = CastValueToJson(field_value);
-                    }
+                    prompt_json[field_name] = field_value.ToString();
                 } catch (...) {
                     // Skip fields that can't be evaluated
                 }
             }
         }
+    }
+
+    if (prompt_json.contains("context_columns")) {
+        prompt_json.erase("context_columns");
+    }
+
+    if (prompt_json.contains("threshold")) {
+        bind_data.threshold = ParseThresholdFromJson(prompt_json["threshold"]);
+        prompt_json.erase("threshold");
     }
 
     auto prompt_details = PromptManager::CreatePromptDetails(prompt_json);
@@ -384,31 +358,7 @@ duckdb::unique_ptr<LlmFunctionBindData> ScalarFunctionBase::ValidateAndInitializ
     auto bind_data = duckdb::make_uniq<LlmFunctionBindData>();
 
     InitializeModelJson(context, arguments[0], *bind_data);
-    bind_data->threshold = ExtractConstantThreshold(context, arguments[1], function_name);
-    if (bind_data->threshold.has_value() && function_name != "llm_filter") {
-        throw duckdb::BinderException(function_name + ": 'threshold' applies only to llm_filter.");
-    }
-    // A model given as a non-constant expression is resolved only at execution.
-    if (bind_data->model_json.contains("provider")) {
-        Model::RejectUnsupportedFunction(bind_data->model_json, function_name);
-        const auto provider_name = bind_data->model_json["provider"].get<std::string>();
-        const auto is_typesafe = GetProviderType(provider_name) == FLOCKMTL_TYPESAFE;
-        // TypeSafe judges rows, so it has nothing to judge without them.
-        if (is_typesafe && !prompt_info.has_context_columns) {
-            throw duckdb::BinderException(function_name + ": the '" + provider_name +
-                                          "' provider requires 'context_columns'.");
-        }
-        if (is_typesafe && function_name == "llm_filter" && !bind_data->threshold.has_value() &&
-            !bind_data->model_json.contains("threshold")) {
-            throw duckdb::BinderException(function_name + ": the '" + provider_name +
-                                          "' provider needs a 'threshold', on the model or in the prompt.");
-        }
-        // Only TypeSafe returns a probability to compare a threshold against.
-        if (bind_data->threshold.has_value() && !is_typesafe) {
-            throw duckdb::BinderException(function_name + ": 'threshold' has no effect on the '" + provider_name +
-                                          "' provider, which does not return probabilities.");
-        }
-    }
+    Model::RejectUnsupportedFunction(bind_data->model_json, function_name);
 
     if (initialize_prompt) {
         InitializePrompt(context, arguments[1], *bind_data);
