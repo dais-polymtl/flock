@@ -193,7 +193,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
         try {
             auto response = Complete(BatchContext(BuildBatchTuples(tuples, start_index, batch_size)), user_prompt,
                                      function_type, model, threshold);
-            NormalizeAndAppendBatchResponse(response, std::min(batch_size, row_count - start_index), responses);
+            NormalizeAndAppendBatchResponse(response, std::min<int>(batch_size, row_count - start_index), responses);
             start_index += batch_size;
             batch_size = configured;
         } catch (const TokenLimitExceededError&) {
