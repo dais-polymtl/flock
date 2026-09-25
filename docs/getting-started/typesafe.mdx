@@ -96,7 +96,7 @@ A row whose context is entirely `NULL` is not sent to Jev, so it costs nothing a
 
 ## Batching and Limits
 
-Rows are sent in batches, each batch as a single request with one question per row. Because each request carries a fixed overhead, large batches are much cheaper per row, so TypeSafe models default to a `max_batch_size` of 128 rather than 16. Your host's request limit depends on your plan; set `rate_limit` to it to throttle requests (see [Models Management](/resource-management/models)).
+Rows are sent in batches, each batch as a single request with one question per row. Because each request carries a fixed overhead, large batches are much cheaper per row, so consider raising `max_batch_size`. Your host's request limit depends on your plan; set `rate_limit` to it to throttle requests (see [Models Management](/resource-management/models)).
 
 If a batch is too large for a single request, Flock halves it and retries automatically; a rejected request is not billed.
 

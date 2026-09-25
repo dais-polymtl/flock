@@ -176,6 +176,4 @@ inline std::string GetProviderName(SupportedProviders provider) {
     }
 }
 
-inline constexpr size_t TYPESAFE_DEFAULT_MAX_BATCH_SIZE = 128;
-
 }// namespace flock

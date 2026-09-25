@@ -22,7 +22,7 @@ Models are stored in a table with the following structure:
 
 `max_batch_size` sets the maximum number of input tuples Flock groups into a single provider request. Each request counts as one call against `rate_limit` and provider quotas.
 
-Default: `16`, or `128` for `typesafe` models, where larger batches are cheaper per row.
+Default: `16`.
 
 ```sql
 CREATE MODEL('batched-gpt4o', 'gpt-4o', 'openai', {"max_batch_size": 64});

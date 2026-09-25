@@ -134,10 +134,7 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         if (hasBatchSizeConfig(db_model_args)) {
             model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(db_model_args);
         } else {
-            // A TypeSafe request carries a fixed overhead, so larger batches are cheaper per row.
-            model_details_.max_batch_size = GetProviderType(model_details_.provider_name) == FLOCKMTL_TYPESAFE
-                                                    ? TYPESAFE_DEFAULT_MAX_BATCH_SIZE
-                                                    : DEFAULT_MAX_BATCH_SIZE;
+            model_details_.max_batch_size = DEFAULT_MAX_BATCH_SIZE;
         }
     }
 
