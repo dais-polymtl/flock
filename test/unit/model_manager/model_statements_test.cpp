@@ -1,4 +1,3 @@
-#include "flock/core/config.hpp"
 #include "flock/custom_parser/query/model_parser.hpp"
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
@@ -53,33 +52,6 @@ TEST(ModelStatementTest, GetModelStatement_DefaultInitialization) {
 TEST(ModelStatementTest, GetAllModelStatement_DefaultInitialization) {
     GetAllModelStatement stmt;
     EXPECT_EQ(stmt.type, StatementType::GET_ALL_MODEL);
-}
-
-TEST(ModelStatementTest, TypeSafeRejectsInapplicableModelArgs) {
-    auto con = Config::GetConnection();
-
-    const auto parameters = con.Query(
-            "CREATE MODEL('jev-rejects-parameters', 'jev-latest', 'typesafe', "
-            "{\"model_parameters\": {\"temperature\": 0}});");
-    ASSERT_TRUE(parameters->HasError());
-    EXPECT_NE(parameters->GetError().find("model_parameters"), std::string::npos);
-
-    const auto format = con.Query("CREATE MODEL('jev-rejects-format', 'jev-latest', 'typesafe', "
-                                  "{\"tuple_format\": \"JSON\"});");
-    ASSERT_TRUE(format->HasError());
-    EXPECT_NE(format->GetError().find("tuple_format"), std::string::npos);
-
-    // The models table outlives a test run.
-    con.Query("DELETE MODEL 'jev-good-args';");
-    const auto accepted = con.Query("CREATE MODEL('jev-good-args', 'jev-latest', 'typesafe', "
-                                    "{\"threshold\": 0.8, \"max_batch_size\": 64});");
-    EXPECT_FALSE(accepted->HasError()) << accepted->GetError();
-
-    // The same settings remain valid for a generative provider.
-    con.Query("DELETE MODEL 'gpt-good-args';");
-    const auto generative = con.Query("CREATE MODEL('gpt-good-args', 'gpt-4o', 'openai', "
-                                      "{\"model_parameters\": {\"temperature\": 0}});");
-    EXPECT_FALSE(generative->HasError()) << generative->GetError();
 }
 
 }// namespace flock

@@ -65,7 +65,6 @@ void AggregateFunctionBase::InitializeModelJson(
     auto model_value = duckdb::ExpressionExecutor::EvaluateScalar(context, *model_expr);
     auto user_model_json = CastValueToJson(model_value);
     bind_data.model_json = Model::ResolveModelDetailsToJson(user_model_json);
-    Model::RejectInapplicableInlineModelArgs(user_model_json, bind_data.model_json);
 }
 
 void AggregateFunctionBase::InitializePrompt(

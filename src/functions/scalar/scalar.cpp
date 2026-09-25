@@ -161,7 +161,6 @@ void ScalarFunctionBase::InitializeModelJson(
     auto model_value = duckdb::ExpressionExecutor::EvaluateScalar(context, *model_expr);
     auto user_model_json = CastValueToJson(model_value);
     bind_data.model_json = Model::ResolveModelDetailsToJson(user_model_json);
-    Model::RejectInapplicableInlineModelArgs(user_model_json, bind_data.model_json);
 }
 
 void ScalarFunctionBase::QueueCompletion(BatchContext batch, const std::string& user_prompt,
@@ -191,17 +190,13 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
     int start_index = 0;
 
     do {
-        auto batch = BatchContext(BuildBatchTuples(tuples, start_index, batch_size));
-        const auto batch_rows = batch.RowCount();
-
-        start_index += batch_size;
-
         try {
-            auto response = Complete(std::move(batch), user_prompt, function_type, model, threshold);
-            NormalizeAndAppendBatchResponse(response, batch_rows, responses);
+            auto response = Complete(BatchContext(BuildBatchTuples(tuples, start_index, batch_size)), user_prompt,
+                                     function_type, model, threshold);
+            NormalizeAndAppendBatchResponse(response, std::min(batch_size, row_count - start_index), responses);
+            start_index += batch_size;
             batch_size = configured;
         } catch (const TokenLimitExceededError&) {
-            start_index -= batch_size;
             const int attempted_batch_size = batch_size;
             batch_size = batch_size / 2;
             if (batch_size == 0) {
@@ -308,29 +303,19 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples
 std::optional<double> ScalarFunctionBase::ExtractConstantThreshold(
         duckdb::ClientContext& context, const duckdb::unique_ptr<duckdb::Expression>& prompt_expr,
         const std::string& function_name) {
-    const auto& struct_type = prompt_expr->return_type;
-    for (idx_t i = 0; i < duckdb::StructType::GetChildCount(struct_type); i++) {
-        if (duckdb::StructType::GetChildName(struct_type, i) != "threshold") {
+    if (prompt_expr->expression_class != duckdb::ExpressionClass::BOUND_FUNCTION) {
+        return std::nullopt;
+    }
+    const auto& children = prompt_expr->Cast<duckdb::BoundFunctionExpression>().children;
+    for (idx_t i = 0; i < children.size(); i++) {
+        if (duckdb::StructType::GetChildName(prompt_expr->return_type, i) != "threshold") {
             continue;
         }
-        // One threshold per query: it must not come from a column.
-        duckdb::Value value;
-        if (prompt_expr->IsFoldable()) {
-            value = duckdb::StructValue::GetChildren(duckdb::ExpressionExecutor::EvaluateScalar(context, *prompt_expr))[i];
-        } else if (prompt_expr->expression_class == duckdb::ExpressionClass::BOUND_FUNCTION &&
-                   prompt_expr->Cast<duckdb::BoundFunctionExpression>().children[i]->IsFoldable()) {
-            value = duckdb::ExpressionExecutor::EvaluateScalar(
-                    context, *prompt_expr->Cast<duckdb::BoundFunctionExpression>().children[i]);
-        } else {
-            throw duckdb::BinderException(function_name + ": 'threshold' must be a constant. It cannot vary from row to row.");
-        }
         try {
-            if (value.IsNull() || !value.type().IsNumeric()) {
-                throw std::runtime_error("'threshold' must be a number between 0 and 1.");
-            }
-            return ParseThresholdFromJson(value.GetValue<double>());
-        } catch (const std::runtime_error& error) {
-            throw duckdb::BinderException(function_name + ": " + error.what());
+            const auto value = duckdb::ExpressionExecutor::EvaluateScalar(context, *children[i]);
+            return ParseThresholdFromJson(value.IsNull() ? nlohmann::json() : nlohmann::json(value.GetValue<double>()));
+        } catch (...) {
+            throw duckdb::BinderException(function_name + ": 'threshold' must be a number between 0 and 1.");
         }
     }
     return std::nullopt;
@@ -412,6 +397,11 @@ duckdb::unique_ptr<LlmFunctionBindData> ScalarFunctionBase::ValidateAndInitializ
         if (is_typesafe && !prompt_info.has_context_columns) {
             throw duckdb::BinderException(function_name + ": the '" + provider_name +
                                           "' provider requires 'context_columns'.");
+        }
+        if (is_typesafe && function_name == "llm_filter" && !bind_data->threshold.has_value() &&
+            !bind_data->model_json.contains("threshold")) {
+            throw duckdb::BinderException(function_name + ": the '" + provider_name +
+                                          "' provider needs a 'threshold', on the model or in the prompt.");
         }
         // Only TypeSafe returns a probability to compare a threshold against.
         if (bind_data->threshold.has_value() && !is_typesafe) {

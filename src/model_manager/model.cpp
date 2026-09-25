@@ -159,7 +159,7 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     } else if (!is_fully_resolved) {
         ensure_db_loaded();
         if (db_model_args.contains("threshold")) {
-            model_details_.threshold = ParseThresholdFromJson(db_model_args.at("threshold"));
+            model_details_.threshold = db_model_args.at("threshold").get<double>();
         }
     }
 
@@ -307,7 +307,9 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["tuple_format"] = static_cast<int>(model_details_.tuple_format);
     result["max_batch_size"] = model_details_.max_batch_size;
     result["is_async"] = model_details_.is_async;
-    result["threshold"] = model_details_.threshold;
+    if (model_details_.threshold.has_value()) {
+        result["threshold"] = *model_details_.threshold;
+    }
     result["secret"] = model_details_.secret;
     if (model_details_.rate_limit.has_value()) {
         result["rate_limit"] = *model_details_.rate_limit;
@@ -321,27 +323,14 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     return result;
 }
 
-void Model::RejectInapplicableInlineModelArgs(const nlohmann::json& user_model_json,
-                                              const nlohmann::json& resolved_model_json) {
-    if (!user_model_json.is_object() || !resolved_model_json.contains("provider")) {
-        return;
-    }
-    const auto provider_name = resolved_model_json["provider"].get<std::string>();
-    for (const auto& [key, _]: user_model_json.items()) {
-        if (const auto reason = DescribeInapplicableModelArg(provider_name, key)) {
-            throw duckdb::BinderException(*reason);
-        }
-    }
-}
-
 void Model::RejectUnsupportedFunction(const nlohmann::json& resolved_model_json, const std::string& function_name) {
     if (!resolved_model_json.contains("provider")) {
         return;
     }
     const auto provider_name = resolved_model_json["provider"].get<std::string>();
     // TypeSafe cannot generate text, so it serves only the operators that judge rows.
-    const auto judges_rows = function_name == "llm_filter" || function_name == "llm_first" || function_name == "llm_last";
-    if (GetProviderType(provider_name) == FLOCKMTL_TYPESAFE && !judges_rows) {
+    if (GetProviderType(provider_name) == FLOCKMTL_TYPESAFE && function_name != "llm_filter" &&
+        function_name != "llm_first" && function_name != "llm_last") {
         throw duckdb::BinderException(function_name + " is not supported by the '" + provider_name +
                                       "' provider, which answers typed questions and cannot generate text. It supports llm_filter, "
                                       "llm_first and llm_last. Use a generative provider for " +

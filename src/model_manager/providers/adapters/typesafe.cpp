@@ -7,11 +7,6 @@ namespace flock {
 
 namespace {
 
-// A question's key, naming the row by its offset in the batch.
-std::string RowKey(const size_t row_offset) {
-    return "r" + std::to_string(row_offset);
-}
-
 // The row with missing values as null, or nothing if every value is missing.
 std::optional<nlohmann::json> RowToJudge(nlohmann::json row) {
     auto has_content = false;
@@ -30,13 +25,8 @@ std::optional<nlohmann::json> RowToJudge(nlohmann::json row) {
     return row;
 }
 
-// Added by llm_first and llm_last to identify rows; never shown to Jev.
+// Added by llm_first and llm_last to identify rows; never shown to provider.
 constexpr const char* ROW_ID_COLUMN = "flock_row_id";
-
-// One null per row: the verdict of every row that has not been answered.
-nlohmann::json UnansweredItems(const size_t num_rows) {
-    return nlohmann::json(num_rows, nullptr);
-}
 
 }// namespace
 
@@ -68,12 +58,12 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
 
     if (const auto* scalar = std::get_if<ScalarFunctionType>(&request.function_type);
         scalar != nullptr && *scalar == ScalarFunctionType::FILTER) {
-        AddVerdictRequest(request);
+        AddFilterRequest(request);
         return;
     }
     if (const auto* aggregate = std::get_if<AggregateFunctionType>(&request.function_type);
         aggregate != nullptr && (*aggregate == AggregateFunctionType::FIRST || *aggregate == AggregateFunctionType::LAST)) {
-        AddPickRequest(request, *aggregate);
+        AddFirstOrLastRequest(request, *aggregate);
         return;
     }
     throw std::runtime_error("The 'typesafe' provider serves llm_filter, llm_first and llm_last only: Jev answers "
@@ -81,8 +71,13 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
                              "provider.");
 }
 
-void TypeSafeProvider::AddVerdictRequest(const StructuredCompletionRequest& request) {
-    PendingBatch batch{request.batch.RowCount(), request.threshold.value_or(model_details_.threshold), {}, std::nullopt};
+void TypeSafeProvider::AddFilterRequest(const StructuredCompletionRequest& request) {
+    const auto threshold = request.threshold ? request.threshold : model_details_.threshold;
+    if (!threshold.has_value()) {
+        throw std::runtime_error("llm_filter on the 'typesafe' provider needs a 'threshold', on the model or in the prompt.");
+    }
+
+    PendingBatch batch{request.batch.RowCount(), *threshold, {}, std::nullopt};
 
     auto rows = nlohmann::json::object();
     auto questions = nlohmann::json::object();
@@ -90,9 +85,10 @@ void TypeSafeProvider::AddVerdictRequest(const StructuredCompletionRequest& requ
     for (size_t row_offset = 0; row_offset < batch.row_count; row_offset++) {
         auto row = RowToJudge(request.batch.Row(row_offset));
         if (!row) {
+            // we skip null rows
             continue;
         }
-        const auto key = RowKey(row_offset);
+        const auto key = std::to_string(row_offset);
         rows[key] = std::move(*row);
         // The key is not sent to the model, so the instructions name the row.
         questions[key] = {{"type", "noul"},
@@ -102,17 +98,18 @@ void TypeSafeProvider::AddVerdictRequest(const StructuredCompletionRequest& requ
 
     pending_batches_.push_back(std::move(batch));
 
-    // A batch with no questions is not sent.
+    // A batch with no questions is not sent (all rows are nulls)
     if (questions.empty()) {
         return;
     }
+
     model_handler_->AddRequest({{"model", model_details_.model},
                                 {"state", {{"criterion", request.user_prompt}, {"rows", rows}}},
                                 {"questions", questions}});
 }
 
-void TypeSafeProvider::AddPickRequest(const StructuredCompletionRequest& request,
-                                      const AggregateFunctionType function_type) {
+void TypeSafeProvider::AddFirstOrLastRequest(const StructuredCompletionRequest& request,
+                                             const AggregateFunctionType function_type) {
     std::optional<std::vector<nlohmann::json>> row_ids;
     for (const auto& column: request.batch.Columns()) {
         if (column.contains("name") && column["name"] == ROW_ID_COLUMN && column.contains("data")) {
@@ -136,7 +133,7 @@ void TypeSafeProvider::AddPickRequest(const StructuredCompletionRequest& request
         if (!row) {
             continue;
         }
-        const auto key = RowKey(row_offset);
+        const auto key = std::to_string(row_offset);
         rows[key] = std::move(*row);
         options[key] = nullptr;
         batch.asked_rows.push_back(row_offset);
@@ -144,7 +141,7 @@ void TypeSafeProvider::AddPickRequest(const StructuredCompletionRequest& request
 
     pending_batches_.push_back(std::move(batch));
 
-    // With one candidate, or none, the answer is already known.
+    // With only one candidate, or none, the answer is already known.
     if (options.size() <= 1) {
         return;
     }
@@ -166,59 +163,46 @@ std::vector<nlohmann::json> TypeSafeProvider::CollectCompletions(const std::stri
     results.reserve(batches.size());
 
     size_t raw_index = 0;
-    const auto next_response = [&]() -> const nlohmann::json& {
-        if (raw_index >= raw_responses.size()) {
-            throw std::runtime_error("TypeSafe returned fewer responses than requests were queued");
-        }
-        return raw_responses[raw_index++];
-    };
-
-    // The answer to a pick: the flock_row_id of the chosen row.
-    const auto picked_row_id = [&](const PendingBatch& batch) -> nlohmann::json {
-        const auto& ids = *batch.row_ids;
-        // Not sent: the only candidate wins, or the first row when none has content.
-        if (batch.asked_rows.size() <= 1) {
-            return ids[batch.asked_rows.empty() ? 0 : batch.asked_rows.front()];
-        }
-        const auto& response = next_response();
-        // The aggregate shrinks and retries an oversized pick.
-        if (IsTokenLimitExceededMarker(response)) {
-            throw TokenLimitExceededError();
-        }
-        const auto choice = response.at("answers").at("pick").at("choice").get<std::string>();
-        for (const auto row_offset: batch.asked_rows) {
-            if (RowKey(row_offset) == choice) {
-                return ids[row_offset];
-            }
-        }
-        throw std::runtime_error("TypeSafe chose '" + choice + "', which is not one of the rows it was offered");
-    };
-
     for (const auto& batch: batches) {
         if (batch.row_ids.has_value()) {
-            results.push_back(nlohmann::json{{"items", {picked_row_id(batch)}}});
+            const auto& ids = *batch.row_ids;
+
+            if (batch.asked_rows.size() <= 1) {
+                results.push_back(
+                        nlohmann::json{{"items", {ids[batch.asked_rows.empty() ? 0 : batch.asked_rows.front()]}}});
+                continue;
+            }
+
+            const auto& response = raw_responses[raw_index++];
+
+            // Jev refuses oversized requests before processing.
+            // Afterwards, we send another request with fewer rows.
+            if (IsTokenLimitExceededMarker(response)) {
+                throw TokenLimitExceededError();
+            }
+            const auto choice = response.at("answers").at("pick").at("choice").get<std::string>();
+            results.push_back(nlohmann::json{{"items", {ids.at(std::stoul(choice))}}});
             continue;
         }
 
         if (batch.asked_rows.empty()) {
-            results.push_back(nlohmann::json{{"items", UnansweredItems(batch.row_count)}});
+            results.push_back(nlohmann::json{{"items", nlohmann::json(batch.row_count, nullptr)}});
             continue;
         }
-        const auto& response = next_response();
+        const auto& response = raw_responses[raw_index++];
 
-        // A batch the caller must retry smaller passes straight through.
         if (IsTokenLimitExceededMarker(response)) {
             results.push_back(response);
             continue;
         }
 
-        // Scatter answers back to their rows; skipped and unanswered rows stay null.
-        auto items = UnansweredItems(batch.row_count);
+        // Unless Jev answered for this exact row, it will have null value
+        auto items = nlohmann::json(batch.row_count, nullptr);
 
         if (response.contains("answers") && response["answers"].is_object()) {
             const auto& answers = response["answers"];
             for (const auto row_offset: batch.asked_rows) {
-                const auto key = RowKey(row_offset);
+                const auto key = std::to_string(row_offset);
                 if (!answers.contains(key)) {
                     continue;
                 }

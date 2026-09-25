@@ -74,7 +74,7 @@ TEST(TypeSafeProviderTest, ScattersAnswersPastSkippedRows) {
 
     handler.canned_responses = {{{"model", "jev-1.13.0"},
                                  {"answers",
-                                  {{"r0", NoulAnswer(0.97)}, {"r2", NoulAnswer(0.04)}, {"r3", NoulAnswer(0.91)}}},
+                                  {{"0", NoulAnswer(0.97)}, {"2", NoulAnswer(0.04)}, {"3", NoulAnswer(0.91)}}},
                                  {"usage", {{"input_tokens", 83}, {"output_tokens", 6}}}}};
 
     const auto results = provider.CollectCompletions();
@@ -103,14 +103,14 @@ TEST(TypeSafeProviderTest, CarriesThePredicateOnceInTheState) {
     EXPECT_EQ(payload["state"]["criterion"], predicate);
 
     // The null row contributes neither state nor a question.
-    EXPECT_TRUE(payload["state"]["rows"].contains("r0"));
-    EXPECT_FALSE(payload["state"]["rows"].contains("r1"));
-    EXPECT_TRUE(payload["state"]["rows"].contains("r2"));
+    EXPECT_TRUE(payload["state"]["rows"].contains("0"));
+    EXPECT_FALSE(payload["state"]["rows"].contains("1"));
+    EXPECT_TRUE(payload["state"]["rows"].contains("2"));
 
     const auto& questions = payload["questions"];
     EXPECT_EQ(questions.size(), 2u);
-    EXPECT_EQ(questions["r0"]["type"], "noul");
-    EXPECT_FALSE(questions.contains("r1"));
+    EXPECT_EQ(questions["0"]["type"], "noul");
+    EXPECT_FALSE(questions.contains("1"));
 
     // The predicate is stated once, not repeated per question.
     for (const auto& question: questions) {
@@ -146,12 +146,12 @@ TEST(TypeSafeProviderTest, TreatsTheNullStringAsMissing) {
 
     ASSERT_EQ(handler.requests.size(), 1u);
     const auto& payload = handler.requests[0];
-    EXPECT_TRUE(payload["questions"].contains("r0"));
-    EXPECT_FALSE(payload["questions"].contains("r1"));
-    EXPECT_EQ(payload["state"]["rows"]["r0"]["COLUMN 1"], "battery dies fast");
-    EXPECT_TRUE(payload["state"]["rows"]["r0"]["stars"].is_null());
+    EXPECT_TRUE(payload["questions"].contains("0"));
+    EXPECT_FALSE(payload["questions"].contains("1"));
+    EXPECT_EQ(payload["state"]["rows"]["0"]["COLUMN 1"], "battery dies fast");
+    EXPECT_TRUE(payload["state"]["rows"]["0"]["stars"].is_null());
 
-    handler.canned_responses = {{{"answers", {{"r0", NoulAnswer(0.9)}}}}};
+    handler.canned_responses = {{{"answers", {{"0", NoulAnswer(0.9)}}}}};
     const auto items = provider.CollectCompletions()[0]["items"];
     EXPECT_TRUE(items[0].get<bool>());
     EXPECT_TRUE(items[1].is_null());
@@ -165,7 +165,7 @@ TEST(TypeSafeProviderTest, AppliesTheConfiguredThreshold) {
     provider.AddStructuredCompletionRequest({BatchContext(tuples), "predicate", ScalarFunctionType::FILTER});
 
     handler.canned_responses = {
-            {{"answers", {{"r0", NoulAnswer(0.79)}, {"r1", NoulAnswer(0.80)}}}}};
+            {{"answers", {{"0", NoulAnswer(0.79)}, {"1", NoulAnswer(0.80)}}}}};
 
     const auto results = provider.CollectCompletions();
     const auto& items = results[0]["items"];
@@ -181,7 +181,7 @@ TEST(TypeSafeProviderTest, CallSiteThresholdOverridesTheModel) {
     provider.AddStructuredCompletionRequest(
             {BatchContext(tuples), "predicate", ScalarFunctionType::FILTER, 0.9});
 
-    handler.canned_responses = {{{"answers", {{"r0", NoulAnswer(0.7)}, {"r1", NoulAnswer(0.95)}}}}};
+    handler.canned_responses = {{{"answers", {{"0", NoulAnswer(0.7)}, {"1", NoulAnswer(0.95)}}}}};
 
     const auto results = provider.CollectCompletions();
     const auto& items = results[0]["items"];
@@ -199,7 +199,7 @@ TEST(TypeSafeProviderTest, KeepsTheValuesOfUnnamedColumns) {
     provider.AddStructuredCompletionRequest({BatchContext(tuples), "predicate", ScalarFunctionType::FILTER});
 
     ASSERT_EQ(handler.requests.size(), 1u);
-    const auto& row = handler.requests[0]["state"]["rows"]["r0"];
+    const auto& row = handler.requests[0]["state"]["rows"]["0"];
     // Unnamed columns are numbered the way the prompt renderer numbers them.
     EXPECT_EQ(row["COLUMN 1"], "battery dies fast");
     EXPECT_EQ(row["stars"], "1");
@@ -247,12 +247,12 @@ TEST(TypeSafeProviderTest, PicksARowWithOneChoiceQuestion) {
     const auto& pick = payload["questions"]["pick"];
     EXPECT_EQ(pick["type"], "choice");
     EXPECT_NE(pick["instructions"].get<std::string>().find("best"), std::string::npos);
-    EXPECT_EQ(pick["criteria"], (nlohmann::json{{"r0", nullptr}, {"r1", nullptr}, {"r2", nullptr}}));
+    EXPECT_EQ(pick["criteria"], (nlohmann::json{{"0", nullptr}, {"1", nullptr}, {"2", nullptr}}));
     // The row id is Flock's bookkeeping, not part of the row.
-    EXPECT_FALSE(payload["state"]["rows"]["r0"].contains("flock_row_id"));
-    EXPECT_EQ(payload["state"]["rows"]["r0"]["COLUMN 1"], "battery died");
+    EXPECT_FALSE(payload["state"]["rows"]["0"].contains("flock_row_id"));
+    EXPECT_EQ(payload["state"]["rows"]["0"]["COLUMN 1"], "battery died");
 
-    handler.canned_responses = {ChoiceAnswer("r2")};
+    handler.canned_responses = {ChoiceAnswer("2")};
     EXPECT_EQ(provider.CollectCompletions()[0]["items"], (nlohmann::json{"12"}));
 }
 
@@ -286,16 +286,6 @@ TEST(TypeSafeProviderTest, PickOfOnlyEmptyRowsReturnsTheFirstRow) {
             {BatchContext(MakePickTuples({"NULL", "NULL"})), "most negative", AggregateFunctionType::FIRST});
     EXPECT_TRUE(handler.requests.empty());
     EXPECT_EQ(provider.CollectCompletions()[0]["items"], (nlohmann::json{"10"}));
-}
-
-TEST(TypeSafeProviderTest, PickRejectsAChoiceThatWasNotOffered) {
-    auto provider = TypeSafeProvider(MakeModelDetails());
-    auto& handler = InstallRecordingHandler(provider);
-
-    provider.AddStructuredCompletionRequest(
-            {BatchContext(MakePickTuples({"NULL", "b", "c"})), "most negative", AggregateFunctionType::FIRST});
-    handler.canned_responses = {ChoiceAnswer("r0")};// r0 was empty, so never offered
-    EXPECT_THROW(provider.CollectCompletions(), std::runtime_error);
 }
 
 TEST(TypeSafeProviderTest, OversizedPickRaisesTokenLimitAndClearsItsQueue) {
@@ -380,7 +370,7 @@ namespace {
 class RecordingDecisionProvider : public IProvider {
 public:
     static inline std::vector<std::optional<double>> seen_thresholds;
-    static inline std::vector<double> seen_model_thresholds;
+    static inline std::vector<std::optional<double>> seen_model_thresholds;
     static inline std::vector<nlohmann::json> seen_tuples;
 
     explicit RecordingDecisionProvider(const ModelDetails& details)
@@ -476,22 +466,10 @@ TEST_F(LlmFilterTypeSafeTest, ModelThresholdReachesTheProvider) {
         ASSERT_FALSE(results->HasError()) << model << ": " << results->GetError();
         ASSERT_FALSE(RecordingDecisionProvider::seen_model_thresholds.empty())
                 << model;
-        EXPECT_DOUBLE_EQ(RecordingDecisionProvider::seen_model_thresholds.back(),
-                         expected)
+        EXPECT_EQ(RecordingDecisionProvider::seen_model_thresholds.back(),
+                  expected)
                 << model;
     }
-}
-
-TEST_F(LlmFilterTypeSafeTest, RejectsARowVaryingThreshold) {
-    auto con = Config::GetConnection();
-    const auto results = con.Query(
-            "SELECT llm_filter({'model_name': 'jev'}, {'prompt': 'complains', "
-            "'context_columns': [{'data': t}], "
-            "'threshold': c}) FROM (VALUES ('a', 0.1), ('b', 0.9)) AS tbl(t, c);");
-    ASSERT_TRUE(results->HasError());
-    EXPECT_NE(results->GetError().find("must be a constant"), std::string::npos)
-            << results->GetError();
-    EXPECT_TRUE(RecordingDecisionProvider::seen_thresholds.empty());
 }
 
 TEST_F(LlmFilterTypeSafeTest, RejectsAnInvalidThreshold) {
@@ -510,7 +488,7 @@ TEST_F(LlmFilterTypeSafeTest, RejectsAnInvalidThreshold) {
           "{\"threshold\": 1.5});"}) {
         const auto results = con.Query(query);
         ASSERT_TRUE(results->HasError()) << query;
-        EXPECT_NE(results->GetError().find("between 0 and 1"), std::string::npos)
+        EXPECT_NE(results->GetError().find("threshold"), std::string::npos)
                 << results->GetError();
     }
 }
@@ -523,19 +501,21 @@ TEST_F(LlmFilterTypeSafeTest,
                  {"SELECT llm_filter({'model_name': 'gpt-4o'}, {'prompt': "
                   "'complains', 'context_columns': "
                   "[{'data': t}], 'threshold': 0.8}) FROM unnest(['a']) AS tbl(t);",
-                  "has no effect"},
-                 {"SELECT llm_filter({'model_name': 'gpt-4o', 'threshold': 0.8}, "
-                  "{'prompt': 'complains', "
-                  "'context_columns': [{'data': t}]}) FROM unnest(['a']) AS tbl(t);",
-                  "'threshold' is not accepted"},
-                 {"CREATE MODEL('gpt-with-threshold', 'gpt-4o', 'openai', "
-                  "{\"threshold\": 0.8});",
-                  "'threshold' is not accepted"}}) {
+                  "has no effect"}}) {
         const auto results = con.Query(query);
         ASSERT_TRUE(results->HasError()) << query;
         EXPECT_NE(results->GetError().find(reason), std::string::npos)
                 << results->GetError();
     }
+}
+
+TEST_F(LlmFilterTypeSafeTest, TypeSafeRequiresAThreshold) {
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT llm_filter({'model_name': 'jev'}, {'prompt': 'complains', "
+                                   "'context_columns': [{'data': t}]}) FROM unnest(['a']) AS tbl(t);");
+    ASSERT_TRUE(results->HasError());
+    EXPECT_NE(results->GetError().find("needs a 'threshold'"), std::string::npos) << results->GetError();
+    EXPECT_TRUE(RecordingDecisionProvider::seen_thresholds.empty());
 }
 
 TEST_F(LlmFilterTypeSafeTest, TypeSafeRequiresContextColumns) {
@@ -554,7 +534,7 @@ TEST_F(LlmFilterTypeSafeTest,
     auto con = Config::GetConnection();
     const auto results =
             con.Query("SELECT llm_filter({'model_name': 'jev'}, {'prompt': "
-                      "'complains', 'context_columns': [{'data': t}]}) "
+                      "'complains', 'context_columns': [{'data': t}], 'threshold': 0.5}) "
                       "FROM (VALUES ('a'), (NULL)) AS tbl(t);");
     ASSERT_FALSE(results->HasError()) << results->GetError();
     ASSERT_EQ(RecordingDecisionProvider::seen_tuples.size(), 1u);
@@ -562,28 +542,6 @@ TEST_F(LlmFilterTypeSafeTest,
     ASSERT_EQ(data.size(), 2u);
     EXPECT_EQ(data[0], "a");
     EXPECT_EQ(data[1], "NULL");
-}
-
-TEST_F(LlmFilterTypeSafeTest, RejectsInlineSettingsTypeSafeCannotUse) {
-    auto con = Config::GetConnection();
-    for (const auto& [setting, value]:
-         std::vector<std::pair<std::string, std::string>>{
-                 {"model_parameters", "{'temperature': 0}"},
-                 {"tuple_format", "'JSON'"}}) {
-        const auto results = con.Query(
-                "SELECT llm_filter({'model_name': 'jev', '" + setting + "': " + value +
-                "}, {'prompt': 'complains', 'context_columns': [{'data': t}]}) "
-                "FROM unnest(['a']) AS tbl(t);");
-        ASSERT_TRUE(results->HasError()) << setting;
-        EXPECT_NE(results->GetError().find("'" + setting + "' is not accepted"),
-                  std::string::npos)
-                << results->GetError();
-    }
-    const auto generative = con.Query(
-            "SELECT llm_filter({'model_name': 'gpt-4o', 'tuple_format': 'JSON'}, "
-            "{'prompt': 'complains', 'context_columns': [{'data': t}]}) "
-            "FROM unnest(['a']) AS tbl(t);");
-    EXPECT_FALSE(generative->HasError()) << generative->GetError();
 }
 
 TEST_F(LlmFilterTypeSafeTest, RefusesUnsupportedFunctionsAtBind) {

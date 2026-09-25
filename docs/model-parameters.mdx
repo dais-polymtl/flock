@@ -17,7 +17,7 @@ For model configuration options such as `max_batch_size`, `is_async`, and `rate_
 **Compatibility**: Works with all Flock LLM functions - `llm_complete`, `llm_filter`, `llm_embedding`, `llm_reduce`,
 `llm_rerank`, `llm_first`, `llm_last`
 
-The `typesafe` provider takes no model parameters: a TypeSafe request carries only a model, the rows and the questions, so `model_parameters` is refused for it. See [TypeSafe / Jev](/getting-started/typesafe).
+The `typesafe` provider takes no model parameters: a TypeSafe request carries only a model, the rows and the questions, so `model_parameters` has no effect on it. See [TypeSafe / Jev](/getting-started/typesafe).
 
 Each provider expresses structured JSON differently in `model_parameters` (for example OpenAI `response_format`, Ollama
 `format`, Anthropic `output_format` / tool-use). Check the **Output** section on each function page for examples — start

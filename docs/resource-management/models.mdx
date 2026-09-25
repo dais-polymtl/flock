@@ -16,7 +16,7 @@ Models are stored in a table with the following structure:
 | **Model Name**      | Unique identifier for the model                                                                                                                                                                                                                   |
 | **Model Type**      | Specific model type (e.g., `gpt-4`, `llama3`)                                                                                                                                                                                                     |
 | **Provider**        | Source of the model (e.g., `openai`, `azure`, `ollama`, `anthropic`, `typesafe`)                                                                                                                                                                  |
-| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `max_batch_size`, `batch_size` (deprecated), `model_parameters`, `is_async`, `rate_limit`, `usage_limit`, and `threshold` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **max_batch_size** must be greater than 0 and controls the maximum number of tuples sent in a single provider request. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. **rate_limit** is an optional positive integer for maximum provider requests per minute, scoped per Flock `model_name`. **usage_limit** is an optional JSON object for cumulative token quotas, also scoped per Flock `model_name`. **threshold** applies only to `typesafe` models; see below. A `typesafe` model refuses `tuple_format` and `model_parameters`, which it has no use for. |
+| **Model Arguments** | JSON configuration parameters. For user-defined models: only `tuple_format`, `max_batch_size`, `batch_size` (deprecated), `model_parameters`, `is_async`, `rate_limit`, `usage_limit`, and `threshold` are allowed. **tuple_format** can be one of: `JSON`, `XML`, or `Markdown`. **max_batch_size** must be greater than 0 and controls the maximum number of tuples sent in a single provider request. **model_parameters** is a JSON object of provider-specific settings. **is_async** is a boolean (default `true`) that controls whether scalar functions batch completion requests in parallel before collecting responses. **rate_limit** is an optional positive integer for maximum provider requests per minute, scoped per Flock `model_name`. **usage_limit** is an optional JSON object for cumulative token quotas, also scoped per Flock `model_name`. **threshold** applies only to `typesafe` models; see below. |
 
 ### `max_batch_size`
 
@@ -151,13 +151,13 @@ If `usage_limit` is omitted, Flock does not enforce cumulative token quotas.
 
 `threshold` applies to `typesafe` models, which answer `llm_filter` with a probability rather than a yes or no. A probability at or above the threshold counts as `true`. It must be a number between 0 and 1.
 
-Default: `0.5`.
+There is no default: `llm_filter` on a `typesafe` model is refused until a threshold is set here, inline, or per call.
 
 ```sql
 CREATE MODEL('strict-jev', 'jev-latest', 'typesafe', {"threshold": 0.8});
 ```
 
-It can also be set inline on the model, or per call in `llm_filter`'s prompt struct, which overrides the model's (see [`llm_filter`](/scalar-functions/llm-filter)). Other providers return no probability, so they refuse a `threshold`.
+It can also be set inline on the model, or per call in `llm_filter`'s prompt struct, which overrides the model's (see [`llm_filter`](/scalar-functions/llm-filter)). Other providers ignore it.
 
 ## 2. Management Commands
 

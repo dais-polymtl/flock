@@ -56,17 +56,9 @@ nlohmann::json ValidateUsageLimitObject(const nlohmann::json& value) {
     return result;
 }
 
-void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value,
-                               const std::string& provider_name) {
+void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
     if (!IsAllowedModelArgKey(key)) {
-        throw std::runtime_error(
-                "Unknown model_args parameter: '" + key +
-                "'. Only tuple_format, batch_size, max_batch_size, model_parameters, is_async, rate_limit, "
-                "usage_limit, and threshold are allowed.");
-    }
-
-    if (const auto reason = DescribeInapplicableModelArg(provider_name, key)) {
-        throw std::runtime_error(*reason);
+        throw std::runtime_error("Unknown model_args parameter: '" + key + "'.");
     }
 
     if (key == "batch_size" || key == "max_batch_size") {
@@ -205,7 +197,7 @@ void ModelParser::ParseCreateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
             nlohmann::json input_args = nlohmann::json::parse(token.value);
             for (auto it = input_args.begin(); it != input_args.end(); ++it) {
                 const std::string& key = it.key();
-                ValidateAndAssignModelArg(model_args, key, it.value(), provider_name);
+                ValidateAndAssignModelArg(model_args, key, it.value());
             }
         } catch (const std::exception& e) {
             throw std::runtime_error(std::string("Failed to parse model_args JSON: ") + e.what());
@@ -330,7 +322,7 @@ void ModelParser::ParseUpdateModel(Tokenizer& tokenizer, std::unique_ptr<QuerySt
                 nlohmann::json input_args = nlohmann::json::parse(token.value);
                 for (auto it = input_args.begin(); it != input_args.end(); ++it) {
                     const std::string& key = it.key();
-                    ValidateAndAssignModelArg(new_model_args, key, it.value(), provider_name);
+                    ValidateAndAssignModelArg(new_model_args, key, it.value());
                 }
             } catch (const std::exception& e) {
                 throw std::runtime_error(std::string("Failed to parse model_args JSON: ") + e.what());

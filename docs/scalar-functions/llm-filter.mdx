@@ -215,7 +215,7 @@ The `llm_filter` function accepts three structured inputs: model configuration, 
 
   #### 2.2.4 Decision Threshold (TypeSafe models)
 
-  A `typesafe` model answers with the probability that a row satisfies the prompt. `threshold` sets the probability at or above which the row counts as `true`, overriding the model's own (default `0.5`). It must be a constant between 0 and 1, and other providers refuse it.
+  A `typesafe` model answers with the probability that a row satisfies the prompt. `threshold` sets the probability at or above which the row counts as `true`, overriding the model's own. A `typesafe` model requires one, either here or on the model. It must be a constant between 0 and 1, and other providers refuse it.
 
   - **Example**:
     ```sql

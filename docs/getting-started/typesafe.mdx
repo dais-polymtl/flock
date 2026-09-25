@@ -39,7 +39,8 @@ FROM reviews
 WHERE llm_filter(
     {'model_name': 'jev'},
     {'prompt': 'The review complains about battery life.',
-     'context_columns': [{'data': review}]}
+     'context_columns': [{'data': review}],
+     'threshold': 0.8}
 );
 ```
 
@@ -53,9 +54,7 @@ CREATE MODEL('BatteryJudge', 'jev-latest', 'typesafe', {"threshold": 0.8});
 
 ## Decision Threshold
 
-Jev answers each row with the probability that it satisfies the prompt. `llm_filter` turns that probability into `true` when it is at or above a threshold, which defaults to `0.5`.
-
-Set it on the model, or override it for a single call:
+Jev answers each row with the probability that it satisfies the prompt. `llm_filter` turns that probability into `true` when it is at or above a threshold. There is no default: set it on the model, or for a single call, which overrides the model's:
 
 ```sql
 SELECT llm_filter(
@@ -67,7 +66,7 @@ SELECT llm_filter(
 FROM reviews;
 ```
 
-The threshold must be a constant between 0 and 1. It cannot be taken from a column, because then two rows with the same text and the same probability could receive opposite verdicts.
+The threshold must be a constant between 0 and 1.
 
 ## Supported Functions
 
@@ -105,7 +104,7 @@ If a batch is too large for a single request, Flock halves it and retries automa
 
 ## Settings That Do Not Apply
 
-A TypeSafe request carries only a model, the rows and the questions, so `model_parameters` (such as `temperature`) and `tuple_format` have no effect. They are refused, both in `CREATE MODEL` and in a model struct passed to a function, rather than silently ignored.
+A TypeSafe request carries only a model, the rows and the questions, so `model_parameters` (such as `temperature`) and `tuple_format` have no effect.
 
 ## Using More Than One Host
 

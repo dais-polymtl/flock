@@ -42,9 +42,6 @@ public:
     // Static helper method for binders to resolve model details to JSON
     static nlohmann::json ResolveModelDetailsToJson(const nlohmann::json& user_model_json);
 
-    static void RejectInapplicableInlineModelArgs(const nlohmann::json& user_model_json,
-                                                  const nlohmann::json& resolved_model_json);
-
     static void RejectUnsupportedFunction(const nlohmann::json& resolved_model_json,
                                           const std::string& function_name);
 

@@ -18,19 +18,10 @@ public:
         : BaseModelProviderHandler(throw_exception, model_name, rate_limit, std::move(usage_limit),
                                    std::move(rate_limiter), std::move(usage_limiter)),
           _token(std::move(token)), _session("TypeSafe", throw_exception) {
-        _api_base_url = NormalizeBaseUrl(api_base_url.empty() ? std::string("https://api.typesafe.ai") : api_base_url);
-        _session.setUrl(_api_base_url);
-    }
-
-    TypeSafeModelManager(const TypeSafeModelManager&) = delete;
-    TypeSafeModelManager& operator=(const TypeSafeModelManager&) = delete;
-    TypeSafeModelManager(TypeSafeModelManager&&) = delete;
-    TypeSafeModelManager& operator=(TypeSafeModelManager&&) = delete;
-
-private:
-    // Accepts the host root, the '/v1' base or the full endpoint.
-    static std::string NormalizeBaseUrl(std::string url) {
-        const auto& strip_suffix = [&url](const std::string& suffix) {
+        // Accepts the host root, the '/v1' base or the full endpoint.
+        _api_base_url = api_base_url.empty() ? std::string("https://api.typesafe.ai") : api_base_url;
+        auto& url = _api_base_url;
+        const auto strip_suffix = [&url](const std::string& suffix) {
             if (url.size() >= suffix.size() && url.compare(url.size() - suffix.size(), suffix.size(), suffix) == 0) {
                 url.erase(url.size() - suffix.size());
             }
@@ -44,8 +35,13 @@ private:
         strip_suffix("/systemone");
         strip_suffix("/v1");
         strip_trailing_slashes();
-        return url;
+        _session.setUrl(_api_base_url);
     }
+
+    TypeSafeModelManager(const TypeSafeModelManager&) = delete;
+    TypeSafeModelManager& operator=(const TypeSafeModelManager&) = delete;
+    TypeSafeModelManager(TypeSafeModelManager&&) = delete;
+    TypeSafeModelManager& operator=(TypeSafeModelManager&&) = delete;
 
 protected:
     std::string _token;

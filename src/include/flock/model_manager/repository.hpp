@@ -46,27 +46,14 @@ inline size_t ParsePositiveSizeFromJson(const nlohmann::json& value, const std::
 }
 
 inline double ParseThresholdFromJson(const nlohmann::json& value) {
-    constexpr const char* message = "'threshold' must be a number between 0 and 1.";
-    double threshold = 0.0;
-    if (value.is_number()) {
-        threshold = value.get<double>();
-    } else if (value.is_string()) {
-        const auto text = value.get<std::string>();
-        size_t consumed = 0;
-        try {
-            threshold = std::stod(text, &consumed);
-        } catch (const std::exception&) {
-            throw std::runtime_error(message);
-        }
-        if (consumed != text.size()) {
-            throw std::runtime_error(message);
-        }
-    } else {
-        throw std::runtime_error(message);
+    double threshold;
+    try {
+        threshold = value.is_string() ? std::stod(value.get<std::string>()) : value.get<double>();
+    } catch (...) {
+        throw std::runtime_error("Error parsing threshold.");
     }
-    // Written so that NaN, which compares false against every bound, fails.
     if (!(threshold >= 0.0 && threshold <= 1.0)) {
-        throw std::runtime_error(message);
+        throw std::runtime_error("'threshold' must be between 0 and 1.");
     }
     return threshold;
 }
@@ -111,7 +98,7 @@ struct ModelDetails {
     bool is_async = true;
     std::optional<size_t> rate_limit;
     std::optional<UsageLimit> usage_limit;
-    double threshold = 0.5;
+    std::optional<double> threshold;
 };
 
 
@@ -190,27 +177,5 @@ inline std::string GetProviderName(SupportedProviders provider) {
 }
 
 inline constexpr size_t TYPESAFE_DEFAULT_MAX_BATCH_SIZE = 128;
-
-// Settings a provider cannot act on, with the reason.
-inline std::optional<std::string> DescribeInapplicableModelArg(const std::string& provider_name,
-                                                               const std::string& key) {
-    if (key == "threshold" && GetProviderType(provider_name) != FLOCKMTL_TYPESAFE) {
-        return "'threshold' is not accepted by the '" + provider_name +
-               "' provider: it returns no probability to compare the threshold against.";
-    }
-    if (GetProviderType(provider_name) != FLOCKMTL_TYPESAFE) {
-        return std::nullopt;
-    }
-    if (key == "model_parameters") {
-        return "'model_parameters' is not accepted by the '" + provider_name +
-               "' provider: a System One request carries only a model, a state and questions, so there is nothing "
-               "to tune.";
-    }
-    if (key == "tuple_format") {
-        return "'tuple_format' is not accepted by the '" + provider_name +
-               "' provider: it builds a structured state instead of rendering tuples into a prompt.";
-    }
-    return std::nullopt;
-}
 
 }// namespace flock

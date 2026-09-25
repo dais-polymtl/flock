@@ -14,10 +14,9 @@ public:
     TypeSafeProvider(const ModelDetails& model_details, std::shared_ptr<ModelRateLimiter> rate_limiter = nullptr,
                      std::shared_ptr<ModelUsageLimiter> usage_limiter = nullptr)
         : IProvider(model_details, std::move(rate_limiter), std::move(usage_limiter)) {
-        const auto base_url = model_details_.secret.find("base_url");
         model_handler_ = std::make_unique<TypeSafeModelManager>(
                 model_details_.secret["api_key"],
-                base_url == model_details_.secret.end() ? std::string() : base_url->second, true,
+                model_details_.secret.count("base_url") ? model_details_.secret["base_url"] : std::string(), true,
                 model_details_.model_name,
                 model_details_.rate_limit, model_details_.usage_limit, rate_limiter_, usage_limiter_);
     }
@@ -37,16 +36,15 @@ private:
     struct PendingBatch {
         size_t row_count;
         double threshold;
-        // Rows asked about, or offered in a pick.
         std::vector<size_t> asked_rows;
-        // For a pick, each row's flock_row_id, which is what the answer names.
+        // For llm_first/_last, each row's flock_row_id, which is what the answer names.
         std::optional<std::vector<nlohmann::json>> row_ids;
     };
 
     // llm_filter: one yes/no question per row.
-    void AddVerdictRequest(const StructuredCompletionRequest& request);
+    void AddFilterRequest(const StructuredCompletionRequest& request);
     // llm_first and llm_last: one question choosing a row out of the batch.
-    void AddPickRequest(const StructuredCompletionRequest& request, AggregateFunctionType function_type);
+    void AddFirstOrLastRequest(const StructuredCompletionRequest& request, AggregateFunctionType function_type);
 
     std::vector<PendingBatch> pending_batches_;
 };
