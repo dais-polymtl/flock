@@ -368,11 +368,25 @@ void Model::AddStructuredCompletionRequest(const StructuredCompletionRequest& re
         provider_->AddStructuredCompletionRequest(request);
         return;
     }
-    const auto& [prompt, media_data] = PromptManager::Render(request.user_prompt, request.batch.Columns(),
-                                                             request.function_type, model_details_.tuple_format);
-    const auto output_type =
-            request.function_type == ScalarFunctionType::FILTER ? OutputType::BOOL : OutputType::STRING;
-    provider_->AddCompletionRequest(prompt, static_cast<int>(request.batch.RowCount()), output_type, media_data);
+    const auto& [prompt, media_data] = std::visit(
+            [&](const auto function_type) {
+                return PromptManager::Render(request.user_prompt, request.batch.Columns(), function_type,
+                                             model_details_.tuple_format);
+            },
+            request.function_type);
+    // Scalar functions answer per row; aggregates once, except rerank.
+    auto output_type = OutputType::STRING;
+    auto answer_count = static_cast<int>(request.batch.RowCount());
+    if (const auto* scalar = std::get_if<ScalarFunctionType>(&request.function_type)) {
+        output_type = *scalar == ScalarFunctionType::FILTER ? OutputType::BOOL : OutputType::STRING;
+    } else {
+        const auto aggregate = std::get<AggregateFunctionType>(request.function_type);
+        output_type = aggregate == AggregateFunctionType::REDUCE ? OutputType::STRING : OutputType::INTEGER;
+        if (aggregate != AggregateFunctionType::RERANK) {
+            answer_count = 1;
+        }
+    }
+    provider_->AddCompletionRequest(prompt, answer_count, output_type, media_data);
 }
 
 void Model::AddEmbeddingRequest(const std::vector<std::string>& inputs) {

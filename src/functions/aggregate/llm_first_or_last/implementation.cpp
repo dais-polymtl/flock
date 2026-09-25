@@ -16,9 +16,7 @@ duckdb::unique_ptr<duckdb::FunctionData> LlmFirstOrLast::Bind(
 }
 
 int LlmFirstOrLast::GetFirstOrLastTupleId(nlohmann::json& tuples) {
-    const auto [prompt, media_data] = PromptManager::Render(
-            user_query, tuples, function_type, model.GetModelDetails().tuple_format);
-    model.AddCompletionRequest(prompt, 1, OutputType::INTEGER, media_data);
+    model.AddStructuredCompletionRequest({BatchContext(tuples), user_query, function_type});
     auto response = model.CollectCompletions()[0];
 
     std::set<std::string> valid_ids;

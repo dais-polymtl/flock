@@ -53,10 +53,10 @@ void TypeSafeProvider::AddTranscriptionRequest(const nlohmann::json&) {
 }
 
 void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletionRequest& request) {
-    if (request.function_type != ScalarFunctionType::FILTER) {
-        throw std::runtime_error("llm_complete is not supported by the 'typesafe' provider: Jev answers typed "
-                                 "questions and cannot generate text. Use llm_filter, or point this function at a "
-                                 "generative provider.");
+    const auto* scalar = std::get_if<ScalarFunctionType>(&request.function_type);
+    if (scalar == nullptr || *scalar != ScalarFunctionType::FILTER) {
+        throw std::runtime_error("The 'typesafe' provider serves llm_filter only: Jev answers typed questions and "
+                                 "cannot generate text. Point this function at a generative provider.");
     }
 
     for (const auto& column: request.batch.Columns()) {

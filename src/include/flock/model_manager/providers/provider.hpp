@@ -11,6 +11,7 @@
 #include <optional>
 #include <regex>
 #include <stdexcept>
+#include <variant>
 
 namespace flock {
 
@@ -30,7 +31,7 @@ enum class OutputType {
 struct StructuredCompletionRequest {
     BatchContext batch;
     std::string user_prompt;
-    ScalarFunctionType function_type;
+    std::variant<ScalarFunctionType, AggregateFunctionType> function_type;
     std::optional<double> threshold = std::nullopt;
 };
 
