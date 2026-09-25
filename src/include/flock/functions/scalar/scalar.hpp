@@ -45,26 +45,21 @@ public:
     static std::vector<std::any> Operation(duckdb::DataChunk& args);
     static void Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
 
-    // Call-site decision threshold; only providers that return probabilities use it.
     static void QueueCompletion(BatchContext batch, const std::string& user_prompt,
-                                ScalarFunctionType function_type, Model& model,
-                                std::optional<double> threshold = std::nullopt);
+                                ScalarFunctionType function_type, Model& model);
     static nlohmann::json Complete(BatchContext batch, const std::string& user_prompt,
-                                   ScalarFunctionType function_type, Model& model,
-                                   std::optional<double> threshold = std::nullopt);
+                                   ScalarFunctionType function_type, Model& model);
     static nlohmann::json BatchAndCompleteSync(const nlohmann::json& tuples,
                                                const std::string& user_prompt_name,
                                                ScalarFunctionType function_type,
-                                               Model& model,
-                                               std::optional<double> threshold = std::nullopt);
+                                               Model& model);
     static nlohmann::json BatchAndCompleteAsync(const nlohmann::json& tuples,
                                                 const std::string& user_prompt_name,
                                                 ScalarFunctionType function_type,
-                                                Model& model,
-                                                std::optional<double> threshold = std::nullopt);
+                                                Model& model);
     static nlohmann::json BatchAndComplete(const nlohmann::json& tuples,
                                            const std::string& user_prompt_name, ScalarFunctionType function_type,
-                                           Model& model, std::optional<double> threshold = std::nullopt);
+                                           Model& model);
 
     static duckdb::unique_ptr<LlmFunctionBindData> ValidateAndInitializeBindData(
             duckdb::ClientContext& context,

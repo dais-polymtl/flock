@@ -72,12 +72,11 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
 }
 
 void TypeSafeProvider::AddFilterRequest(const StructuredCompletionRequest& request) {
-    const auto threshold = request.threshold ? request.threshold : model_details_.threshold;
-    if (!threshold.has_value()) {
-        throw std::runtime_error("llm_filter on the 'typesafe' provider needs a 'threshold', on the model or in the prompt.");
+    if (!model_details_.threshold.has_value()) {
+        throw std::runtime_error("llm_filter on the 'typesafe' provider needs a 'threshold' on the model.");
     }
 
-    PendingBatch batch{request.batch.RowCount(), *threshold, {}, std::nullopt};
+    PendingBatch batch{request.batch.RowCount(), *model_details_.threshold, {}, std::nullopt};
 
     auto rows = nlohmann::json::object();
     auto questions = nlohmann::json::object();

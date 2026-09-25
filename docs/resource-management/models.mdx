@@ -151,13 +151,13 @@ If `usage_limit` is omitted, Flock does not enforce cumulative token quotas.
 
 `threshold` applies to `typesafe` models, which answer `llm_filter` with a probability rather than a yes or no. A probability at or above the threshold counts as `true`. It must be a number between 0 and 1.
 
-There is no default: `llm_filter` on a `typesafe` model fails until a threshold is set here, inline, or per call.
+There is no default: `llm_filter` on a `typesafe` model fails until a threshold is set here or inline on the model.
 
 ```sql
 CREATE MODEL('strict-jev', 'jev-latest', 'typesafe', {"threshold": 0.8});
 ```
 
-It can also be set inline on the model, or per call in `llm_filter`'s prompt struct, which overrides the model's (see [`llm_filter`](/scalar-functions/llm-filter)). Other providers ignore it.
+It can also be set inline on the model, which overrides the saved one: `{'model_name': 'strict-jev', 'threshold': 0.9}`. Other providers ignore it.
 
 ## 2. Management Commands
 

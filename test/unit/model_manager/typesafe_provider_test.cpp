@@ -181,22 +181,6 @@ TEST(TypeSafeProviderTest, AppliesTheConfiguredThreshold) {
     EXPECT_TRUE(items[1].get<bool>()); // exactly at the threshold counts as true
 }
 
-TEST(TypeSafeProviderTest, CallSiteThresholdOverridesTheModel) {
-    auto provider = TypeSafeProvider(MakeModelDetails(0.5));
-    auto& handler = InstallRecordingHandler(provider);
-
-    auto tuples = MakeTuples({"a", "b"});
-    provider.AddStructuredCompletionRequest(
-            {BatchContext(tuples), "predicate", ScalarFunctionType::FILTER, 0.9});
-
-    handler.canned_responses = {{{"answers", {{"0", NoulAnswer(0.7)}, {"1", NoulAnswer(0.95)}}}}};
-
-    const auto results = provider.CollectCompletions();
-    const auto& items = results[0]["items"];
-    EXPECT_FALSE(items[0].get<bool>());// would pass the model's 0.5
-    EXPECT_TRUE(items[1].get<bool>());
-}
-
 TEST(TypeSafeProviderTest, KeepsTheValuesOfUnnamedColumns) {
     auto provider = TypeSafeProvider(MakeModelDetails());
     auto& handler = InstallRecordingHandler(provider);
@@ -377,7 +361,6 @@ namespace {
 // recorder.
 class RecordingDecisionProvider : public IProvider {
 public:
-    static inline std::vector<std::optional<double>> seen_thresholds;
     static inline std::vector<std::optional<double>> seen_model_thresholds;
     static inline std::vector<nlohmann::json> seen_tuples;
 
@@ -396,7 +379,6 @@ public:
     bool AcceptsStructuredTuples() const override { return true; }
     void AddStructuredCompletionRequest(
             const StructuredCompletionRequest& request) override {
-        seen_thresholds.push_back(request.threshold);
         seen_tuples.push_back(request.batch.Columns());
         pending_rows_.push_back(request.batch.RowCount());
     }
@@ -422,7 +404,6 @@ protected:
         auto con = Config::GetConnection();
         con.Query("CREATE SECRET (TYPE TYPESAFE, API_KEY 'test-key');");
         con.Query("CREATE SECRET (TYPE OPENAI, API_KEY 'test-key');");
-        RecordingDecisionProvider::seen_thresholds.clear();
         RecordingDecisionProvider::seen_model_thresholds.clear();
         RecordingDecisionProvider::seen_tuples.clear();
         Model::SetMockProviderFactory([](const ModelDetails& details,
@@ -434,28 +415,6 @@ protected:
 
     void TearDown() override { Model::ResetMockProvider(); }
 };
-
-TEST_F(LlmFilterTypeSafeTest, CallSiteThresholdReachesTheProvider) {
-    auto con = Config::GetConnection();
-    con.Query("DELETE PROMPT 'jev-battery-check';");
-    ASSERT_FALSE(con.Query("CREATE PROMPT('jev-battery-check', 'The review "
-                           "complains about battery life.');")
-                         ->HasError());
-    for (const auto* prompt:
-         {"'prompt': 'complains'", "'prompt_name': 'jev-battery-check'"}) {
-        RecordingDecisionProvider::seen_thresholds.clear();
-        const auto results = con.Query(
-                std::string("SELECT llm_filter({'model_name': 'jev'}, {") + prompt +
-                ", 'context_columns': [{'data': t}], 'threshold': 0.9}) "
-                "FROM unnest(['a', 'b']) AS tbl(t);");
-        ASSERT_FALSE(results->HasError()) << prompt << ": " << results->GetError();
-        ASSERT_FALSE(RecordingDecisionProvider::seen_thresholds.empty()) << prompt;
-        for (const auto& threshold: RecordingDecisionProvider::seen_thresholds) {
-            ASSERT_TRUE(threshold.has_value()) << prompt;
-            EXPECT_DOUBLE_EQ(*threshold, 0.9) << prompt;
-        }
-    }
-}
 
 TEST_F(LlmFilterTypeSafeTest, ModelThresholdReachesTheProvider) {
     auto con = Config::GetConnection();
@@ -483,12 +442,10 @@ TEST_F(LlmFilterTypeSafeTest, ModelThresholdReachesTheProvider) {
 TEST_F(LlmFilterTypeSafeTest, RejectsAnInvalidThreshold) {
     auto con = Config::GetConnection();
     for (const auto* query:
-         {"SELECT llm_filter({'model_name': 'jev'}, {'prompt': 'complains', "
-          "'context_columns': [{'data': t}], "
-          "'threshold': 1.5}) FROM unnest(['a']) AS tbl(t);",
-          "SELECT llm_filter({'model_name': 'jev'}, {'prompt': 'complains', "
-          "'context_columns': [{'data': t}], "
-          "'threshold': 'nan'::DOUBLE}) FROM unnest(['a']) AS tbl(t);",
+         {"SELECT llm_filter({'model_name': 'jev', 'threshold': 1.5}, "
+          "{'prompt': 'complains', 'context_columns': [{'data': t}]}) FROM unnest(['a']) AS tbl(t);",
+          "SELECT llm_filter({'model_name': 'jev', 'threshold': 'nan'::DOUBLE}, "
+          "{'prompt': 'complains', 'context_columns': [{'data': t}]}) FROM unnest(['a']) AS tbl(t);",
           "SELECT llm_filter({'model_name': 'jev', 'threshold': 'high'}, "
           "{'prompt': 'complains', "
           "'context_columns': [{'data': t}]}) FROM unnest(['a']) AS tbl(t);",
@@ -505,8 +462,8 @@ TEST_F(LlmFilterTypeSafeTest,
        NullContextValuesReachTheProviderAsTheNullString) {
     auto con = Config::GetConnection();
     const auto results =
-            con.Query("SELECT llm_filter({'model_name': 'jev'}, {'prompt': "
-                      "'complains', 'context_columns': [{'data': t}], 'threshold': 0.5}) "
+            con.Query("SELECT llm_filter({'model_name': 'jev', 'threshold': 0.5}, {'prompt': "
+                      "'complains', 'context_columns': [{'data': t}]}) "
                       "FROM (VALUES ('a'), (NULL)) AS tbl(t);");
     ASSERT_FALSE(results->HasError()) << results->GetError();
     ASSERT_EQ(RecordingDecisionProvider::seen_tuples.size(), 1u);
@@ -537,7 +494,7 @@ TEST_F(LlmFilterTypeSafeTest, RefusesUnsupportedFunctionsAtBind) {
             rerank->GetError().find("is not supported by the 'typesafe' provider"),
             std::string::npos)
             << rerank->GetError();
-    EXPECT_TRUE(RecordingDecisionProvider::seen_thresholds.empty());
+    EXPECT_TRUE(RecordingDecisionProvider::seen_tuples.empty());
 }
 
 }// namespace flock

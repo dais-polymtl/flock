@@ -37,10 +37,9 @@ The base URL may be given as the host root, the `/v1` form, or the full `/v1/sys
 SELECT review
 FROM reviews
 WHERE llm_filter(
-    {'model_name': 'jev'},
+    {'model_name': 'jev', 'threshold': 0.8},
     {'prompt': 'The review complains about battery life.',
-     'context_columns': [{'data': review}],
-     'threshold': 0.8}
+     'context_columns': [{'data': review}]}
 );
 ```
 
@@ -54,19 +53,18 @@ CREATE MODEL('BatteryJudge', 'jev-latest', 'typesafe', {"threshold": 0.8});
 
 ## Decision Threshold
 
-Jev answers each row with the probability that it satisfies the prompt. `llm_filter` turns that probability into `true` when it is at or above a threshold. There is no default: set it on the model, or for a single call, which overrides the model's:
+Jev answers each row with the probability that it satisfies the prompt. `llm_filter` turns that probability into `true` when it is at or above a threshold. There is no default: set it in `CREATE MODEL`, or inline on the model for a single call:
 
 ```sql
 SELECT llm_filter(
-    {'model_name': 'jev'},
+    {'model_name': 'jev', 'threshold': 0.9},
     {'prompt': 'The review complains about battery life.',
-     'context_columns': [{'data': review}],
-     'threshold': 0.9}
+     'context_columns': [{'data': review}]}
 ) AS complains
 FROM reviews;
 ```
 
-The threshold must be a constant between 0 and 1.
+The threshold must be between 0 and 1.
 
 ## Supported Functions
 

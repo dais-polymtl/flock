@@ -32,7 +32,6 @@ struct StructuredCompletionRequest {
     BatchContext batch;
     std::string user_prompt;
     std::variant<ScalarFunctionType, AggregateFunctionType> function_type;
-    std::optional<double> threshold = std::nullopt;
 };
 
 class IProvider {
