@@ -2,6 +2,7 @@
 
 #include "flock/model_manager/providers/handlers/typesafe.hpp"
 #include "flock/model_manager/providers/provider.hpp"
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -38,7 +39,14 @@ private:
         double threshold;
         // Rows asked about, or offered in a pick.
         std::vector<size_t> asked_rows;
+        // For a pick, each row's flock_row_id, which is what the answer names.
+        std::optional<std::vector<nlohmann::json>> row_ids;
     };
+
+    // llm_filter: one yes/no question per row.
+    void AddVerdictRequest(const StructuredCompletionRequest& request);
+    // llm_first and llm_last: one question choosing a row out of the batch.
+    void AddPickRequest(const StructuredCompletionRequest& request, AggregateFunctionType function_type);
 
     std::vector<PendingBatch> pending_batches_;
 };

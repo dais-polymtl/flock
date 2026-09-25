@@ -13,8 +13,7 @@ std::string RowKey(const size_t row_offset) {
 }
 
 // The row with missing values as null, or nothing if every value is missing.
-std::optional<nlohmann::json> RowToJudge(const BatchContext& batch, const size_t row_offset) {
-    auto row = batch.Row(row_offset);
+std::optional<nlohmann::json> RowToJudge(nlohmann::json row) {
     auto has_content = false;
     for (auto& item: row.items()) {
         // Flock hands every provider a missing context value as the string "NULL".
@@ -30,6 +29,9 @@ std::optional<nlohmann::json> RowToJudge(const BatchContext& batch, const size_t
     }
     return row;
 }
+
+// Added by llm_first and llm_last to identify rows; never shown to Jev.
+constexpr const char* ROW_ID_COLUMN = "flock_row_id";
 
 // One null per row: the verdict of every row that has not been answered.
 nlohmann::json UnansweredItems(const size_t num_rows) {
@@ -53,12 +55,6 @@ void TypeSafeProvider::AddTranscriptionRequest(const nlohmann::json&) {
 }
 
 void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletionRequest& request) {
-    const auto* scalar = std::get_if<ScalarFunctionType>(&request.function_type);
-    if (scalar == nullptr || *scalar != ScalarFunctionType::FILTER) {
-        throw std::runtime_error("The 'typesafe' provider serves llm_filter only: Jev answers typed questions and "
-                                 "cannot generate text. Point this function at a generative provider.");
-    }
-
     for (const auto& column: request.batch.Columns()) {
         if (!column.contains("type") || !column["type"].is_string()) {
             continue;
@@ -70,13 +66,29 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
         }
     }
 
-    PendingBatch batch{request.batch.RowCount(), request.threshold.value_or(model_details_.threshold), {}};
+    if (const auto* scalar = std::get_if<ScalarFunctionType>(&request.function_type);
+        scalar != nullptr && *scalar == ScalarFunctionType::FILTER) {
+        AddVerdictRequest(request);
+        return;
+    }
+    if (const auto* aggregate = std::get_if<AggregateFunctionType>(&request.function_type);
+        aggregate != nullptr && (*aggregate == AggregateFunctionType::FIRST || *aggregate == AggregateFunctionType::LAST)) {
+        AddPickRequest(request, *aggregate);
+        return;
+    }
+    throw std::runtime_error("The 'typesafe' provider serves llm_filter, llm_first and llm_last only: Jev answers "
+                             "typed questions and cannot generate text. Point this function at a generative "
+                             "provider.");
+}
+
+void TypeSafeProvider::AddVerdictRequest(const StructuredCompletionRequest& request) {
+    PendingBatch batch{request.batch.RowCount(), request.threshold.value_or(model_details_.threshold), {}, std::nullopt};
 
     auto rows = nlohmann::json::object();
     auto questions = nlohmann::json::object();
 
     for (size_t row_offset = 0; row_offset < batch.row_count; row_offset++) {
-        auto row = RowToJudge(request.batch, row_offset);
+        auto row = RowToJudge(request.batch.Row(row_offset));
         if (!row) {
             continue;
         }
@@ -99,23 +111,100 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
                                 {"questions", questions}});
 }
 
+void TypeSafeProvider::AddPickRequest(const StructuredCompletionRequest& request,
+                                      const AggregateFunctionType function_type) {
+    std::optional<std::vector<nlohmann::json>> row_ids;
+    for (const auto& column: request.batch.Columns()) {
+        if (column.contains("name") && column["name"] == ROW_ID_COLUMN && column.contains("data")) {
+            row_ids = column["data"].get<std::vector<nlohmann::json>>();
+        }
+    }
+    if (!row_ids) {
+        throw std::logic_error("A pick request carries no flock_row_id column");
+    }
+    PendingBatch batch{request.batch.RowCount(), 0.0, {}, std::move(row_ids)};
+
+    auto rows = nlohmann::json::object();
+    // Options are bare row keys; the rows themselves are in the state.
+    auto options = nlohmann::json::object();
+
+    for (size_t row_offset = 0; row_offset < batch.row_count; row_offset++) {
+        auto values = request.batch.Row(row_offset);
+        values.erase(ROW_ID_COLUMN);
+        auto row = RowToJudge(std::move(values));
+        // A row with nothing in it is no candidate for either end.
+        if (!row) {
+            continue;
+        }
+        const auto key = RowKey(row_offset);
+        rows[key] = std::move(*row);
+        options[key] = nullptr;
+        batch.asked_rows.push_back(row_offset);
+    }
+
+    pending_batches_.push_back(std::move(batch));
+
+    // With one candidate, or none, the answer is already known.
+    if (options.size() <= 1) {
+        return;
+    }
+    const auto* instructions = function_type == AggregateFunctionType::FIRST
+                                       ? "Pick the row that best satisfies the criterion stated in the state."
+                                       : "Pick the row that least satisfies the criterion stated in the state.";
+    model_handler_->AddRequest(
+            {{"model", model_details_.model},
+             {"state", {{"criterion", request.user_prompt}, {"rows", rows}}},
+             {"questions", {{"pick", {{"type", "choice"}, {"instructions", instructions}, {"criteria", options}}}}}});
+}
+
 std::vector<nlohmann::json> TypeSafeProvider::CollectCompletions(const std::string& contentType) {
+    const auto batches = std::move(pending_batches_);
+    pending_batches_.clear();
     const auto raw_responses = model_handler_->CollectCompletions(contentType);
 
     std::vector<nlohmann::json> results;
-    results.reserve(pending_batches_.size());
+    results.reserve(batches.size());
 
     size_t raw_index = 0;
-    for (const auto& batch: pending_batches_) {
+    const auto next_response = [&]() -> const nlohmann::json& {
+        if (raw_index >= raw_responses.size()) {
+            throw std::runtime_error("TypeSafe returned fewer responses than requests were queued");
+        }
+        return raw_responses[raw_index++];
+    };
+
+    // The answer to a pick: the flock_row_id of the chosen row.
+    const auto picked_row_id = [&](const PendingBatch& batch) -> nlohmann::json {
+        const auto& ids = *batch.row_ids;
+        // Not sent: the only candidate wins, or the first row when none has content.
+        if (batch.asked_rows.size() <= 1) {
+            return ids[batch.asked_rows.empty() ? 0 : batch.asked_rows.front()];
+        }
+        const auto& response = next_response();
+        // The aggregate shrinks and retries an oversized pick.
+        if (IsTokenLimitExceededMarker(response)) {
+            throw TokenLimitExceededError();
+        }
+        const auto choice = response.at("answers").at("pick").at("choice").get<std::string>();
+        for (const auto row_offset: batch.asked_rows) {
+            if (RowKey(row_offset) == choice) {
+                return ids[row_offset];
+            }
+        }
+        throw std::runtime_error("TypeSafe chose '" + choice + "', which is not one of the rows it was offered");
+    };
+
+    for (const auto& batch: batches) {
+        if (batch.row_ids.has_value()) {
+            results.push_back(nlohmann::json{{"items", {picked_row_id(batch)}}});
+            continue;
+        }
+
         if (batch.asked_rows.empty()) {
             results.push_back(nlohmann::json{{"items", UnansweredItems(batch.row_count)}});
             continue;
         }
-
-        if (raw_index >= raw_responses.size()) {
-            throw std::runtime_error("TypeSafe returned fewer responses than requests were queued");
-        }
-        const auto& response = raw_responses[raw_index++];
+        const auto& response = next_response();
 
         // A batch the caller must retry smaller passes straight through.
         if (IsTokenLimitExceededMarker(response)) {
@@ -143,7 +232,6 @@ std::vector<nlohmann::json> TypeSafeProvider::CollectCompletions(const std::stri
         results.push_back(nlohmann::json{{"items", items}});
     }
 
-    pending_batches_.clear();
     return results;
 }
 

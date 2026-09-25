@@ -340,10 +340,11 @@ void Model::RejectUnsupportedFunction(const nlohmann::json& resolved_model_json,
     }
     const auto provider_name = resolved_model_json["provider"].get<std::string>();
     // TypeSafe cannot generate text, so it serves only the operators that judge rows.
-    if (GetProviderType(provider_name) == FLOCKMTL_TYPESAFE && function_name != "llm_filter") {
+    const auto judges_rows = function_name == "llm_filter" || function_name == "llm_first" || function_name == "llm_last";
+    if (GetProviderType(provider_name) == FLOCKMTL_TYPESAFE && !judges_rows) {
         throw duckdb::BinderException(function_name + " is not supported by the '" + provider_name +
-                                      "' provider, which answers typed questions and cannot generate text. It supports llm_filter. Use a "
-                                      "generative provider for " +
+                                      "' provider, which answers typed questions and cannot generate text. It supports llm_filter, "
+                                      "llm_first and llm_last. Use a generative provider for " +
                                       function_name + ".");
     }
 }
