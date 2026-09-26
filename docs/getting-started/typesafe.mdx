@@ -6,7 +6,7 @@ In this section we will cover how to set up and use the TypeSafe provider with F
 
 Before starting, you should have already followed the [Getting Started](/getting-started/overview) guide.
 
-Jev is not a chat model. It answers typed questions about a piece of content and returns the probability of each answer, so it cannot generate text. In Flock it serves `llm_filter`, with a calibrated yes/no verdict per row, and `llm_first` and `llm_last`, which pick one row out of a group, at a fraction of the cost of a generative model.
+Jev is not a chat model. It answers typed questions about a piece of content and returns the probability of each answer, so it cannot generate text. In Flock it serves `llm_filter`, with a calibrated yes/no verdict per row, and `ai_classify`, which picks one label per row, at a fraction of the cost of a generative model.
 
 ## TypeSafe Provider Setup
 
@@ -72,28 +72,15 @@ The threshold must be between 0 and 1.
 |----------|-----------|
 | `llm_filter` | Yes |
 | `ai_classify` | Yes, and only here: see [`ai_classify`](/scalar-functions/ai-classify) |
-| `llm_first`, `llm_last` | Yes |
 | `llm_complete`, `llm_reduce` | No: Jev cannot generate text |
 | `llm_embedding` | No: TypeSafe serves no embeddings |
-| `llm_rerank` | No |
+| `llm_first`, `llm_last`, `llm_rerank` | No |
 
 Using an unsupported function with a TypeSafe model fails when the query is planned, before any request is sent. Context columns must be text; image and audio columns are refused.
 
-## Picking a Row
-
-`llm_first` and `llm_last` ask Jev one question per batch: which of these rows best, or least, satisfies the prompt. Jev can only answer with one of the rows it was shown. When a group has more rows than fit in one batch, the winner of each batch goes on to compete in the next.
-
-```sql
-SELECT category,
-       llm_first({'model_name': 'jev'},
-                 {'prompt': 'The review is negative.', 'context_columns': [{'data': review}]}) AS most_negative
-FROM reviews
-GROUP BY category;
-```
-
 ## Rows Without Context
 
-A row whose context is entirely `NULL` is not sent to Jev, so it costs nothing and is not judged by the model. For `llm_first` and `llm_last` it is never a candidate.
+A row whose context is entirely `NULL` is not sent to Jev, so it costs nothing and is not judged by the model.
 
 ## Batching and Limits
 

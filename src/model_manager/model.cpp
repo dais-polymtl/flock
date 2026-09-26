@@ -327,11 +327,10 @@ void Model::RejectUnsupportedFunction(const nlohmann::json& resolved_model_json,
     const auto provider_name = resolved_model_json["provider"].get<std::string>();
     const auto is_typesafe = GetProviderType(provider_name) == FLOCKMTL_TYPESAFE;
     // TypeSafe cannot generate text, so it serves only the operators that judge rows.
-    if (is_typesafe && function_name != "llm_filter" && function_name != "llm_first" && function_name != "llm_last" &&
-        function_name != "ai_classify") {
+    if (is_typesafe && function_name != "llm_filter" && function_name != "ai_classify") {
         throw duckdb::BinderException(function_name + " is not supported by the '" + provider_name +
-                                      "' provider, which answers typed questions and cannot generate text. It supports llm_filter, "
-                                      "llm_first, llm_last and ai_classify. Use a generative provider for " +
+                                      "' provider, which answers typed questions and cannot generate text. It supports llm_filter "
+                                      "and ai_classify. Use a generative provider for " +
                                       function_name + ".");
     }
     if (!is_typesafe && function_name == "ai_classify") {
@@ -359,25 +358,10 @@ void Model::AddStructuredCompletionRequest(const StructuredCompletionRequest& re
         provider_->AddStructuredCompletionRequest(request);
         return;
     }
-    const auto& [prompt, media_data] = std::visit(
-            [&](const auto function_type) {
-                return PromptManager::Render(request.user_prompt, request.batch.Columns(), function_type,
-                                             model_details_.tuple_format);
-            },
-            request.function_type);
-    // Scalar functions answer per row; aggregates once, except rerank.
-    auto output_type = OutputType::STRING;
-    auto answer_count = static_cast<int>(request.batch.RowCount());
-    if (const auto* scalar = std::get_if<ScalarFunctionType>(&request.function_type)) {
-        output_type = *scalar == ScalarFunctionType::FILTER ? OutputType::BOOL : OutputType::STRING;
-    } else {
-        const auto aggregate = std::get<AggregateFunctionType>(request.function_type);
-        output_type = aggregate == AggregateFunctionType::REDUCE ? OutputType::STRING : OutputType::INTEGER;
-        if (aggregate != AggregateFunctionType::RERANK) {
-            answer_count = 1;
-        }
-    }
-    provider_->AddCompletionRequest(prompt, answer_count, output_type, media_data);
+    const auto& [prompt, media_data] = PromptManager::Render(request.user_prompt, request.batch.Columns(),
+                                                             request.function_type, model_details_.tuple_format);
+    const auto output_type = request.function_type == ScalarFunctionType::FILTER ? OutputType::BOOL : OutputType::STRING;
+    provider_->AddCompletionRequest(prompt, static_cast<int>(request.batch.RowCount()), output_type, media_data);
 }
 
 void Model::AddEmbeddingRequest(const std::vector<std::string>& inputs) {

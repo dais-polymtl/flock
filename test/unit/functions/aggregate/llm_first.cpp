@@ -59,21 +59,6 @@ TEST_F(LLMFirstTest, SingleTupleNoLLMCall) {
     EXPECT_EQ(parsed[0]["data"][0], "High-performance running shoes with advanced cushioning");
 }
 
-TEST_F(LLMFirstTest, AsksTheModelForOneRowId) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::HasSubstr("flock_row_id"), 1, OutputType::INTEGER,
-                                                     ::testing::_))
-            .Times(1);
-    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-            .WillOnce(::testing::Return(std::vector<nlohmann::json>{GetExpectedJsonResponse()}));
-
-    auto con = GetConnection();
-    const auto results = con.Query(
-            "SELECT llm_first({'model_name': 'gpt-4o'}, "
-            "{'prompt': 'What is the most relevant product?', 'context_columns': [{'data': description}]}) "
-            "FROM VALUES ('Running shoes'), ('Wireless headphones'), ('Smart watch') AS products(description);");
-    ASSERT_FALSE(results->HasError()) << results->GetError();
-}
-
 // Test multiple tuples without GROUP BY: LLM is called once
 TEST_F(LLMFirstTest, MultipleTuplesWithoutGroupBy) {
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))

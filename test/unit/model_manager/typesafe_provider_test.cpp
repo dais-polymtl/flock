@@ -237,87 +237,6 @@ TEST(TypeSafeProviderTest, RefusesImageAndAudioColumns) {
     }
 }
 
-// llm_first and llm_last add a flock_row_id column and expect the winner's id.
-nlohmann::json MakePickTuples(const std::vector<nlohmann::json>& reviews) {
-    auto ids = nlohmann::json::array();
-    for (size_t i = 0; i < reviews.size(); i++) {
-        ids.push_back(std::to_string(i + 10));// ids need not match offsets
-    }
-    return nlohmann::json::array({{{"data", reviews}}, {{"name", "flock_row_id"}, {"data", ids}}});
-}
-
-nlohmann::json ChoiceAnswer(const std::string& choice) {
-    return {{"answers", {{"pick", {{"type", "choice"}, {"choice", choice}, {"confidence", 0.9}}}}}};
-}
-
-TEST(TypeSafeProviderTest, PicksARowWithOneChoiceQuestion) {
-    auto provider = TypeSafeProvider(MakeModelDetails());
-    auto& handler = InstallRecordingHandler(provider);
-
-    provider.AddStructuredCompletionRequest(
-            {BatchContext(MakePickTuples({"battery died", "great screen", "arrived late"})), "most negative",
-             AggregateFunctionType::FIRST});
-
-    ASSERT_EQ(handler.requests.size(), 1u);
-    const auto& payload = handler.requests[0];
-    EXPECT_EQ(payload["state"]["criterion"], "most negative");
-    const auto& pick = payload["questions"]["pick"];
-    EXPECT_EQ(pick["type"], "choice");
-    EXPECT_NE(pick["instructions"].get<std::string>().find("best"), std::string::npos);
-    EXPECT_EQ(pick["criteria"], (nlohmann::json{{"0", nullptr}, {"1", nullptr}, {"2", nullptr}}));
-    // The row id is Flock's bookkeeping, not part of the row.
-    EXPECT_FALSE(payload["state"]["rows"]["0"].contains("flock_row_id"));
-    EXPECT_EQ(payload["state"]["rows"]["0"]["COLUMN 1"], "battery died");
-
-    handler.canned_responses = {ChoiceAnswer("2")};
-    EXPECT_EQ(provider.CollectCompletions()[0]["items"], (nlohmann::json{"12"}));
-}
-
-TEST(TypeSafeProviderTest, LastAsksForTheLeastFittingRow) {
-    auto provider = TypeSafeProvider(MakeModelDetails());
-    auto& handler = InstallRecordingHandler(provider);
-
-    provider.AddStructuredCompletionRequest(
-            {BatchContext(MakePickTuples({"a", "b"})), "most negative", AggregateFunctionType::LAST});
-    ASSERT_EQ(handler.requests.size(), 1u);
-    EXPECT_NE(handler.requests[0]["questions"]["pick"]["instructions"].get<std::string>().find("least"),
-              std::string::npos);
-}
-
-TEST(TypeSafeProviderTest, PickSkipsEmptyRowsAndSendsNothingForOneCandidate) {
-    auto provider = TypeSafeProvider(MakeModelDetails());
-    auto& handler = InstallRecordingHandler(provider);
-
-    provider.AddStructuredCompletionRequest(
-            {BatchContext(MakePickTuples({"NULL", "battery died", "NULL"})), "most negative",
-             AggregateFunctionType::FIRST});
-    EXPECT_TRUE(handler.requests.empty());
-    EXPECT_EQ(provider.CollectCompletions()[0]["items"], (nlohmann::json{"11"}));
-}
-
-TEST(TypeSafeProviderTest, PickOfOnlyEmptyRowsReturnsTheFirstRow) {
-    auto provider = TypeSafeProvider(MakeModelDetails());
-    auto& handler = InstallRecordingHandler(provider);
-
-    provider.AddStructuredCompletionRequest(
-            {BatchContext(MakePickTuples({"NULL", "NULL"})), "most negative", AggregateFunctionType::FIRST});
-    EXPECT_TRUE(handler.requests.empty());
-    EXPECT_EQ(provider.CollectCompletions()[0]["items"], (nlohmann::json{"10"}));
-}
-
-TEST(TypeSafeProviderTest, OversizedPickRaisesTokenLimitAndClearsItsQueue) {
-    auto provider = TypeSafeProvider(MakeModelDetails());
-    auto& handler = InstallRecordingHandler(provider);
-
-    provider.AddStructuredCompletionRequest(
-            {BatchContext(MakePickTuples({"a", "b"})), "most negative", AggregateFunctionType::FIRST});
-    handler.canned_responses = {TokenLimitExceededMarker()};
-    EXPECT_THROW(provider.CollectCompletions(), TokenLimitExceededError);
-
-    handler.canned_responses = {};
-    EXPECT_TRUE(provider.CollectCompletions().empty());
-}
-
 TEST(TypeSafeProviderTest, PassesTokenLimitMarkerThrough) {
     auto provider = TypeSafeProvider(MakeModelDetails());
     auto& handler = InstallRecordingHandler(provider);
@@ -550,14 +469,14 @@ TEST_F(LlmFilterTypeSafeTest, RefusesUnsupportedFunctionsAtBind) {
                 std::string::npos)
                 << results->GetError();
     }
-    const auto rerank = con.Query(
-            "SELECT llm_rerank({'model_name': 'jev'}, {'prompt': 'x', "
-            "'context_columns': [{'data': t}]}) FROM unnest(['a', 'b']) AS tbl(t);");
-    ASSERT_TRUE(rerank->HasError());
-    EXPECT_NE(
-            rerank->GetError().find("is not supported by the 'typesafe' provider"),
-            std::string::npos)
-            << rerank->GetError();
+    for (const auto* aggregate: {"llm_rerank", "llm_first", "llm_last"}) {
+        const auto results = con.Query(std::string("SELECT ") + aggregate +
+                                       "({'model_name': 'jev'}, {'prompt': 'x', "
+                                       "'context_columns': [{'data': t}]}) FROM unnest(['a', 'b']) AS tbl(t);");
+        ASSERT_TRUE(results->HasError()) << aggregate;
+        EXPECT_NE(results->GetError().find("is not supported by the 'typesafe' provider"), std::string::npos)
+                << results->GetError();
+    }
     EXPECT_TRUE(RecordingDecisionProvider::seen_tuples.empty());
 }
 

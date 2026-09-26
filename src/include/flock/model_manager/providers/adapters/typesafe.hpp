@@ -2,7 +2,6 @@
 
 #include "flock/model_manager/providers/handlers/typesafe.hpp"
 #include "flock/model_manager/providers/provider.hpp"
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -38,14 +37,7 @@ private:
         // llm_filter only.
         double threshold;
         std::vector<size_t> asked_rows;
-        // For llm_first/_last, each row's flock_row_id, which is what the answer names.
-        std::optional<std::vector<nlohmann::json>> row_ids;
     };
-
-    // llm_filter: one yes/no question per row; ai_classify: one choice of label per row.
-    void AddFilterOrClassifyRequest(const StructuredCompletionRequest& request, ScalarFunctionType function_type);
-    // llm_first and llm_last: one question choosing a row out of the batch.
-    void AddFirstOrLastRequest(const StructuredCompletionRequest& request, AggregateFunctionType function_type);
 
     std::vector<PendingBatch> pending_batches_;
 };

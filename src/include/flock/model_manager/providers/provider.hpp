@@ -8,10 +8,8 @@
 #include <cctype>
 #include <memory>
 #include <nlohmann/json.hpp>
-#include <optional>
 #include <regex>
 #include <stdexcept>
-#include <variant>
 
 namespace flock {
 
@@ -31,7 +29,7 @@ enum class OutputType {
 struct StructuredCompletionRequest {
     BatchContext batch;
     std::string user_prompt;
-    std::variant<ScalarFunctionType, AggregateFunctionType> function_type;
+    ScalarFunctionType function_type;
     // ai_classify's choices, as {label: description or null}.
     nlohmann::json choices = nlohmann::json::object();
 };
