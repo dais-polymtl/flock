@@ -40,7 +40,7 @@ void AiClassify::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state
             const auto fields = CastValueToJson(choice);
             if (!fields.contains("label")) {
                 throw std::runtime_error("ai_classify: each entry in 'choice' needs a 'label', e.g. "
-                                         "{'label': 'billing', 'description': '...'}.");
+                                         "{'label': 'blocker', 'description': '...'}.");
             }
             choices[fields["label"].get<std::string>()] = fields.value("description", nlohmann::json());
         }

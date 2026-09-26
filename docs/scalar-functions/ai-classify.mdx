@@ -9,30 +9,32 @@ The `ai_classify` function assigns each row one label out of a fixed list of cho
 The choices can be plain labels:
 
 ```sql
-SELECT text,
+SELECT review,
        ai_classify(
            {'model_name': 'jev'},
-           {'prompt': 'Classify the topic of this news article.',
-            'choice': ['World', 'Sports', 'Business', 'Sci/Tech'],
-            'context_columns': [{'data': text}]}
-       ).choice AS topic
-FROM articles;
+           {'prompt': 'Which part of the phone is the review about?',
+            'choice': ['battery', 'screen', 'camera', 'audio'],
+            'context_columns': [{'data': review}]}
+       ).choice AS aspect
+FROM phone_reviews;
 ```
 
 Or labels with a description, which helps Jev tell close labels apart:
 
 ```sql
-SELECT result.choice, result.confidence, result.probabilities['billing'] AS p_billing
+SELECT title, result.choice AS severity, result.confidence, result.probabilities['blocker'] AS p_blocker
 FROM (
-    SELECT ai_classify(
+    SELECT title,
+           ai_classify(
                {'model_name': 'jev'},
-               {'prompt': 'Identify the customer''s main complaint.',
-                'choice': [{'label': 'billing', 'description': 'Payments, invoices, and refunds'},
-                           {'label': 'technical', 'description': 'Errors, outages, and integrations'},
-                           {'label': 'account', 'description': 'Cancellations and account administration'}],
-                'context_columns': [{'data': transcript}]}
+               {'prompt': 'How severe is this bug report?',
+                'choice': [{'label': 'blocker', 'description': 'Nobody can use the product'},
+                           {'label': 'major', 'description': 'A core feature is broken, with no workaround'},
+                           {'label': 'minor', 'description': 'Something is wrong, but there is a workaround'},
+                           {'label': 'cosmetic', 'description': 'Only looks wrong'}],
+                'context_columns': [{'data': title, 'name': 'title'}, {'data': body, 'name': 'body'}]}
            ) AS result
-    FROM tickets
+    FROM bug_reports
 );
 ```
 
