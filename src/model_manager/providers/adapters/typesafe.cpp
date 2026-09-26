@@ -220,7 +220,7 @@ std::vector<nlohmann::json> TypeSafeProvider::CollectCompletions(const std::stri
                 if (answer.contains("noul") && answer["noul"].is_number()) {
                     items[row_offset] = answer["noul"].get<double>() >= batch.threshold;
                 } else if (answer.contains("choice") && answer["choice"].is_string()) {
-                    items[row_offset] = answer["choice"];
+                    items[row_offset] = answer;
                 }
             }
         }

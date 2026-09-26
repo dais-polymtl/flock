@@ -176,7 +176,10 @@ TEST(TypeSafeProviderTest, ClassifiesEachRowWithOneChoiceQuestion) {
     handler.canned_responses = {{{"answers",
                                   {{"0", {{"type", "choice"}, {"choice", "bug"}}},
                                    {"2", {{"type", "choice"}, {"choice", "feature"}}}}}}};
-    EXPECT_EQ(provider.CollectCompletions()[0]["items"], (nlohmann::json{"bug", nullptr, "feature"}));
+    const auto items = provider.CollectCompletions()[0]["items"];
+    EXPECT_EQ(items[0]["choice"], "bug");
+    EXPECT_TRUE(items[1].is_null());
+    EXPECT_EQ(items[2]["choice"], "feature");
 }
 
 TEST(TypeSafeProviderTest, FilterRequiresAThreshold) {
@@ -513,6 +516,16 @@ TEST_F(LlmFilterTypeSafeTest, AiClassifyPassesTheChoicesToTheProvider) {
         ASSERT_EQ(RecordingDecisionProvider::seen_choices.size(), 1u);
         EXPECT_EQ(RecordingDecisionProvider::seen_choices[0], expected) << choice;
     }
+}
+
+TEST_F(LlmFilterTypeSafeTest, AiClassifyReturnsAStructWithProbabilities) {
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT typeof(ai_classify({'model_name': 'jev'}, {'prompt': 'x', 'choice': ['a', 'b'], "
+                                   "'return_probabilities': true, 'context_columns': [{'data': t}]})) "
+                                   "FROM unnest(['a']) AS tbl(t);");
+    ASSERT_FALSE(results->HasError()) << results->GetError();
+    EXPECT_EQ(results->GetValue(0, 0).ToString(),
+              "STRUCT(choice VARCHAR, confidence DOUBLE, probabilities MAP(VARCHAR, DOUBLE))");
 }
 
 TEST_F(LlmFilterTypeSafeTest, AiClassifyIsTypeSafeOnly) {
