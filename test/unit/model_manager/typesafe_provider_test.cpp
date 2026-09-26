@@ -437,10 +437,10 @@ TEST_F(LlmFilterTypeSafeTest, AiClassifyPassesTheChoicesToTheProvider) {
     }
 }
 
-TEST_F(LlmFilterTypeSafeTest, AiClassifyReturnsAStructWithProbabilities) {
+TEST_F(LlmFilterTypeSafeTest, AiClassifyReturnsTheChoiceWithProbabilities) {
     auto con = Config::GetConnection();
     const auto results = con.Query("SELECT typeof(ai_classify({'model_name': 'jev'}, {'prompt': 'x', 'choice': ['a', 'b'], "
-                                   "'return_probabilities': true, 'context_columns': [{'data': t}]})) "
+                                   "'context_columns': [{'data': t}]})) "
                                    "FROM unnest(['a']) AS tbl(t);");
     ASSERT_FALSE(results->HasError()) << results->GetError();
     EXPECT_EQ(results->GetValue(0, 0).ToString(),

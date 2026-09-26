@@ -1,4 +1,3 @@
-#include "duckdb/execution/expression_executor.hpp"
 #include "duckdb/planner/expression/bound_function_expression.hpp"
 #include "flock/core/config.hpp"
 #include "flock/functions/input_parser.hpp"
@@ -12,21 +11,7 @@ duckdb::unique_ptr<duckdb::FunctionData> AiClassify::Bind(
         duckdb::ClientContext& context,
         duckdb::ScalarFunction& bound_function,
         duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments) {
-    auto bind_data = ScalarFunctionBase::ValidateAndInitializeBindData(context, arguments, "ai_classify", true);
-    // 'return_probabilities' makes the result a struct instead of the bare label.
-    if (arguments[1]->expression_class == duckdb::ExpressionClass::BOUND_FUNCTION) {
-        const auto& children = arguments[1]->Cast<duckdb::BoundFunctionExpression>().children;
-        for (idx_t i = 0; i < children.size(); i++) {
-            if (duckdb::StructType::GetChildName(arguments[1]->return_type, i) == "return_probabilities" &&
-                duckdb::ExpressionExecutor::EvaluateScalar(context, *children[i]).GetValue<bool>()) {
-                bound_function.return_type = duckdb::LogicalType::STRUCT(
-                        {{"choice", duckdb::LogicalType::VARCHAR},
-                         {"confidence", duckdb::LogicalType::DOUBLE},
-                         {"probabilities", duckdb::LogicalType::MAP(duckdb::LogicalType::VARCHAR, duckdb::LogicalType::DOUBLE)}});
-            }
-        }
-    }
-    return bind_data;
+    return ScalarFunctionBase::ValidateAndInitializeBindData(context, arguments, "ai_classify", true);
 }
 
 void AiClassify::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
@@ -62,16 +47,10 @@ void AiClassify::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state
 
     const auto context_columns = CastVectorOfStructsToJson(args.data[1], args.size())["context_columns"];
     const auto responses = BatchAndComplete(context_columns, bind_data->prompt, ScalarFunctionType::CLASSIFY, model, choices);
-    const auto with_probabilities = result.GetType().id() == duckdb::LogicalTypeId::STRUCT;
     for (idx_t i = 0; i < args.size(); i++) {
         const auto& answer = responses[i];
         if (!answer.is_object()) {
             result.SetValue(i, duckdb::Value());
-            continue;
-        }
-        const auto choice = duckdb::Value(answer["choice"].get<std::string>());
-        if (!with_probabilities) {
-            result.SetValue(i, choice);
             continue;
         }
         duckdb::vector<duckdb::Value> labels;
@@ -81,7 +60,7 @@ void AiClassify::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state
             labels.emplace_back(label);
             probabilities.push_back(duckdb::Value::DOUBLE(probability.get<double>()));
         }
-        result.SetValue(i, duckdb::Value::STRUCT({{"choice", choice},
+        result.SetValue(i, duckdb::Value::STRUCT({{"choice", duckdb::Value(answer["choice"].get<std::string>())},
                                                   {"confidence", duckdb::Value::DOUBLE(answer.value("confidence", 0.0))},
                                                   {"probabilities", duckdb::Value::MAP(duckdb::LogicalType::VARCHAR, duckdb::LogicalType::DOUBLE,
                                                                                        std::move(labels), std::move(probabilities))}}));

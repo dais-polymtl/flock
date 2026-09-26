@@ -334,7 +334,6 @@ void ScalarFunctionBase::InitializePrompt(
         prompt_json.erase("context_columns");
     }
     prompt_json.erase("choice");
-    prompt_json.erase("return_probabilities");
 
     auto prompt_details = PromptManager::CreatePromptDetails(prompt_json);
     bind_data.prompt = prompt_details.prompt;

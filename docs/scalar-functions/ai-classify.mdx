@@ -2,7 +2,7 @@
 title: "ai_classify"
 ---
 
-The `ai_classify` function assigns each row one label out of a fixed list of choices and returns that label as `VARCHAR`. It is served only by [`typesafe` models](/getting-started/typesafe), where Jev answers one choice question per row.
+The `ai_classify` function assigns each row one label out of a fixed list of choices. It returns the label together with Jev's confidence and the probability of every label. It is served only by [`typesafe` models](/getting-started/typesafe), where Jev answers one choice question per row.
 
 ## 1. Usage
 
@@ -15,26 +15,11 @@ SELECT text,
            {'prompt': 'Classify the topic of this news article.',
             'choice': ['World', 'Sports', 'Business', 'Sci/Tech'],
             'context_columns': [{'data': text}]}
-       ) AS topic
+       ).choice AS topic
 FROM articles;
 ```
 
 Or labels with a description, which helps Jev tell close labels apart:
-
-```sql
-SELECT transcript,
-       ai_classify(
-           {'model_name': 'jev'},
-           {'prompt': 'Identify the customer''s main complaint.',
-            'choice': [{'label': 'billing', 'description': 'Payments, invoices, and refunds'},
-                       {'label': 'technical', 'description': 'Errors, outages, and integrations'},
-                       {'label': 'account', 'description': 'Cancellations and account administration'}],
-            'context_columns': [{'data': transcript}]}
-       ) AS complaint
-FROM tickets;
-```
-
-Add `'return_probabilities': true` to get Jev's confidence and the probability of every label as well:
 
 ```sql
 SELECT result.choice, result.confidence, result.probabilities['billing'] AS p_billing
@@ -42,8 +27,9 @@ FROM (
     SELECT ai_classify(
                {'model_name': 'jev'},
                {'prompt': 'Identify the customer''s main complaint.',
-                'choice': ['billing', 'technical', 'account'],
-                'return_probabilities': true,
+                'choice': [{'label': 'billing', 'description': 'Payments, invoices, and refunds'},
+                           {'label': 'technical', 'description': 'Errors, outages, and integrations'},
+                           {'label': 'account', 'description': 'Cancellations and account administration'}],
                 'context_columns': [{'data': transcript}]}
            ) AS result
     FROM tickets
@@ -55,11 +41,10 @@ FROM (
 - **Model**: a `typesafe` model, for example `{'model_name': 'jev'}`. Other providers refuse `ai_classify` when the query is planned.
 - **Prompt**: the task, given inline with `prompt` or as a saved prompt with `prompt_name`.
 - **`choice`**: the labels to choose from, as a list of strings or of `{'label', 'description'}` structs. Jev accepts up to 255.
-- **`return_probabilities`** (optional, default `false`): return a struct instead of the bare label.
 - **`context_columns`**: the row data to classify. Columns must be text.
 
 ## 3. Output
 
-The chosen label, as `VARCHAR`. With `return_probabilities`, a `STRUCT(choice VARCHAR, confidence DOUBLE, probabilities MAP(VARCHAR, DOUBLE))`, where `probabilities` holds every label. A row whose context values are all `NULL` is not sent and returns `NULL`.
+A `STRUCT(choice VARCHAR, confidence DOUBLE, probabilities MAP(VARCHAR, DOUBLE))`: the chosen label, Jev's confidence in it, and the probability of every label. A row whose context values are all `NULL` is not sent and returns `NULL`.
 
 Every row's question carries the full list of choices, so the cost of a batch grows with the number of rows times the number of choices.
