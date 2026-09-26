@@ -57,8 +57,8 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
     if (!classify && !model_details_.threshold.has_value()) {
         throw std::runtime_error("llm_filter on the 'typesafe' provider needs a 'threshold' on the model.");
     }
-    if (classify && request.choices.empty()) {
-        throw std::runtime_error("ai_classify needs a 'choice' list in the prompt.");
+    if (classify && request.choices.size() < 2) {
+        throw std::runtime_error("ai_classify needs at least two labels in 'choice'.");
     }
 
     PendingBatch batch{request.batch.RowCount(), model_details_.threshold.value_or(0.0), {}};

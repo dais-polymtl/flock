@@ -182,6 +182,14 @@ TEST(TypeSafeProviderTest, ClassifiesEachRowWithOneChoiceQuestion) {
     EXPECT_EQ(items[2]["choice"], "feature");
 }
 
+TEST(TypeSafeProviderTest, ClassifyRequiresAtLeastTwoLabels) {
+    auto provider = TypeSafeProvider(MakeModelDetails());
+    InstallRecordingHandler(provider);
+    StructuredCompletionRequest request{BatchContext(MakeTuples({"a"})), "task", ScalarFunctionType::CLASSIFY};
+    request.choices = {{"only", nullptr}};
+    EXPECT_THROW(provider.AddStructuredCompletionRequest(request), std::runtime_error);
+}
+
 TEST(TypeSafeProviderTest, FilterRequiresAThreshold) {
     auto provider = TypeSafeProvider(MakeModelDetails(std::nullopt));
     InstallRecordingHandler(provider);

@@ -40,7 +40,7 @@ FROM (
 
 - **Model**: a `typesafe` model, for example `{'model_name': 'jev'}`. Other providers refuse `ai_classify` when the query is planned.
 - **Prompt**: the task, given inline with `prompt` or as a saved prompt with `prompt_name`.
-- **`choice`**: the labels to choose from, as a list of strings or of `{'label', 'description'}` structs. Jev accepts up to 255.
+- **`choice`**: the labels to choose from, as a list of strings or of `{'label', 'description'}` structs. At least two, and Jev accepts up to 255.
 - **`context_columns`**: the row data to classify. Columns must be text.
 
 ## 3. Output
