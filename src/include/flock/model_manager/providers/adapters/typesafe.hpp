@@ -34,7 +34,6 @@ private:
     // One entry per queued batch, in queue order.
     struct PendingBatch {
         size_t row_count;
-        // llm_filter only.
         double threshold;
         std::vector<size_t> asked_rows;
     };
