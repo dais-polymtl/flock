@@ -12,6 +12,7 @@ private:
     static void RegisterLlmComplete(duckdb::ExtensionLoader& loader);
     static void RegisterLlmEmbedding(duckdb::ExtensionLoader& loader);
     static void RegisterLlmFilter(duckdb::ExtensionLoader& loader);
+    static void RegisterAiClassify(duckdb::ExtensionLoader& loader);
     static void RegisterFusionRRF(duckdb::ExtensionLoader& loader);
     static void RegisterFusionCombANZ(duckdb::ExtensionLoader& loader);
     static void RegisterFusionCombMED(duckdb::ExtensionLoader& loader);

@@ -157,6 +157,28 @@ TEST(TypeSafeProviderTest, TreatsTheNullStringAsMissing) {
     EXPECT_TRUE(items[1].is_null());
 }
 
+TEST(TypeSafeProviderTest, ClassifiesEachRowWithOneChoiceQuestion) {
+    auto provider = TypeSafeProvider(MakeModelDetails());
+    auto& handler = InstallRecordingHandler(provider);
+
+    StructuredCompletionRequest request{BatchContext(MakeTuples({"app crashes", nullptr, "add dark mode"})),
+                                        "What kind of issue is this?", ScalarFunctionType::CLASSIFY};
+    request.choices = {{"bug", nullptr}, {"feature", "A request for something new"}};
+    provider.AddStructuredCompletionRequest(request);
+
+    ASSERT_EQ(handler.requests.size(), 1u);
+    const auto& payload = handler.requests[0];
+    EXPECT_EQ(payload["state"]["task"], "What kind of issue is this?");
+    EXPECT_EQ(payload["questions"]["0"]["type"], "choice");
+    EXPECT_EQ(payload["questions"]["0"]["criteria"], request.choices);
+    EXPECT_FALSE(payload["questions"].contains("1"));
+
+    handler.canned_responses = {{{"answers",
+                                  {{"0", {{"type", "choice"}, {"choice", "bug"}}},
+                                   {"2", {{"type", "choice"}, {"choice", "feature"}}}}}}};
+    EXPECT_EQ(provider.CollectCompletions()[0]["items"], (nlohmann::json{"bug", nullptr, "feature"}));
+}
+
 TEST(TypeSafeProviderTest, FilterRequiresAThreshold) {
     auto provider = TypeSafeProvider(MakeModelDetails(std::nullopt));
     InstallRecordingHandler(provider);
@@ -363,6 +385,7 @@ class RecordingDecisionProvider : public IProvider {
 public:
     static inline std::vector<std::optional<double>> seen_model_thresholds;
     static inline std::vector<nlohmann::json> seen_tuples;
+    static inline std::vector<nlohmann::json> seen_choices;
 
     explicit RecordingDecisionProvider(const ModelDetails& details)
         : IProvider(details) {
@@ -380,6 +403,7 @@ public:
     void AddStructuredCompletionRequest(
             const StructuredCompletionRequest& request) override {
         seen_tuples.push_back(request.batch.Columns());
+        seen_choices.push_back(request.choices);
         pending_rows_.push_back(request.batch.RowCount());
     }
     std::vector<nlohmann::json>
@@ -406,6 +430,7 @@ protected:
         con.Query("CREATE SECRET (TYPE OPENAI, API_KEY 'test-key');");
         RecordingDecisionProvider::seen_model_thresholds.clear();
         RecordingDecisionProvider::seen_tuples.clear();
+        RecordingDecisionProvider::seen_choices.clear();
         Model::SetMockProviderFactory([](const ModelDetails& details,
                                          std::shared_ptr<ModelRateLimiter>,
                                          std::shared_ptr<ModelUsageLimiter>) {
@@ -471,6 +496,32 @@ TEST_F(LlmFilterTypeSafeTest,
     ASSERT_EQ(data.size(), 2u);
     EXPECT_EQ(data[0], "a");
     EXPECT_EQ(data[1], "NULL");
+}
+
+TEST_F(LlmFilterTypeSafeTest, AiClassifyPassesTheChoicesToTheProvider) {
+    auto con = Config::GetConnection();
+    for (const auto& [choice, expected]: std::vector<std::pair<std::string, nlohmann::json>>{
+                 {"['bug', 'feature']", {{"bug", nullptr}, {"feature", nullptr}}},
+                 {"[{'label': 'bug', 'description': 'Something broke'}, {'label': 'feature', 'description': 'Something new'}]",
+                  {{"bug", "Something broke"}, {"feature", "Something new"}}}}) {
+        RecordingDecisionProvider::seen_choices.clear();
+        const auto results = con.Query("SELECT ai_classify({'model_name': 'jev'}, {'prompt': 'What kind of issue is this?', "
+                                       "'choice': " +
+                                       choice + ", 'context_columns': [{'data': t}]}) "
+                                                "FROM unnest(['a', 'b']) AS tbl(t);");
+        ASSERT_FALSE(results->HasError()) << results->GetError();
+        ASSERT_EQ(RecordingDecisionProvider::seen_choices.size(), 1u);
+        EXPECT_EQ(RecordingDecisionProvider::seen_choices[0], expected) << choice;
+    }
+}
+
+TEST_F(LlmFilterTypeSafeTest, AiClassifyIsTypeSafeOnly) {
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT ai_classify({'model_name': 'gpt-4o'}, {'prompt': 'x', 'choice': ['a', 'b'], "
+                                   "'context_columns': [{'data': t}]}) FROM unnest(['a']) AS tbl(t);");
+    ASSERT_TRUE(results->HasError());
+    EXPECT_NE(results->GetError().find("supported only by the 'typesafe' provider"), std::string::npos)
+            << results->GetError();
 }
 
 TEST_F(LlmFilterTypeSafeTest, RefusesUnsupportedFunctionsAtBind) {

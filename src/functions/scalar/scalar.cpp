@@ -164,20 +164,21 @@ void ScalarFunctionBase::InitializeModelJson(
 }
 
 void ScalarFunctionBase::QueueCompletion(BatchContext batch, const std::string& user_prompt,
-                                         ScalarFunctionType function_type, Model& model) {
-    model.AddStructuredCompletionRequest({std::move(batch), user_prompt, function_type});
+                                         ScalarFunctionType function_type, Model& model, const nlohmann::json& choices) {
+    model.AddStructuredCompletionRequest({std::move(batch), user_prompt, function_type, choices});
 }
 
 nlohmann::json ScalarFunctionBase::Complete(BatchContext batch, const std::string& user_prompt,
-                                            ScalarFunctionType function_type, Model& model) {
-    QueueCompletion(std::move(batch), user_prompt, function_type, model);
+                                            ScalarFunctionType function_type, Model& model, const nlohmann::json& choices) {
+    QueueCompletion(std::move(batch), user_prompt, function_type, model, choices);
     auto response = model.CollectCompletions();
     return response[0]["items"];
 };
 
 nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tuples,
                                                         const std::string& user_prompt,
-                                                        const ScalarFunctionType function_type, Model& model) {
+                                                        const ScalarFunctionType function_type, Model& model,
+                                                        const nlohmann::json& choices) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
     const int configured = std::min<int>(model.GetModelDetails().max_batch_size, row_count);
     auto batch_size = configured;
@@ -189,7 +190,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
     do {
         try {
             auto response = Complete(BatchContext(BuildBatchTuples(tuples, start_index, batch_size)), user_prompt,
-                                     function_type, model);
+                                     function_type, model, choices);
             NormalizeAndAppendBatchResponse(response, std::min<int>(batch_size, row_count - start_index), responses);
             start_index += batch_size;
             batch_size = configured;
@@ -220,7 +221,8 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
 
 nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& tuples,
                                                          const std::string& user_prompt,
-                                                         const ScalarFunctionType function_type, Model& model) {
+                                                         const ScalarFunctionType function_type, Model& model,
+                                                         const nlohmann::json& choices) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
     const int configured = std::min<int>(model.GetModelDetails().max_batch_size, row_count);
 
@@ -238,7 +240,7 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
 
         for (const auto& work: current_round) {
             QueueCompletion(BatchContext(BuildBatchTuples(tuples, work.start_index, work.batch_size)), user_prompt,
-                            function_type, attempt_model);
+                            function_type, attempt_model, choices);
         }
 
         std::vector<nlohmann::json> batch_responses;
@@ -287,12 +289,13 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
 
 nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples,
                                                     const std::string& user_prompt,
-                                                    const ScalarFunctionType function_type, Model& model) {
+                                                    const ScalarFunctionType function_type, Model& model,
+                                                    const nlohmann::json& choices) {
     if (model.GetModelDetails().is_async) {
-        return BatchAndCompleteAsync(tuples, user_prompt, function_type, model);
+        return BatchAndCompleteAsync(tuples, user_prompt, function_type, model, choices);
     }
 
-    return BatchAndCompleteSync(tuples, user_prompt, function_type, model);
+    return BatchAndCompleteSync(tuples, user_prompt, function_type, model, choices);
 }
 
 void ScalarFunctionBase::InitializePrompt(
@@ -330,6 +333,7 @@ void ScalarFunctionBase::InitializePrompt(
     if (prompt_json.contains("context_columns")) {
         prompt_json.erase("context_columns");
     }
+    prompt_json.erase("choice");
 
     auto prompt_details = PromptManager::CreatePromptDetails(prompt_json);
     bind_data.prompt = prompt_details.prompt;

@@ -32,6 +32,8 @@ struct StructuredCompletionRequest {
     BatchContext batch;
     std::string user_prompt;
     std::variant<ScalarFunctionType, AggregateFunctionType> function_type;
+    // ai_classify's choices, as {label: description or null}.
+    nlohmann::json choices = nlohmann::json::object();
 };
 
 class IProvider {

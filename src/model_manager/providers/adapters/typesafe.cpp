@@ -57,8 +57,8 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
     }
 
     if (const auto* scalar = std::get_if<ScalarFunctionType>(&request.function_type);
-        scalar != nullptr && *scalar == ScalarFunctionType::FILTER) {
-        AddFilterRequest(request);
+        scalar != nullptr && (*scalar == ScalarFunctionType::FILTER || *scalar == ScalarFunctionType::CLASSIFY)) {
+        AddFilterOrClassifyRequest(request, *scalar);
         return;
     }
     if (const auto* aggregate = std::get_if<AggregateFunctionType>(&request.function_type);
@@ -66,17 +66,22 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
         AddFirstOrLastRequest(request, *aggregate);
         return;
     }
-    throw std::runtime_error("The 'typesafe' provider serves llm_filter, llm_first and llm_last only: Jev answers "
+    throw std::runtime_error("The 'typesafe' provider serves llm_filter, llm_first, llm_last and ai_classify only: Jev answers "
                              "typed questions and cannot generate text. Point this function at a generative "
                              "provider.");
 }
 
-void TypeSafeProvider::AddFilterRequest(const StructuredCompletionRequest& request) {
-    if (!model_details_.threshold.has_value()) {
+void TypeSafeProvider::AddFilterOrClassifyRequest(const StructuredCompletionRequest& request,
+                                                  const ScalarFunctionType function_type) {
+    const auto classify = function_type == ScalarFunctionType::CLASSIFY;
+    if (!classify && !model_details_.threshold.has_value()) {
         throw std::runtime_error("llm_filter on the 'typesafe' provider needs a 'threshold' on the model.");
     }
+    if (classify && request.choices.empty()) {
+        throw std::runtime_error("ai_classify needs a 'choice' list in the prompt.");
+    }
 
-    PendingBatch batch{request.batch.RowCount(), *model_details_.threshold, {}, std::nullopt};
+    PendingBatch batch{request.batch.RowCount(), model_details_.threshold.value_or(0.0), {}, std::nullopt};
 
     auto rows = nlohmann::json::object();
     auto questions = nlohmann::json::object();
@@ -90,8 +95,14 @@ void TypeSafeProvider::AddFilterRequest(const StructuredCompletionRequest& reque
         const auto key = std::to_string(row_offset);
         rows[key] = std::move(*row);
         // The key is not sent to the model, so the instructions name the row.
-        questions[key] = {{"type", "noul"},
-                          {"instructions", "Row " + key + " satisfies the criterion stated in the state."}};
+        if (classify) {
+            questions[key] = {{"type", "choice"},
+                              {"instructions", "Choose the label for row " + key + ", following the task stated in the state."},
+                              {"criteria", request.choices}};
+        } else {
+            questions[key] = {{"type", "noul"},
+                              {"instructions", "Row " + key + " satisfies the criterion stated in the state."}};
+        }
         batch.asked_rows.push_back(row_offset);
     }
 
@@ -103,7 +114,7 @@ void TypeSafeProvider::AddFilterRequest(const StructuredCompletionRequest& reque
     }
 
     model_handler_->AddRequest({{"model", model_details_.model},
-                                {"state", {{"criterion", request.user_prompt}, {"rows", rows}}},
+                                {"state", {{classify ? "task" : "criterion", request.user_prompt}, {"rows", rows}}},
                                 {"questions", questions}});
 }
 
@@ -208,6 +219,8 @@ std::vector<nlohmann::json> TypeSafeProvider::CollectCompletions(const std::stri
                 const auto& answer = answers[key];
                 if (answer.contains("noul") && answer["noul"].is_number()) {
                     items[row_offset] = answer["noul"].get<double>() >= batch.threshold;
+                } else if (answer.contains("choice") && answer["choice"].is_string()) {
+                    items[row_offset] = answer["choice"];
                 }
             }
         }

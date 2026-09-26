@@ -6,6 +6,7 @@ void ScalarRegistry::Register(duckdb::ExtensionLoader& loader) {
     RegisterLlmComplete(loader);
     RegisterLlmEmbedding(loader);
     RegisterLlmFilter(loader);
+    RegisterAiClassify(loader);
     RegisterFusionRRF(loader);
     RegisterFusionCombANZ(loader);
     RegisterFusionCombMED(loader);

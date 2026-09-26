@@ -35,14 +35,15 @@ private:
     // One entry per queued batch, in queue order.
     struct PendingBatch {
         size_t row_count;
+        // llm_filter only.
         double threshold;
         std::vector<size_t> asked_rows;
         // For llm_first/_last, each row's flock_row_id, which is what the answer names.
         std::optional<std::vector<nlohmann::json>> row_ids;
     };
 
-    // llm_filter: one yes/no question per row.
-    void AddFilterRequest(const StructuredCompletionRequest& request);
+    // llm_filter: one yes/no question per row; ai_classify: one choice of label per row.
+    void AddFilterOrClassifyRequest(const StructuredCompletionRequest& request, ScalarFunctionType function_type);
     // llm_first and llm_last: one question choosing a row out of the batch.
     void AddFirstOrLastRequest(const StructuredCompletionRequest& request, AggregateFunctionType function_type);
 

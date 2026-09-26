@@ -47,6 +47,7 @@
           "scalar-functions/overview",
           "scalar-functions/llm-complete",
           "scalar-functions/llm-filter",
+          "scalar-functions/ai-classify",
           "scalar-functions/llm-embedding"
         ]
       },

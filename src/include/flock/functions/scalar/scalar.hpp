@@ -46,20 +46,24 @@ public:
     static void Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result);
 
     static void QueueCompletion(BatchContext batch, const std::string& user_prompt,
-                                ScalarFunctionType function_type, Model& model);
+                                ScalarFunctionType function_type, Model& model,
+                                const nlohmann::json& choices = nlohmann::json::object());
     static nlohmann::json Complete(BatchContext batch, const std::string& user_prompt,
-                                   ScalarFunctionType function_type, Model& model);
+                                   ScalarFunctionType function_type, Model& model,
+                                   const nlohmann::json& choices = nlohmann::json::object());
     static nlohmann::json BatchAndCompleteSync(const nlohmann::json& tuples,
                                                const std::string& user_prompt_name,
                                                ScalarFunctionType function_type,
-                                               Model& model);
+                                               Model& model,
+                                               const nlohmann::json& choices = nlohmann::json::object());
     static nlohmann::json BatchAndCompleteAsync(const nlohmann::json& tuples,
                                                 const std::string& user_prompt_name,
                                                 ScalarFunctionType function_type,
-                                                Model& model);
+                                                Model& model,
+                                                const nlohmann::json& choices = nlohmann::json::object());
     static nlohmann::json BatchAndComplete(const nlohmann::json& tuples,
                                            const std::string& user_prompt_name, ScalarFunctionType function_type,
-                                           Model& model);
+                                           Model& model, const nlohmann::json& choices = nlohmann::json::object());
 
     static duckdb::unique_ptr<LlmFunctionBindData> ValidateAndInitializeBindData(
             duckdb::ClientContext& context,
