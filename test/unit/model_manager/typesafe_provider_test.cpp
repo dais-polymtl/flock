@@ -455,6 +455,15 @@ TEST_F(LlmFilterTypeSafeTest, AiClassifyReturnsTheChoiceWithProbabilities) {
               "STRUCT(choice VARCHAR, confidence DOUBLE, probabilities MAP(VARCHAR, DOUBLE))");
 }
 
+TEST_F(LlmFilterTypeSafeTest, AiClassifyRequiresALabelInEveryChoiceStruct) {
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT ai_classify({'model_name': 'jev'}, {'prompt': 'x', "
+                                   "'choice': [{'description': 'no label'}, {'description': 'none here either'}], "
+                                   "'context_columns': [{'data': t}]}) FROM unnest(['a']) AS tbl(t);");
+    ASSERT_TRUE(results->HasError());
+    EXPECT_NE(results->GetError().find("needs a 'label'"), std::string::npos) << results->GetError();
+}
+
 TEST_F(LlmFilterTypeSafeTest, AiClassifyIsTypeSafeOnly) {
     auto con = Config::GetConnection();
     const auto results = con.Query("SELECT ai_classify({'model_name': 'gpt-4o'}, {'prompt': 'x', 'choice': ['a', 'b'], "
