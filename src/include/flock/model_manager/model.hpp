@@ -12,6 +12,7 @@
 #include "flock/model_manager/providers/adapters/azure.hpp"
 #include "flock/model_manager/providers/adapters/ollama.hpp"
 #include "flock/model_manager/providers/adapters/openai.hpp"
+#include "flock/model_manager/providers/adapters/typesafe.hpp"
 #include "flock/model_manager/providers/handlers/ollama.hpp"
 #include "flock/model_manager/rate_limiter.hpp"
 #include "flock/model_manager/repository.hpp"
@@ -29,6 +30,7 @@ public:
     explicit Model(const nlohmann::json& model_json);
     explicit Model() = default;
     void AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type = OutputType::STRING, const nlohmann::json& media_data = nlohmann::json::object());
+    void AddStructuredCompletionRequest(const StructuredCompletionRequest& request);
     void AddEmbeddingRequest(const std::vector<std::string>& inputs);
     void AddTranscriptionRequest(const nlohmann::json& audio_files);
     std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json");
@@ -39,6 +41,9 @@ public:
 
     // Static helper method for binders to resolve model details to JSON
     static nlohmann::json ResolveModelDetailsToJson(const nlohmann::json& user_model_json);
+
+    static void RejectUnsupportedFunction(const nlohmann::json& resolved_model_json,
+                                          const std::string& function_name);
 
     // Factory function type for creating mock providers
     using MockProviderFactory = std::function<std::shared_ptr<IProvider>(

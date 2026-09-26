@@ -1,0 +1,106 @@
+---
+title: "TypeSafe / Jev"
+---
+
+In this section we will cover how to set up and use the TypeSafe provider with Flock to access Jev, TypeSafe AI's System One decision model.
+
+Before starting, you should have already followed the [Getting Started](/getting-started/overview) guide.
+
+Jev is not a chat model. It answers typed questions about a piece of content and returns the probability of each answer, so it cannot generate text. In Flock it serves `llm_filter`, with a calibrated yes/no verdict per row, and `ai_classify`, which picks one label per row, at a fraction of the cost of a generative model.
+
+## TypeSafe Provider Setup
+
+Jev is served both by TypeSafe directly and by OpenRouter, with the same request format. Only the key and the base URL differ.
+
+- First, create a secret with your API key. The base URL defaults to TypeSafe itself:
+
+```sql
+-- TypeSafe directly
+CREATE SECRET (
+    TYPE TYPESAFE,
+    API_KEY 'your-typesafe-api-key'
+);
+
+-- Or through OpenRouter, with an OpenRouter key
+CREATE SECRET (
+    TYPE TYPESAFE,
+    API_KEY 'your-openrouter-api-key',
+    BASE_URL 'https://openrouter.ai/api'
+);
+```
+
+The base URL may be given as the host root, the `/v1` form, or the full `/v1/systemone` endpoint; all three reach the same place.
+
+- Flock ships with a model named `jev`, which points at `jev-latest`, so you can use it immediately:
+
+```sql
+SELECT review
+FROM reviews
+WHERE llm_filter(
+    {'model_name': 'jev', 'threshold': 0.8},
+    {'prompt': 'The review complains about battery life.',
+     'context_columns': [{'data': review}]}
+);
+```
+
+- Or create your own model to pin a version or change its settings:
+
+```sql
+CREATE MODEL('BatteryJudge', 'jev-latest', 'typesafe', {"threshold": 0.8});
+```
+
+`jev-latest` works on both hosts. Versioned identifiers differ by host: TypeSafe documents them as `jev-1.13.0`, OpenRouter as `jev-1.13`.
+
+## Decision Threshold
+
+Jev answers each row with the probability that it satisfies the prompt. `llm_filter` turns that probability into `true` when it is at or above a threshold. There is no default: set it in `CREATE MODEL`, or inline on the model for a single call:
+
+```sql
+SELECT llm_filter(
+    {'model_name': 'jev', 'threshold': 0.9},
+    {'prompt': 'The review complains about battery life.',
+     'context_columns': [{'data': review}]}
+) AS complains
+FROM reviews;
+```
+
+The threshold must be between 0 and 1.
+
+## Supported Functions
+
+| Function | Supported |
+|----------|-----------|
+| `llm_filter` | Yes |
+| `ai_classify` | Yes, and only here: see [`ai_classify`](/scalar-functions/ai-classify) |
+| `llm_complete`, `llm_reduce` | No: Jev cannot generate text |
+| `llm_embedding` | No: TypeSafe serves no embeddings |
+| `llm_first`, `llm_last`, `llm_rerank` | No |
+
+Using an unsupported function with a TypeSafe model fails when the query is planned, before any request is sent. Context columns must be text; image and audio columns are refused.
+
+## Rows Without Context
+
+A row whose context is entirely `NULL` is not sent to Jev, so it costs nothing and is not judged by the model.
+
+## Batching and Limits
+
+Rows are sent in batches, each batch as a single request with one question per row. Because each request carries a fixed overhead, large batches are much cheaper per row, so consider raising `max_batch_size`. Your host's request limit depends on your plan; set `rate_limit` to it to throttle requests (see [Models Management](/resource-management/models)).
+
+If a batch is too large for a single request, Flock halves it and retries automatically; a rejected request is not billed.
+
+## Settings That Do Not Apply
+
+A TypeSafe request carries only a model, the rows and the questions, so `model_parameters` (such as `temperature`) and `tuple_format` have no effect.
+
+## Using More Than One Host
+
+Name your secrets and choose one per call with `secret_name`:
+
+```sql
+CREATE SECRET openrouter (TYPE TYPESAFE, API_KEY 'your-openrouter-api-key', BASE_URL 'https://openrouter.ai/api');
+CREATE SECRET typesafe_direct (TYPE TYPESAFE, API_KEY 'your-typesafe-api-key');
+
+SELECT llm_filter({'model_name': 'jev', 'secret_name': 'openrouter'},
+                  {'prompt': 'The review complains about battery life.', 'context_columns': [{'data': review}]})
+FROM reviews;
+```

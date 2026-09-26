@@ -67,7 +67,7 @@ To cite the project:
 ## 🔥 Features
 
 - **Declarative SQL Interface**: Perform text generation, classification, summarization, filtering, and embedding generation using SQL queries.
-- **Multi-Provider Support**: Easily integrate with **OpenAI**, **Azure**, **Ollama**, and **Anthropic/Claude** for your AI needs.
+- **Multi-Provider Support**: Easily integrate with **OpenAI**, **Azure**, **Ollama**, **Anthropic/Claude**, and **TypeSafe/Jev** for your AI needs.
 - **End-to-End RAG Pipelines**: Enable retrieval and augmentation workflows for enhanced analytics.
 - **Map and Reduce Functions**: Intuitive APIs for combining semantic tasks and data analytics directly in DuckDB.
 - **Multimodal Analytics**: First-class support for text, images, and audio (via transcription) directly in SQL.
@@ -96,6 +96,7 @@ To cite the project:
    - Azure
    - Ollama
    - Anthropic/Claude
+   - TypeSafe/Jev
 3. **Supported OS**:
    - Linux
    - macOS

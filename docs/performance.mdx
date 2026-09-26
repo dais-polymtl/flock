@@ -36,7 +36,9 @@ CREATE MODEL('batched-gpt4o', 'gpt-4o', 'openai', {"max_batch_size": 64});
 ```
 
 - **Higher values**: fewer API calls, lower overhead, but larger payloads and higher risk of context-window errors.
-- **Lower values**: more API calls, but safer for long prompts or multimodal inputs.
+- **Lower values**: more API calls, but safer for long prompts or multimodal inputs, and often more accurate on models that mix up rows in large batches.
+
+The default may change in a future release, so set `max_batch_size` explicitly if you rely on it.
 
 You can override inline per query:
 

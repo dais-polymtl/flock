@@ -27,7 +27,8 @@
           "getting-started/openai",
           "getting-started/azure",
           "getting-started/ollama",
-          "getting-started/anthropic"
+          "getting-started/anthropic",
+          "getting-started/typesafe"
         ]
       },
       {
@@ -46,6 +47,7 @@
           "scalar-functions/overview",
           "scalar-functions/llm-complete",
           "scalar-functions/llm-filter",
+          "scalar-functions/ai-classify",
           "scalar-functions/llm-embedding"
         ]
       },
