@@ -47,23 +47,23 @@ public:
 
     static void QueueCompletion(BatchContext batch, const std::string& user_prompt,
                                 ScalarFunctionType function_type, Model& model,
-                                const nlohmann::json& choices = nlohmann::json::object());
+                                const std::optional<nlohmann::json>& choices = std::nullopt);
     static nlohmann::json Complete(BatchContext batch, const std::string& user_prompt,
                                    ScalarFunctionType function_type, Model& model,
-                                   const nlohmann::json& choices = nlohmann::json::object());
+                                   const std::optional<nlohmann::json>& choices = std::nullopt);
     static nlohmann::json BatchAndCompleteSync(const nlohmann::json& tuples,
                                                const std::string& user_prompt_name,
                                                ScalarFunctionType function_type,
                                                Model& model,
-                                               const nlohmann::json& choices = nlohmann::json::object());
+                                               const std::optional<nlohmann::json>& choices = std::nullopt);
     static nlohmann::json BatchAndCompleteAsync(const nlohmann::json& tuples,
                                                 const std::string& user_prompt_name,
                                                 ScalarFunctionType function_type,
                                                 Model& model,
-                                                const nlohmann::json& choices = nlohmann::json::object());
+                                                const std::optional<nlohmann::json>& choices = std::nullopt);
     static nlohmann::json BatchAndComplete(const nlohmann::json& tuples,
                                            const std::string& user_prompt_name, ScalarFunctionType function_type,
-                                           Model& model, const nlohmann::json& choices = nlohmann::json::object());
+                                           Model& model, const std::optional<nlohmann::json>& choices = std::nullopt);
 
     static duckdb::unique_ptr<LlmFunctionBindData> ValidateAndInitializeBindData(
             duckdb::ClientContext& context,

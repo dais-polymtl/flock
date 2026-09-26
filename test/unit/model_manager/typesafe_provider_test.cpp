@@ -163,14 +163,14 @@ TEST(TypeSafeProviderTest, ClassifiesEachRowWithOneChoiceQuestion) {
 
     StructuredCompletionRequest request{BatchContext(MakeTuples({"app crashes", nullptr, "add dark mode"})),
                                         "What kind of issue is this?", ScalarFunctionType::CLASSIFY};
-    request.choices = {{"bug", nullptr}, {"feature", "A request for something new"}};
+    request.choices = nlohmann::json{{"bug", nullptr}, {"feature", "A request for something new"}};
     provider.AddStructuredCompletionRequest(request);
 
     ASSERT_EQ(handler.requests.size(), 1u);
     const auto& payload = handler.requests[0];
     EXPECT_EQ(payload["state"]["task"], "What kind of issue is this?");
     EXPECT_EQ(payload["questions"]["0"]["type"], "choice");
-    EXPECT_EQ(payload["questions"]["0"]["criteria"], request.choices);
+    EXPECT_EQ(payload["questions"]["0"]["criteria"], *request.choices);
     EXPECT_FALSE(payload["questions"].contains("1"));
 
     handler.canned_responses = {{{"answers",
@@ -186,7 +186,7 @@ TEST(TypeSafeProviderTest, ClassifyRequiresAtLeastTwoLabels) {
     auto provider = TypeSafeProvider(MakeModelDetails());
     InstallRecordingHandler(provider);
     StructuredCompletionRequest request{BatchContext(MakeTuples({"a"})), "task", ScalarFunctionType::CLASSIFY};
-    request.choices = {{"only", nullptr}};
+    request.choices = nlohmann::json{{"only", nullptr}};
     EXPECT_THROW(provider.AddStructuredCompletionRequest(request), std::runtime_error);
 }
 
@@ -333,7 +333,7 @@ public:
     void AddStructuredCompletionRequest(
             const StructuredCompletionRequest& request) override {
         seen_tuples.push_back(request.batch.Columns());
-        seen_choices.push_back(request.choices);
+        seen_choices.push_back(request.choices.value_or(nlohmann::json()));
         pending_rows_.push_back(request.batch.RowCount());
     }
     std::vector<nlohmann::json>

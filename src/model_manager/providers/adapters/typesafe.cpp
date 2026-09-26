@@ -57,7 +57,7 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
     if (!classify && !model_details_.threshold.has_value()) {
         throw std::runtime_error("llm_filter on the 'typesafe' provider needs a 'threshold' on the model.");
     }
-    if (classify && request.choices.size() < 2) {
+    if (classify && (!request.choices || request.choices->size() < 2)) {
         throw std::runtime_error("ai_classify needs at least two labels in 'choice'.");
     }
 
@@ -78,7 +78,7 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
         if (classify) {
             questions[key] = {{"type", "choice"},
                               {"instructions", "Choose the label for row " + key + ", following the task stated in the state."},
-                              {"criteria", request.choices}};
+                              {"criteria", *request.choices}};
         } else {
             questions[key] = {{"type", "noul"},
                               {"instructions", "Row " + key + " satisfies the criterion stated in the state."}};

@@ -8,6 +8,7 @@
 #include <cctype>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <regex>
 #include <stdexcept>
 
@@ -31,7 +32,7 @@ struct StructuredCompletionRequest {
     std::string user_prompt;
     ScalarFunctionType function_type;
     // ai_classify's choices, as {label: description or null}.
-    nlohmann::json choices = nlohmann::json::object();
+    std::optional<nlohmann::json> choices = std::nullopt;
 };
 
 class IProvider {
