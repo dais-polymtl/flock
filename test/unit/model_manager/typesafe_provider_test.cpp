@@ -14,11 +14,13 @@ namespace {
 class RecordingHandler : public IModelProviderHandler {
 public:
     std::vector<nlohmann::json> requests;
+    std::vector<std::string> bodies;
     std::vector<nlohmann::json> canned_responses;
 
-    void AddRequest(const nlohmann::json& json, RequestType type = RequestType::Completion) override {
+    void AddRequest(const nlohmann::ordered_json& json, RequestType type = RequestType::Completion) override {
         (void) type;
         requests.push_back(json);
+        bodies.push_back(json.dump());
     }
     std::vector<nlohmann::json> CollectCompletions(const std::string& = "application/json") override {
         return canned_responses;
@@ -180,6 +182,16 @@ TEST(TypeSafeProviderTest, ClassifiesEachRowWithOneChoiceQuestion) {
     EXPECT_EQ(items[0]["choice"], "bug");
     EXPECT_TRUE(items[1].is_null());
     EXPECT_EQ(items[2]["choice"], "feature");
+}
+
+TEST(TypeSafeProviderTest, StatesTheQuestionBeforeTheRows) {
+    auto provider = TypeSafeProvider(MakeModelDetails());
+    auto& handler = InstallRecordingHandler(provider);
+    StructuredCompletionRequest request{BatchContext(MakeTuples({"a", "b"})), "task", ScalarFunctionType::CLASSIFY};
+    request.choices = nlohmann::json{{"x", nullptr}, {"y", nullptr}};
+    provider.AddStructuredCompletionRequest(request);
+    const auto& body = handler.bodies[0];
+    EXPECT_LT(body.find("\"task\""), body.find("\"rows\"")) << body;
 }
 
 TEST(TypeSafeProviderTest, ClassifyRequiresAtLeastTwoLabels) {

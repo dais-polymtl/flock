@@ -63,8 +63,9 @@ void TypeSafeProvider::AddStructuredCompletionRequest(const StructuredCompletion
 
     PendingBatch batch{request.batch.RowCount(), model_details_.threshold.value_or(0.0), {}};
 
-    auto rows = nlohmann::json::object();
-    auto questions = nlohmann::json::object();
+    // Ordered so the question precedes the rows it is about; some models read the state in order.
+    auto rows = nlohmann::ordered_json::object();
+    auto questions = nlohmann::ordered_json::object();
 
     for (size_t row_offset = 0; row_offset < batch.row_count; row_offset++) {
         auto row = RowToJudge(request.batch.Row(row_offset));
