@@ -100,7 +100,7 @@ TEST_F(LLMFilterTest, UnevaluatedRowBecomesSqlNull) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this review positive?', 'context_columns': [{'data': review}]}) AS result FROM unnest(['Great product!', NULL, 'Terrible quality']) as tbl(review);");
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this review positive?', 'context_columns': [{'data': review}]}) AS result FROM unnest(['Great product!', 'Meh', 'Terrible quality']) as tbl(review);");
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 3);
     EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
@@ -116,10 +116,25 @@ TEST_F(LLMFilterTest, UnevaluatedRowIsDroppedByWhere) {
             .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
 
     auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT review FROM unnest(['Great product!', NULL, 'Terrible quality']) as tbl(review) WHERE " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this review positive?', 'context_columns': [{'data': review}]});");
+    const auto results = con.Query("SELECT review FROM unnest(['Great product!', 'Meh', 'Terrible quality']) as tbl(review) WHERE " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this review positive?', 'context_columns': [{'data': review}]});");
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 1);
     EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "Great product!");
+}
+
+TEST_F(LLMFilterTest, AllNullRowIsNotSentAndStaysNull) {
+    const nlohmann::json expected_response = {{"items", {true, false}}};
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 2, ::testing::_, ::testing::_)).Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this review positive?', 'context_columns': [{'data': review}]}) AS result FROM unnest(['Great product!', NULL, 'Terrible quality']) as tbl(review);");
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 3);
+    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
+    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
+    EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "false");
 }
 
 TEST_F(LLMFilterTest, ValidateArguments) {

@@ -430,13 +430,13 @@ TEST_F(LlmFilterTypeSafeTest,
     auto con = Config::GetConnection();
     const auto results =
             con.Query("SELECT llm_filter({'model_name': 'jev', 'threshold': 0.5}, {'prompt': "
-                      "'complains', 'context_columns': [{'data': t}]}) "
-                      "FROM (VALUES ('a'), (NULL)) AS tbl(t);");
+                      "'complains', 'context_columns': [{'data': t}, {'data': u}]}) "
+                      "FROM (VALUES ('a', 'b'), ('c', NULL)) AS tbl(t, u);");
     ASSERT_FALSE(results->HasError()) << results->GetError();
     ASSERT_EQ(RecordingDecisionProvider::seen_tuples.size(), 1u);
-    const auto& data = RecordingDecisionProvider::seen_tuples[0][0]["data"];
+    const auto& data = RecordingDecisionProvider::seen_tuples[0][1]["data"];
     ASSERT_EQ(data.size(), 2u);
-    EXPECT_EQ(data[0], "a");
+    EXPECT_EQ(data[0], "b");
     EXPECT_EQ(data[1], "NULL");
 }
 

@@ -73,6 +73,21 @@ TEST_F(LLMCompleteTest, LLMCompleteWithInputColumns) {
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_response["items"][0]);
 }
 
+TEST_F(LLMCompleteTest, AllNullRowIsNotSentAndStaysNull) {
+    const nlohmann::json expected_response = {{"items", {"Ottawa", "Paris"}}};
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 2, ::testing::_, ::testing::_)).Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'What is the capital of', 'context_columns': [{'data': country}]}) AS capital FROM unnest(['Canada', NULL, 'France']) as tbl(country);");
+    ASSERT_TRUE(!results->HasError()) << results->GetError();
+    ASSERT_EQ(results->RowCount(), 3);
+    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "Ottawa");
+    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
+    EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "Paris");
+}
+
 TEST_F(LLMCompleteTest, ValidateArguments) {
     TestValidateArguments();
 }
@@ -291,8 +306,8 @@ TEST_F(LLMCompleteTest, Operation_SyncNullsRowAndContinuesAfterTokenOverflowExha
 
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 3);
-    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "null");
-    EXPECT_EQ(results->GetValue(0, 1).GetValue<std::string>(), "null");
+    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
+    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
     EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "response 2");
 }
 
@@ -346,8 +361,8 @@ TEST_F(LLMCompleteTest, Operation_AsyncReturnsNullWhenTokenOverflowCannotRetry) 
 
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 2);
-    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "null");
-    EXPECT_EQ(results->GetValue(0, 1).GetValue<std::string>(), "null");
+    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
+    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
 }
 
 TEST_F(LLMCompleteTest, Operation_AsyncNullsTailBatchWhenTokenOverflowCannotRetry) {
@@ -367,7 +382,7 @@ TEST_F(LLMCompleteTest, Operation_AsyncNullsTailBatchWhenTokenOverflowCannotRetr
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 3);
     for (size_t i = 0; i < 3; i++) {
-        EXPECT_EQ(results->GetValue(0, i).GetValue<std::string>(), "null");
+        EXPECT_TRUE(results->GetValue(0, i).IsNull());
     }
 }
 

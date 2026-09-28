@@ -291,11 +291,39 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples
                                                     const std::string& user_prompt,
                                                     const ScalarFunctionType function_type, Model& model,
                                                     const std::optional<nlohmann::json>& choices) {
-    if (model.GetModelDetails().is_async) {
-        return BatchAndCompleteAsync(tuples, user_prompt, function_type, model, choices);
+    // A row whose context values are all NULL gives the model nothing to judge, so it is not sent and stays NULL.
+    const auto row_count = tuples[0]["data"].size();
+    std::vector<size_t> sent_rows;
+    for (size_t row = 0; row < row_count; row++) {
+        for (const auto& column: tuples) {
+            const auto& value = column["data"][row];
+            if (!value.is_null() && value != "NULL") {
+                sent_rows.push_back(row);
+                break;
+            }
+        }
     }
 
-    return BatchAndCompleteSync(tuples, user_prompt, function_type, model, choices);
+    auto responses = nlohmann::json(row_count, nullptr);
+    if (sent_rows.empty()) {
+        return responses;
+    }
+    auto sent_tuples = tuples;
+    for (auto& column: sent_tuples) {
+        auto data = nlohmann::json::array();
+        for (const auto row: sent_rows) {
+            data.push_back(column["data"][row]);
+        }
+        column["data"] = std::move(data);
+    }
+
+    const auto sent_responses = model.GetModelDetails().is_async
+                                        ? BatchAndCompleteAsync(sent_tuples, user_prompt, function_type, model, choices)
+                                        : BatchAndCompleteSync(sent_tuples, user_prompt, function_type, model, choices);
+    for (size_t i = 0; i < sent_rows.size(); i++) {
+        responses[sent_rows[i]] = sent_responses[i];
+    }
+    return responses;
 }
 
 void ScalarFunctionBase::InitializePrompt(
