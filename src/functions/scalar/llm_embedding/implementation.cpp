@@ -26,7 +26,7 @@ void LlmEmbedding::ValidateArguments(duckdb::DataChunk& args) {
     }
 }
 
-std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataChunk& args, LlmFunctionBindData* bind_data) {
+std::vector<std::optional<duckdb::vector<duckdb::Value>>> LlmEmbedding::Operation(duckdb::DataChunk& args, LlmFunctionBindData* bind_data) {
     auto inputs = CastVectorOfStructsToJson(args.data[1], args.size());
     for (const auto& item: inputs.items()) {
         if (item.key() != "context_columns") {
@@ -44,14 +44,27 @@ std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataC
     auto model_details = model.GetModelDetails();
     MetricsManager::SetModelInfo(model_details.model_name, model_details.provider_name);
 
+    // A row whose context is all NULL has nothing to embed: it is not sent and stays NULL.
     std::vector<std::string> prepared_inputs;
+    std::vector<size_t> sent_rows;
     auto num_rows = inputs["context_columns"][0]["data"].size();
     for (size_t row_idx = 0; row_idx < num_rows; row_idx++) {
         std::string concat_input;
+        auto has_content = false;
         for (auto& context_column: inputs["context_columns"]) {
-            concat_input += context_column["data"][row_idx].get<std::string>() + " ";
+            const auto& value = context_column["data"][row_idx];
+            has_content = has_content || (!value.is_null() && value != "NULL");
+            concat_input += value.get<std::string>() + " ";
         }
-        prepared_inputs.push_back(concat_input);
+        if (has_content) {
+            prepared_inputs.push_back(concat_input);
+            sent_rows.push_back(row_idx);
+        }
+    }
+
+    std::vector<std::optional<duckdb::vector<duckdb::Value>>> results(num_rows);
+    if (prepared_inputs.empty()) {
+        return results;
     }
 
     auto batch_size = model.GetModelDetails().max_batch_size;
@@ -68,15 +81,15 @@ std::vector<duckdb::vector<duckdb::Value>> LlmEmbedding::Operation(duckdb::DataC
         model.AddEmbeddingRequest(batch_inputs);
     }
 
-    std::vector<duckdb::vector<duckdb::Value>> results;
     auto all_embeddings = model.CollectEmbeddings();
+    size_t sent_index = 0;
     for (size_t index = 0; index < all_embeddings.size(); index++) {
         for (auto& embedding: all_embeddings[index]) {
             duckdb::vector<duckdb::Value> formatted_embedding;
             for (auto& value: embedding) {
                 formatted_embedding.push_back(duckdb::Value(static_cast<double>(value)));
             }
-            results.push_back(formatted_embedding);
+            results[sent_rows.at(sent_index++)] = formatted_embedding;
         }
     }
     return results;
@@ -98,7 +111,7 @@ void LlmEmbedding::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& sta
 
     auto index = 0;
     for (const auto& res: results) {
-        result.SetValue(index++, duckdb::Value::LIST(res));
+        result.SetValue(index++, res.has_value() ? duckdb::Value::LIST(*res) : duckdb::Value());
     }
 
     auto exec_end = std::chrono::high_resolution_clock::now();
