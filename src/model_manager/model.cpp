@@ -1,4 +1,5 @@
 #include "flock/model_manager/model.hpp"
+#include "flock/prompt_manager/prompt_manager.hpp"
 #include "flock/prompt_manager/repository.hpp"
 #include "flock/secret_manager/secret_manager.hpp"
 #include <algorithm>
@@ -150,6 +151,15 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         }
     }
 
+    if (model_json.contains("threshold")) {
+        model_details_.threshold = ParseThresholdFromJson(model_json.at("threshold"));
+    } else if (!is_fully_resolved) {
+        ensure_db_loaded();
+        if (db_model_args.contains("threshold")) {
+            model_details_.threshold = db_model_args.at("threshold").get<double>();
+        }
+    }
+
     if (model_json.contains("rate_limit")) {
         model_details_.rate_limit = ParsePositiveSizeFromJson(model_json.at("rate_limit"), "rate_limit");
     } else {
@@ -273,6 +283,9 @@ void Model::ConstructProvider() {
         case FLOCKMTL_OLLAMA:
             provider_ = std::make_shared<OllamaProvider>(model_details_, rate_limiter, usage_limiter);
             break;
+        case FLOCKMTL_TYPESAFE:
+            provider_ = std::make_shared<TypeSafeProvider>(model_details_, rate_limiter, usage_limiter);
+            break;
         case FLOCKMTL_ANTHROPIC:
             provider_ = std::make_shared<AnthropicProvider>(model_details_, rate_limiter, usage_limiter);
             break;
@@ -291,6 +304,9 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["tuple_format"] = static_cast<int>(model_details_.tuple_format);
     result["max_batch_size"] = model_details_.max_batch_size;
     result["is_async"] = model_details_.is_async;
+    if (model_details_.threshold.has_value()) {
+        result["threshold"] = *model_details_.threshold;
+    }
     result["secret"] = model_details_.secret;
     if (model_details_.rate_limit.has_value()) {
         result["rate_limit"] = *model_details_.rate_limit;
@@ -302,6 +318,24 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
         result["model_parameters"] = model_details_.model_parameters;
     }
     return result;
+}
+
+void Model::RejectUnsupportedFunction(const nlohmann::json& resolved_model_json, const std::string& function_name) {
+    if (!resolved_model_json.contains("provider")) {
+        return;
+    }
+    const auto provider_name = resolved_model_json["provider"].get<std::string>();
+    const auto is_typesafe = GetProviderType(provider_name) == FLOCKMTL_TYPESAFE;
+    // TypeSafe cannot generate text, so it serves only the operators that judge rows.
+    if (is_typesafe && function_name != "llm_filter" && function_name != "ai_classify") {
+        throw duckdb::BinderException(function_name + " is not supported by the '" + provider_name +
+                                      "' provider, which answers typed questions and cannot generate text. It supports llm_filter "
+                                      "and ai_classify. Use a generative provider for " +
+                                      function_name + ".");
+    }
+    if (!is_typesafe && function_name == "ai_classify") {
+        throw duckdb::BinderException("ai_classify is supported only by the 'typesafe' provider.");
+    }
 }
 
 nlohmann::json Model::ResolveModelDetailsToJson(const nlohmann::json& user_model_json) {
@@ -317,6 +351,17 @@ nlohmann::json Model::ResolveModelDetailsToJson(const nlohmann::json& user_model
 
 void Model::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
     provider_->AddCompletionRequest(prompt, num_output_tuples, output_type, media_data);
+}
+
+void Model::AddStructuredCompletionRequest(const StructuredCompletionRequest& request) {
+    if (provider_->AcceptsStructuredTuples()) {
+        provider_->AddStructuredCompletionRequest(request);
+        return;
+    }
+    const auto& [prompt, media_data] = PromptManager::Render(request.user_prompt, request.batch.Columns(),
+                                                             request.function_type, model_details_.tuple_format);
+    const auto output_type = request.function_type == ScalarFunctionType::FILTER ? OutputType::BOOL : OutputType::STRING;
+    provider_->AddCompletionRequest(prompt, static_cast<int>(request.batch.RowCount()), output_type, media_data);
 }
 
 void Model::AddEmbeddingRequest(const std::vector<std::string>& inputs) {

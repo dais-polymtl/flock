@@ -1,5 +1,6 @@
 add_subdirectory(llm_complete)
 add_subdirectory(llm_filter)
+add_subdirectory(ai_classify)
 add_subdirectory(fusion_combanz)
 add_subdirectory(fusion_combmed)
 add_subdirectory(fusion_combmnz)

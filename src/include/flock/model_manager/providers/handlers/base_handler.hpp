@@ -33,7 +33,7 @@ public:
           _usage_limiter(std::move(usage_limiter)) {}
     virtual ~BaseModelProviderHandler() = default;
 
-    void AddRequest(const nlohmann::json& json, RequestType type = RequestType::Completion) override {
+    void AddRequest(const nlohmann::ordered_json& json, RequestType type = RequestType::Completion) override {
         _request_batch.push_back(json);
         _request_types.push_back(type);
     }
@@ -57,7 +57,7 @@ public:
     std::vector<nlohmann::json> CollectTranscriptions(const std::string& contentType = "multipart/form-data") override {
         std::vector<nlohmann::json> transcriptions;
         if (!_request_batch.empty()) {
-            std::vector<nlohmann::json> transcription_batch;
+            std::vector<nlohmann::ordered_json> transcription_batch;
             for (size_t i = 0; i < _request_batch.size(); ++i) {
                 if (_request_types[i] == RequestType::Transcription) {
                     transcription_batch.push_back(_request_batch[i]);
@@ -82,7 +82,7 @@ public:
 
 public:
 protected:
-    std::vector<nlohmann::json> ExecuteBatch(const std::vector<nlohmann::json>& jsons, bool async = true, const std::string& contentType = "application/json", RequestType request_type = RequestType::Completion) {
+    std::vector<nlohmann::json> ExecuteBatch(const std::vector<nlohmann::ordered_json>& jsons, bool async = true, const std::string& contentType = "application/json", RequestType request_type = RequestType::Completion) {
         if (_rate_limit.has_value() && _rate_limiter != nullptr) {
             _rate_limiter->WaitForBatchIfNeeded(jsons.size(), static_cast<size_t>(_rate_limit.value()));
         }
@@ -309,7 +309,7 @@ protected:
     }
 
     // Streaming execution path for SSE responses
-    std::vector<nlohmann::json> ExecuteBatchStreamed(const std::vector<nlohmann::json>& jsons, const std::string& contentType = "application/json") {
+    std::vector<nlohmann::json> ExecuteBatchStreamed(const std::vector<nlohmann::ordered_json>& jsons, const std::string& contentType = "application/json") {
 #ifdef __EMSCRIPTEN__
         // WASM: Process streaming requests sequentially
         std::vector<nlohmann::json> results(jsons.size());
@@ -456,7 +456,7 @@ protected:
     std::optional<UsageLimit> _usage_limit;
     std::shared_ptr<ModelRateLimiter> _rate_limiter;
     std::shared_ptr<ModelUsageLimiter> _usage_limiter;
-    std::vector<nlohmann::json> _request_batch;
+    std::vector<nlohmann::ordered_json> _request_batch;
     std::vector<RequestType> _request_types;
 
     virtual std::string getCompletionUrl() const = 0;

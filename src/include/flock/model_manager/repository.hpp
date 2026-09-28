@@ -45,6 +45,19 @@ inline size_t ParsePositiveSizeFromJson(const nlohmann::json& value, const std::
     return static_cast<size_t>(parsed);
 }
 
+inline double ParseThresholdFromJson(const nlohmann::json& value) {
+    double threshold;
+    try {
+        threshold = value.is_string() ? std::stod(value.get<std::string>()) : value.get<double>();
+    } catch (...) {
+        throw std::runtime_error("Error parsing threshold.");
+    }
+    if (!(threshold >= 0.0 && threshold <= 1.0)) {
+        throw std::runtime_error("'threshold' must be between 0 and 1.");
+    }
+    return threshold;
+}
+
 inline UsageLimit ParseUsageLimitFromJson(const nlohmann::json& value) {
     UsageLimit limit;
     if (value.contains("prompt_tokens_limit")) {
@@ -85,6 +98,7 @@ struct ModelDetails {
     bool is_async = true;
     std::optional<size_t> rate_limit;
     std::optional<UsageLimit> usage_limit;
+    std::optional<double> threshold;
 };
 
 
@@ -112,6 +126,7 @@ const std::string OLLAMA = "ollama";
 const std::string OPENAI = "openai";
 const std::string AZURE = "azure";
 const std::string ANTHROPIC = "anthropic";
+const std::string TYPESAFE = "typesafe";
 const std::string DEFAULT_PROVIDER = "default";
 const std::string EMPTY_PROVIDER = "";
 
@@ -123,6 +138,7 @@ enum SupportedProviders {
     FLOCKMTL_AZURE,
     FLOCKMTL_OLLAMA,
     FLOCKMTL_ANTHROPIC,
+    FLOCKMTL_TYPESAFE,
     FLOCKMTL_UNSUPPORTED_PROVIDER,
     FLOCKMTL_SUPPORTED_PROVIDER_COUNT
 };
@@ -137,6 +153,8 @@ inline SupportedProviders GetProviderType(std::string provider) {
         return FLOCKMTL_OLLAMA;
     if (provider == ANTHROPIC)
         return FLOCKMTL_ANTHROPIC;
+    if (provider == TYPESAFE)
+        return FLOCKMTL_TYPESAFE;
 
     return FLOCKMTL_UNSUPPORTED_PROVIDER;
 }
@@ -151,6 +169,8 @@ inline std::string GetProviderName(SupportedProviders provider) {
             return OLLAMA;
         case FLOCKMTL_ANTHROPIC:
             return ANTHROPIC;
+        case FLOCKMTL_TYPESAFE:
+            return TYPESAFE;
         default:
             return "";
     }

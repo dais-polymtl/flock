@@ -60,7 +60,7 @@ struct FunctionMetricsData {
 // Stores metrics for all function types in a single state
 class ThreadMetrics {
 public:
-    static constexpr size_t NUM_FUNCTION_TYPES = 8;
+    static constexpr size_t NUM_FUNCTION_TYPES = 9;
 
     void Reset() noexcept {
         for (auto& func_metrics: by_function_) {

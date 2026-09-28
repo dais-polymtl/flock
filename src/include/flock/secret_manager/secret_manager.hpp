@@ -18,6 +18,7 @@ SecretDetails get_openai_secret_details();
 SecretDetails get_azure_secret_details();
 SecretDetails get_ollama_secret_details();
 SecretDetails get_anthropic_secret_details();
+SecretDetails get_typesafe_secret_details();
 
 std::vector<SecretDetails> get_secret_details_list();
 
@@ -26,7 +27,8 @@ public:
     enum SupportedProviders { OPENAI,
                               AZURE,
                               OLLAMA,
-                              ANTHROPIC };
+                              ANTHROPIC,
+                              TYPESAFE };
     static std::unordered_map<std::string, SupportedProviders> providerNames;
 
     static void Register(duckdb::ExtensionLoader& loader);

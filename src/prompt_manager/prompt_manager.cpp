@@ -1,4 +1,5 @@
 #include "flock/prompt_manager/prompt_manager.hpp"
+#include "flock/core/batch_context.hpp"
 
 namespace flock {
 template<>
@@ -53,14 +54,7 @@ std::string PromptManager::ConstructInputTuplesHeaderXML(const nlohmann::json& c
         return "<header></header>\n";
     }
     auto header = std::string("<header>");
-    auto column_idx = 1u;
-    for (const auto& column: columns) {
-        std::string column_name;
-        if (column.contains("name") && column["name"].is_string()) {
-            column_name = column["name"].get<std::string>();
-        } else {
-            column_name = "COLUMN " + std::to_string(column_idx++);
-        }
+    for (const auto& column_name: ContextColumnNames(columns)) {
         header += "<column>" + column_name + "</column>";
     }
     header += "</header>\n";
@@ -71,24 +65,15 @@ std::string PromptManager::ConstructInputTuplesHeaderMarkdown(const nlohmann::js
     if (columns.empty()) {
         return " | Empty | \n | ----- | \n";
     }
+    const auto column_names = ContextColumnNames(columns);
     auto header = std::string(" | ");
-    auto column_idx = 1u;
-    for (const auto& column: columns) {
-        if (column.contains("name") && column["name"].is_string()) {
-            header += "COLUMN_" + column["name"].get<std::string>() + " | ";
-        } else {
-            header += "COLUMN " + std::to_string(column_idx++) + " | ";
-        }
+    for (size_t i = 0; i < column_names.size(); i++) {
+        // Named columns are headed COLUMN_<name> but underlined to <name>'s length.
+        const auto is_named = columns[i].contains("name") && columns[i]["name"].is_string();
+        header += (is_named ? "COLUMN_" : "") + column_names[i] + " | ";
     }
     header += "\n | ";
-    column_idx = 1u;
-    for (const auto& column: columns) {
-        std::string column_name;
-        if (column.contains("name") && column["name"].is_string()) {
-            column_name = column["name"].get<std::string>();
-        } else {
-            column_name = "COLUMN " + std::to_string(column_idx++);
-        }
+    for (const auto& column_name: column_names) {
         header += std::string(column_name.length(), '-') + " | ";
     }
     header += "\n";
@@ -138,15 +123,9 @@ std::string PromptManager::ConstructInputTuplesMarkdown(const nlohmann::json& co
 
 std::string PromptManager::ConstructInputTuplesJSON(const nlohmann::json& columns) {
     auto tuples_json = nlohmann::json::object();
-    auto column_idx = 1u;
-    for (const auto& column: columns) {
-        std::string column_name;
-        if (column.contains("name") && column["name"].is_string()) {
-            column_name = column["name"].get<std::string>();
-        } else {
-            column_name = "COLUMN " + std::to_string(column_idx++);
-        }
-        tuples_json[column_name] = column["data"];
+    const auto column_names = ContextColumnNames(columns);
+    for (size_t i = 0; i < column_names.size(); i++) {
+        tuples_json[column_names[i]] = columns[i]["data"];
     }
     auto tuples_str = tuples_json.dump(4);
     tuples_str += "\n";

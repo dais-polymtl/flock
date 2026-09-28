@@ -14,7 +14,7 @@ public:
 
     virtual ~IModelProviderHandler() = default;
     // AddRequest: type distinguishes between completion, embedding, and transcription (default: Completion)
-    virtual void AddRequest(const nlohmann::json& json, RequestType type = RequestType::Completion) = 0;
+    virtual void AddRequest(const nlohmann::ordered_json& json, RequestType type = RequestType::Completion) = 0;
 
     // CollectCompletions: process all as completions, then clear
     virtual std::vector<nlohmann::json> CollectCompletions(const std::string& contentType = "application/json") = 0;

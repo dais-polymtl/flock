@@ -17,7 +17,8 @@ enum class AggregateFunctionType { REDUCE,
                                    RERANK };
 
 enum class ScalarFunctionType { COMPLETE,
-                                FILTER };
+                                FILTER,
+                                CLASSIFY };
 
 enum class TupleFormat { XML,
                          JSON,
