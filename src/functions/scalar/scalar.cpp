@@ -296,8 +296,7 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples
     std::vector<size_t> sent_rows;
     for (size_t row = 0; row < row_count; row++) {
         for (const auto& column: tuples) {
-            const auto& value = column["data"][row];
-            if (!value.is_null() && value != "NULL") {
+            if (!column["data"][row].is_null()) {
                 sent_rows.push_back(row);
                 break;
             }

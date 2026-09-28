@@ -118,6 +118,19 @@ TEST_F(LLMEmbeddingTest, AllNullRowIsNotSentAndIsNull) {
     EXPECT_EQ(duckdb::ListValue::GetChildren(results->GetValue(0, 2))[0].GetValue<double>(), 0.3);
 }
 
+TEST_F(LLMEmbeddingTest, LeavesMissingValuesOutOfTheText) {
+    const nlohmann::json expected_response = nlohmann::json::array({{0.1, 0.2}, {0.3, 0.4}});
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::ElementsAre("Great screen ", "NULL phone ")))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'text-embedding-3-small'}, {'context_columns': [{'data': a}, {'data': b}]}) AS embedding FROM (VALUES ('Great screen', NULL), ('NULL', 'phone')) as tbl(a, b);");
+    ASSERT_TRUE(!results->HasError()) << results->GetError();
+    ASSERT_EQ(results->RowCount(), 2);
+}
+
 TEST_F(LLMEmbeddingTest, OnlyNullRowsSendNothing) {
     EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::_)).Times(0);
 

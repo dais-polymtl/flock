@@ -138,25 +138,19 @@ TEST(TypeSafeProviderTest, SendsNothingWhenEveryRowIsUnevaluated) {
     EXPECT_TRUE(items[1].is_null());
 }
 
-TEST(TypeSafeProviderTest, TreatsTheNullStringAsMissing) {
+TEST(TypeSafeProviderTest, SendsMissingValuesAsNullAndTheTextNullAsText) {
     auto provider = TypeSafeProvider(MakeModelDetails());
     auto& handler = InstallRecordingHandler(provider);
 
-    auto tuples = nlohmann::json::array({{{"data", {"battery dies fast", "NULL"}}},
-                                         {{"name", "stars"}, {"data", {"NULL", "NULL"}}}});
+    auto tuples = nlohmann::json::array({{{"data", {"battery dies fast", nullptr}}},
+                                         {{"name", "stars"}, {"data", {nullptr, "NULL"}}}});
     provider.AddStructuredCompletionRequest({BatchContext(tuples), "predicate", ScalarFunctionType::FILTER});
 
     ASSERT_EQ(handler.requests.size(), 1u);
-    const auto& payload = handler.requests[0];
-    EXPECT_TRUE(payload["questions"].contains("0"));
-    EXPECT_FALSE(payload["questions"].contains("1"));
-    EXPECT_EQ(payload["state"]["rows"]["0"]["COLUMN 1"], "battery dies fast");
-    EXPECT_TRUE(payload["state"]["rows"]["0"]["stars"].is_null());
-
-    handler.canned_responses = {{{"answers", {{"0", NoulAnswer(0.9)}}}}};
-    const auto items = provider.CollectCompletions()[0]["items"];
-    EXPECT_TRUE(items[0].get<bool>());
-    EXPECT_TRUE(items[1].is_null());
+    const auto& rows = handler.requests[0]["state"]["rows"];
+    EXPECT_TRUE(rows["0"]["stars"].is_null());
+    EXPECT_EQ(rows["1"]["stars"], "NULL");
+    EXPECT_TRUE(handler.requests[0]["questions"].contains("1"));
 }
 
 TEST(TypeSafeProviderTest, ClassifiesEachRowWithOneChoiceQuestion) {
@@ -426,18 +420,19 @@ TEST_F(LlmFilterTypeSafeTest, RejectsAnInvalidThreshold) {
 }
 
 TEST_F(LlmFilterTypeSafeTest,
-       NullContextValuesReachTheProviderAsTheNullString) {
+       NullContextValuesReachTheProviderAsNullAndTheTextNullAsText) {
     auto con = Config::GetConnection();
     const auto results =
             con.Query("SELECT llm_filter({'model_name': 'jev', 'threshold': 0.5}, {'prompt': "
                       "'complains', 'context_columns': [{'data': t}, {'data': u}]}) "
-                      "FROM (VALUES ('a', 'b'), ('c', NULL)) AS tbl(t, u);");
+                      "FROM (VALUES ('a', 'b'), ('c', NULL), ('NULL', 'NULL')) AS tbl(t, u);");
     ASSERT_FALSE(results->HasError()) << results->GetError();
     ASSERT_EQ(RecordingDecisionProvider::seen_tuples.size(), 1u);
     const auto& data = RecordingDecisionProvider::seen_tuples[0][1]["data"];
-    ASSERT_EQ(data.size(), 2u);
+    ASSERT_EQ(data.size(), 3u);
     EXPECT_EQ(data[0], "b");
-    EXPECT_EQ(data[1], "NULL");
+    EXPECT_TRUE(data[1].is_null());
+    EXPECT_EQ(data[2], "NULL");
 }
 
 TEST_F(LlmFilterTypeSafeTest, AiClassifyPassesTheChoicesToTheProvider) {

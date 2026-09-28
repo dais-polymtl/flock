@@ -53,8 +53,10 @@ std::vector<std::optional<duckdb::vector<duckdb::Value>>> LlmEmbedding::Operatio
         auto has_content = false;
         for (auto& context_column: inputs["context_columns"]) {
             const auto& value = context_column["data"][row_idx];
-            has_content = has_content || (!value.is_null() && value != "NULL");
-            concat_input += value.get<std::string>() + " ";
+            if (!value.is_null()) {
+                has_content = true;
+                concat_input += value.get<std::string>() + " ";
+            }
         }
         if (has_content) {
             prepared_inputs.push_back(concat_input);

@@ -11,11 +11,7 @@ namespace {
 std::optional<nlohmann::json> RowToJudge(nlohmann::json row) {
     auto has_content = false;
     for (auto& item: row.items()) {
-        // Flock hands every provider a missing context value as the string "NULL".
-        const auto& value = item.value();
-        if (value.is_null() || (value.is_string() && value.get_ref<const std::string&>() == "NULL")) {
-            item.value() = nullptr;
-        } else {
+        if (!item.value().is_null()) {
             has_content = true;
         }
     }
