@@ -207,6 +207,7 @@ The function generates a completion for each row based on the provided prompt an
 
 - **Column Type**: JSON
 - **Behavior**: Maps over each row and generates a response per tuple. By default the JSON holds free-form model text. Pass a JSON schema in `model_parameters` to constrain the response shape (OpenAI `response_format`, Ollama `format`, Anthropic `output_format` / tool-use — see [Anthropic](/getting-started/anthropic) and [Model parameters](/model-parameters)). Use `LOAD JSON` and dot notation to extract fields.
+- **Missing context**: A row whose context columns are all `NULL` is not sent to the model and returns `NULL`, as does a row the model gives no answer for.
 
 ```sql
 LOAD JSON;

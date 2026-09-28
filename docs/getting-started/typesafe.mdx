@@ -80,7 +80,7 @@ Using an unsupported function with a TypeSafe model fails when the query is plan
 
 ## Rows Without Context
 
-A row whose context is entirely `NULL` is not sent to Jev, so it costs nothing and is not judged by the model.
+A row whose context is entirely `NULL` is not sent to Jev, so it costs nothing and returns `NULL`. This is the same for every provider.
 
 ## Batching and Limits
 
