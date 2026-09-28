@@ -98,8 +98,7 @@ void LlmFilter::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state,
     } else {
         auto index = 0;
         for (const auto& res: results) {
-            result.SetValue(index++, res.has_value() ? duckdb::Value(*res)
-                                                     : duckdb::Value());
+            result.SetValue(index++, res.has_value() ? duckdb::Value(*res) : duckdb::Value());
         }
     }
 

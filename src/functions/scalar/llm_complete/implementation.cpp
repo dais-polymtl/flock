@@ -53,7 +53,9 @@ std::vector<std::optional<std::string>> LlmComplete::Operation(duckdb::DataChunk
         auto template_str = prompt;
         model.AddCompletionRequest(template_str, 1, OutputType::STRING);
         auto response = model.CollectCompletions()[0]["items"][0];
-        if (response.is_string()) {
+        if (response.is_null()) {
+            results.emplace_back(std::nullopt);
+        } else if (response.is_string()) {
             results.push_back(response.get<std::string>());
         } else {
             results.push_back(response.dump());
@@ -105,8 +107,7 @@ void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& stat
     } else {
         auto index = 0;
         for (const auto& res: results) {
-            result.SetValue(index++, res.has_value() ? duckdb::Value(*res)
-                                                     : duckdb::Value());
+            result.SetValue(index++, res.has_value() ? duckdb::Value(*res) : duckdb::Value());
         }
     }
 

@@ -98,6 +98,18 @@ TEST_F(LLMCompleteTest, SingleAllNullRowIsNotSentAndIsNull) {
     EXPECT_TRUE(results->GetValue(0, 0).IsNull());
 }
 
+TEST_F(LLMCompleteTest, NoAnswerWithoutContextIsNull) {
+    const nlohmann::json expected_response = {{"items", {nullptr}}};
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Say hi'}) AS result;");
+    ASSERT_TRUE(!results->HasError()) << results->GetError();
+    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
+}
+
 TEST_F(LLMCompleteTest, ValidateArguments) {
     TestValidateArguments();
 }

@@ -89,9 +89,7 @@ TEST_F(LLMFilterTest, LLMFilterWithMultipleRows) {
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
 }
 
-// A row the model returned no verdict for was not evaluated, so it must not be
-// coerced into a decision. It reaches SQL as NULL, and an ordinary WHERE drops
-// it, which is what lets a provider skip rows it was never going to judge.
+// A row with no verdict is NULL, not true, so WHERE drops it.
 TEST_F(LLMFilterTest, UnevaluatedRowBecomesSqlNull) {
     const nlohmann::json expected_response = {{"items", {true, nullptr, false}}};
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))

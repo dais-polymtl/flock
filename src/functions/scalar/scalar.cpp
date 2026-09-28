@@ -291,7 +291,7 @@ nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples
                                                     const std::string& user_prompt,
                                                     const ScalarFunctionType function_type, Model& model,
                                                     const std::optional<nlohmann::json>& choices) {
-    // A row whose context values are all NULL gives the model nothing to judge, so it is not sent and stays NULL.
+    // A row whose context is all NULL has nothing to judge: it is not sent and stays NULL.
     const auto row_count = tuples[0]["data"].size();
     std::vector<size_t> sent_rows;
     for (size_t row = 0; row < row_count; row++) {
