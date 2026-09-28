@@ -104,3 +104,21 @@ SELECT llm_filter({'model_name': 'jev', 'secret_name': 'openrouter'},
                   {'prompt': 'The review complains about battery life.', 'context_columns': [{'data': review}]})
 FROM reviews;
 ```
+
+## Running a Decision Model Locally
+
+Laya is an open-source decision model served over the same System One API, so a `typesafe` secret pointed at your own server is all Flock needs. These examples assume it runs at `http://localhost:8888` under the model name `laya`:
+
+```sql
+CREATE SECRET laya_local (TYPE TYPESAFE, API_KEY 'sk-your-local-key', BASE_URL 'http://localhost:8888');
+CREATE MODEL('laya', 'laya', 'typesafe', {"max_batch_size": 1});
+
+SELECT review,
+       ai_classify({'model_name': 'laya', 'secret_name': 'laya_local'},
+                   {'prompt': 'Which part of the phone is the review about?',
+                    'choice': ['battery', 'screen', 'audio'],
+                    'context_columns': [{'data': review}]}).choice AS aspect
+FROM phone_reviews;
+```
+
+Keep `max_batch_size` at `1`: Laya judges one row per request reliably, but tends to give every row the same answer when several share a request.
