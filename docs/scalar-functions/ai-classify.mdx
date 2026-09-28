@@ -1,0 +1,52 @@
+---
+title: "ai_classify"
+---
+
+The `ai_classify` function assigns each row one label out of a fixed list of choices. It returns the label together with Jev's confidence and the probability of every label. It is served only by [`typesafe` models](/getting-started/typesafe), where Jev answers one choice question per row.
+
+## 1. Usage
+
+The choices can be plain labels:
+
+```sql
+SELECT review,
+       ai_classify(
+           {'model_name': 'jev'},
+           {'prompt': 'Which part of the phone is the review about?',
+            'choice': ['battery', 'screen', 'camera', 'audio'],
+            'context_columns': [{'data': review}]}
+       ).choice AS aspect
+FROM phone_reviews;
+```
+
+Or labels with a description, which helps Jev tell close labels apart:
+
+```sql
+SELECT title, result.choice AS severity, result.confidence, result.probabilities['blocker'] AS p_blocker
+FROM (
+    SELECT title,
+           ai_classify(
+               {'model_name': 'jev'},
+               {'prompt': 'How severe is this bug report?',
+                'choice': [{'label': 'blocker', 'description': 'Nobody can use the product'},
+                           {'label': 'major', 'description': 'A core feature is broken, with no workaround'},
+                           {'label': 'minor', 'description': 'Something is wrong, but there is a workaround'},
+                           {'label': 'cosmetic', 'description': 'Only looks wrong'}],
+                'context_columns': [{'data': title, 'name': 'title'}, {'data': body, 'name': 'body'}]}
+           ) AS result
+    FROM bug_reports
+);
+```
+
+## 2. Input Parameters
+
+- **Model**: a `typesafe` model, for example `{'model_name': 'jev'}`. Other providers refuse `ai_classify` when the query is planned.
+- **Prompt**: the task, given inline with `prompt` or as a saved prompt with `prompt_name`.
+- **`choice`**: the labels to choose from, as a list of strings or of `{'label', 'description'}` structs. At least two, and Jev accepts up to 255.
+- **`context_columns`**: the row data to classify. Columns must be text.
+
+## 3. Output
+
+A `STRUCT(choice VARCHAR, confidence DOUBLE, probabilities MAP(VARCHAR, DOUBLE))`: the chosen label, Jev's confidence in it, and the probability of every label. A row whose context values are all `NULL` is not sent and returns `NULL`.
+
+Every row's question carries the full list of choices, so the cost of a batch grows with the number of rows times the number of choices.

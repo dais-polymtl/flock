@@ -96,8 +96,12 @@ If in doubt, mirror patterns used in existing functions such as `llm_complete` o
   - Integrate with the existing metrics API.
   - Respect the `context_columns` abstraction.
   - Provide clear, actionable error messages when a feature is unsupported.
+- Scalar functions hand a provider each batch as a `StructuredCompletionRequest` before it is rendered. By default
+  `Model` renders the prompt; a provider that builds its request from the rows themselves overrides
+  `AcceptsStructuredTuples()` and `AddStructuredCompletionRequest()`, as the TypeSafe adapter does.
+- What a provider can serve is checked when a query is bound: see `Model::RejectUnsupportedFunction`.
 
-For examples, see the existing OpenAI, Azure, Ollama, and Anthropic adapters.
+For examples, see the existing OpenAI, Azure, Ollama, Anthropic, and TypeSafe adapters.
 
 ## Docs & Developer Experience
 
