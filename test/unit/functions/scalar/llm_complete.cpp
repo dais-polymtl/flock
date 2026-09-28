@@ -88,6 +88,16 @@ TEST_F(LLMCompleteTest, AllNullRowIsNotSentAndStaysNull) {
     EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "Paris");
 }
 
+TEST_F(LLMCompleteTest, SingleAllNullRowIsNotSentAndIsNull) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(0);
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'What is the capital of', 'context_columns': [{'data': country}]}) AS result FROM (VALUES (NULL::VARCHAR)) as tbl(country);");
+    ASSERT_TRUE(!results->HasError()) << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
+}
+
 TEST_F(LLMCompleteTest, ValidateArguments) {
     TestValidateArguments();
 }

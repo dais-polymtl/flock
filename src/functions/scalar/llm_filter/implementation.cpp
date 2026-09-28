@@ -99,7 +99,7 @@ void LlmFilter::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state,
         auto index = 0;
         for (const auto& res: results) {
             result.SetValue(index++, res.has_value() ? duckdb::Value(*res)
-                                                     : duckdb::Value(duckdb::LogicalType::VARCHAR));
+                                                     : duckdb::Value());
         }
     }
 

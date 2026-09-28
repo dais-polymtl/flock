@@ -86,7 +86,7 @@ void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& stat
 
     MetricsManager::StartInvocation(db, invocation_id, FunctionType::LLM_COMPLETE);
 
-    auto exec_start = std::chrono::high_resolution_clock::now();
+    const auto exec_start = std::chrono::high_resolution_clock::now();
 
     auto& func_expr = state.expr.Cast<duckdb::BoundFunctionExpression>();
     auto* bind_data = &func_expr.bind_info->Cast<LlmFunctionBindData>();
@@ -106,11 +106,11 @@ void LlmComplete::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& stat
         auto index = 0;
         for (const auto& res: results) {
             result.SetValue(index++, res.has_value() ? duckdb::Value(*res)
-                                                     : duckdb::Value(duckdb::LogicalType::VARCHAR));
+                                                     : duckdb::Value());
         }
     }
 
-    auto exec_end = std::chrono::high_resolution_clock::now();
+    const auto exec_end = std::chrono::high_resolution_clock::now();
     double exec_duration_ms = std::chrono::duration<double, std::milli>(exec_end - exec_start).count();
     MetricsManager::AddExecutionTime(exec_duration_ms);
 }

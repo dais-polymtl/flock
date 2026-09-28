@@ -137,6 +137,16 @@ TEST_F(LLMFilterTest, AllNullRowIsNotSentAndStaysNull) {
     EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "false");
 }
 
+TEST_F(LLMFilterTest, SingleAllNullRowIsNotSentAndIsNull) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(0);
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this review positive?', 'context_columns': [{'data': review}]}) AS result FROM (VALUES (NULL::VARCHAR)) as tbl(review);");
+    ASSERT_TRUE(!results->HasError()) << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
+}
+
 TEST_F(LLMFilterTest, ValidateArguments) {
     TestValidateArguments();
 }
