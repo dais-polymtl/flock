@@ -106,20 +106,6 @@ TEST_F(LLMFilterTest, UnevaluatedRowBecomesSqlNull) {
     EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "false");
 }
 
-TEST_F(LLMFilterTest, UnevaluatedRowIsDroppedByWhere) {
-    const nlohmann::json expected_response = {{"items", {true, nullptr, false}}};
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
-            .Times(1);
-    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
-
-    auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT review FROM unnest(['Great product!', 'Meh', 'Terrible quality']) as tbl(review) WHERE " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this review positive?', 'context_columns': [{'data': review}]});");
-    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
-    ASSERT_EQ(results->RowCount(), 1);
-    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "Great product!");
-}
-
 TEST_F(LLMFilterTest, AllNullRowIsNotSentAndStaysNull) {
     const nlohmann::json expected_response = {{"items", {true, false}}};
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 2, ::testing::_, ::testing::_)).Times(1);

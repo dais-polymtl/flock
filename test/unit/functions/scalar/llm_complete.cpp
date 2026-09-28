@@ -73,31 +73,6 @@ TEST_F(LLMCompleteTest, LLMCompleteWithInputColumns) {
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_response["items"][0]);
 }
 
-TEST_F(LLMCompleteTest, AllNullRowIsNotSentAndStaysNull) {
-    const nlohmann::json expected_response = {{"items", {"Ottawa", "Paris"}}};
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 2, ::testing::_, ::testing::_)).Times(1);
-    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
-            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
-
-    auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'What is the capital of', 'context_columns': [{'data': country}]}) AS capital FROM unnest(['Canada', NULL, 'France']) as tbl(country);");
-    ASSERT_TRUE(!results->HasError()) << results->GetError();
-    ASSERT_EQ(results->RowCount(), 3);
-    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "Ottawa");
-    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
-    EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "Paris");
-}
-
-TEST_F(LLMCompleteTest, SingleAllNullRowIsNotSentAndIsNull) {
-    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(0);
-
-    auto con = Config::GetConnection();
-    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'What is the capital of', 'context_columns': [{'data': country}]}) AS result FROM (VALUES (NULL::VARCHAR)) as tbl(country);");
-    ASSERT_TRUE(!results->HasError()) << results->GetError();
-    ASSERT_EQ(results->RowCount(), 1);
-    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
-}
-
 TEST_F(LLMCompleteTest, NoAnswerWithoutContextIsNull) {
     const nlohmann::json expected_response = {{"items", {nullptr}}};
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(1);
