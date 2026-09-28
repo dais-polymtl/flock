@@ -239,9 +239,9 @@ The `llm_filter` function accepts three structured inputs: model configuration, 
 
 ## 3. Output
 
-The function returns a **BOOLEAN** value (`TRUE` or `FALSE`), indicating whether the row satisfies the condition specified in the prompt. It returns `NULL` for a row that gets no verdict, so an ordinary `WHERE` leaves that row out. A row whose context columns are all `NULL` is not sent to the model and returns `NULL`.
+The function returns a **BOOLEAN** value: `TRUE` or `FALSE`, indicating whether the row satisfies the condition specified in the prompt, or `UNKNOWN` (SQL `NULL`) when there is no verdict for the row. A row whose context columns are all `NULL` is not sent to the model and returns `UNKNOWN`. An ordinary `WHERE` keeps only `TRUE` rows, so `UNKNOWN` rows are left out.
 
-**Example Output**:  
+**Example Output**:
 For a prompt like _"Is this product description eco-friendly?"_:
 
 - **Input Row**:
