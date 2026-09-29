@@ -99,35 +99,22 @@ def _llm_complete_over_prompts_sql(flock_model_name: str, table_name: str) -> st
     """
 
 
-# Flock surfaces usage-limit failures as a DuckDB HTTPException. The DuckDB CLI prints:
-#   HTTP Error: <token_type> usage <count> exceeded limit of <limit> for this model; ...
-_USAGE_LIMIT_MESSAGE_RE = re.compile(
-    r"(?P<token_type>prompt_tokens|completion_tokens|total_tokens)\s+usage\s+(?P<usage>\d+)\s+"
-    r"exceeded limit of\s+(?P<limit>\d+)"
-)
+# Soft cap: in-flight requests that cross the quota return; later ones are rejected as NULL rows.
+def _result_rows(stdout: str, alias: str, row_count: int) -> list:
+    lines = stdout.splitlines()
+    assert alias in lines, f"Expected a '{alias}' column in output: {stdout!r}"
+    start = lines.index(alias) + 1
+    rows = lines[start : start + row_count]
+    assert len(rows) == row_count, f"Expected {row_count} '{alias}' rows, got {rows!r}"
+    return rows
 
 
-def _extract_usage_limit_error(result):
-    """Return (token_type, usage, limit) parsed from the CLI error output, or fail."""
-    combined_output = result.stderr + result.stdout
-    assert (
-        "HTTP Error:" in combined_output
-    ), f"Expected an HTTP Error message, got: stdout={result.stdout!r} stderr={result.stderr!r}"
-    match = _USAGE_LIMIT_MESSAGE_RE.search(combined_output)
-    assert (
-        match is not None
-    ), f"Expected a usage-limit error message, got: stdout={result.stdout!r} stderr={result.stderr!r}"
-    return match.group("token_type"), int(match.group("usage")), int(match.group("limit"))
-
-
-def _assert_usage_limit_exceeded(result, expected_token_type: Optional[str] = None):
-    assert result.returncode != 0, "Expected usage_limit to be exceeded"
-    token_type, usage, limit = _extract_usage_limit_error(result)
-    assert usage >= limit, f"Expected usage {usage} to be at or above limit {limit}"
-    if expected_token_type is not None:
-        assert (
-            token_type == expected_token_type
-        ), f"Expected {expected_token_type!r} limit to be exceeded, got {token_type!r}"
+def _assert_capped_after_first(result, row_count: int):
+    """Sync batch_size 1: the first request crosses the quota; every later row is rejected."""
+    assert result.returncode == 0, f"Query failed: {result.stderr}"
+    rows = _result_rows(result.stdout, "result", row_count)
+    assert rows[0] != "NULL", f"Expected the in-flight request to return: {rows!r}"
+    assert all(row == "NULL" for row in rows[1:]), f"Expected rows after the quota to be NULL: {rows!r}"
 
 
 def _batch_prompts_table_sql(table_name: str, row_count: int) -> str:
@@ -137,6 +124,15 @@ def _batch_prompts_table_sql(table_name: str, row_count: int) -> str:
     SELECT * FROM (VALUES
         {rows}
     ) AS t(prompt);
+    """
+
+
+def _followup_sql(flock_model_name: str) -> str:
+    return f"""
+    SELECT llm_complete(
+        {{'model_name': '{flock_model_name}', 'secret_name': '{SECRET_NAME}'}},
+        {{'prompt': 'Reply with one word only: {{prompt}}', 'context_columns': [{{'data': 'hello'}}]}}
+    ) AS followup;
     """
 
 
@@ -157,75 +153,63 @@ def test_usage_limit_openai_compatible_single_call_succeeds(integration_setup, o
     result = run_cli(duckdb_cli_path, db_path, query, with_secrets=False)
 
     assert result.returncode == 0, f"Expected success under quota: {result.stderr}"
-    assert "result" in result.stdout.lower()
+    assert _result_rows(result.stdout, "result", 1) != ["NULL"]
 
 
 def test_usage_limit_openai_compatible_exceeded_on_batch(integration_setup, openai_compatible_model):
-    """Sync batch_size 1: sequential requests accumulate tokens until the quota is exceeded."""
+    """Sync batch_size 1: the first request crosses total_tokens_limit and later rows are rejected."""
     duckdb_cli_path, db_path = integration_setup
     flock_model_name = f"test-usage-limit-{_model_slug(openai_compatible_model)}-batch"
 
     query = (
         _openai_compatible_setup_sql(openai_compatible_model, flock_model_name, total_tokens_limit=100)
-        + """
-    CREATE OR REPLACE TABLE usage_limit_prompts AS
-    SELECT * FROM (VALUES
-        ('alpha'),
-        ('beta'),
-        ('gamma'),
-        ('delta'),
-        ('epsilon')
-    ) AS t(prompt);
-    """
+        + _batch_prompts_table_sql("usage_limit_prompts", row_count=5)
         + _llm_complete_over_prompts_sql(flock_model_name, "usage_limit_prompts")
     )
     result = run_cli(duckdb_cli_path, db_path, query, with_secrets=False)
 
-    _assert_usage_limit_exceeded(result, expected_token_type="total_tokens")
+    _assert_capped_after_first(result, row_count=5)
 
 
 def test_usage_limit_openai_compatible_exceeded_prompt_tokens(integration_setup, openai_compatible_model):
-    """Sync batch: cumulative prompt_tokens from provider usage exceeds prompt_tokens_limit."""
+    """Sync batch: provider-reported prompt_tokens crossing prompt_tokens_limit rejects later rows."""
     duckdb_cli_path, db_path = integration_setup
     flock_model_name = f"test-usage-limit-{_model_slug(openai_compatible_model)}-prompt"
 
     query = (
-        _openai_compatible_setup_sql(
-            openai_compatible_model,
-            flock_model_name,
-            prompt_tokens_limit=80,
-        )
+        _openai_compatible_setup_sql(openai_compatible_model, flock_model_name, prompt_tokens_limit=80)
         + _batch_prompts_table_sql("usage_limit_prompt_tokens", row_count=8)
         + _llm_complete_over_prompts_sql(flock_model_name, "usage_limit_prompt_tokens")
     )
     result = run_cli(duckdb_cli_path, db_path, query, with_secrets=False)
 
-    _assert_usage_limit_exceeded(result, expected_token_type="prompt_tokens")
+    _assert_capped_after_first(result, row_count=8)
 
 
 def test_usage_limit_openai_compatible_exceeded_completion_tokens(integration_setup, openai_compatible_model):
-    """Sync batch: cumulative completion_tokens from provider usage exceeds completion_tokens_limit."""
+    """Sync batch: cumulative completion_tokens crossing completion_tokens_limit rejects later rows."""
     duckdb_cli_path, db_path = integration_setup
     flock_model_name = f"test-usage-limit-{_model_slug(openai_compatible_model)}-completion"
+    row_count = 10
 
     query = (
-        _openai_compatible_setup_sql(
-            openai_compatible_model,
-            flock_model_name,
-            completion_tokens_limit=20,
-        )
-        + _batch_prompts_table_sql("usage_limit_completion_tokens", row_count=10)
+        _openai_compatible_setup_sql(openai_compatible_model, flock_model_name, completion_tokens_limit=20)
+        + _batch_prompts_table_sql("usage_limit_completion_tokens", row_count=row_count)
         + _llm_complete_over_prompts_sql(flock_model_name, "usage_limit_completion_tokens")
     )
     result = run_cli(duckdb_cli_path, db_path, query, with_secrets=False)
 
-    _assert_usage_limit_exceeded(result, expected_token_type="completion_tokens")
+    assert result.returncode == 0, f"Query failed: {result.stderr}"
+    rows = _result_rows(result.stdout, "result", row_count)
+    assert rows[0] != "NULL", f"Expected the first request to return: {rows!r}"
+    assert rows[-1] == "NULL", f"Expected the completion quota to reject later rows: {rows!r}"
 
 
 def test_usage_limit_openai_compatible_exceeded_on_async_batch(integration_setup, openai_compatible_model):
-    """Async with batch_size 16 and 8 rows: all rows fit in one HTTP request."""
+    """Async, one request for all 8 rows: it returns despite crossing the quota; the next query is rejected."""
     duckdb_cli_path, db_path = integration_setup
     flock_model_name = f"test-usage-limit-{_model_slug(openai_compatible_model)}-async-batch"
+    row_count = 8
 
     query = (
         _openai_compatible_setup_sql(
@@ -235,73 +219,39 @@ def test_usage_limit_openai_compatible_exceeded_on_async_batch(integration_setup
             batch_size=16,
             is_async=True,
         )
-        + """
-    CREATE OR REPLACE TABLE usage_limit_async_prompts AS
-    SELECT * FROM (VALUES
-        ('alpha'),
-        ('beta'),
-        ('gamma'),
-        ('delta'),
-        ('epsilon'),
-        ('zeta'),
-        ('eta'),
-        ('theta')
-    ) AS t(prompt);
-    """
+        + _batch_prompts_table_sql("usage_limit_async_prompts", row_count=row_count)
         + _llm_complete_over_prompts_sql(flock_model_name, "usage_limit_async_prompts")
+        + _followup_sql(flock_model_name)
     )
     result = run_cli(duckdb_cli_path, db_path, query, with_secrets=False)
 
-    _assert_usage_limit_exceeded(result, expected_token_type="total_tokens")
+    assert result.returncode == 0, f"Query failed: {result.stderr}"
+    rows = _result_rows(result.stdout, "result", row_count)
+    assert all(row != "NULL" for row in rows), f"Expected the in-flight batch to return: {rows!r}"
+    assert _result_rows(result.stdout, "followup", 1) == ["NULL"]
 
 
 def test_usage_limit_openai_compatible_exceeded_on_async_parallel_batches(integration_setup, openai_compatible_model):
-    """Async with batch_size 16: one batch (16 rows) fits, two batches (20 rows) exceed the quota."""
+    """Async, two batches sent in parallel: both return despite crossing the quota; the next query is rejected."""
     duckdb_cli_path, db_path = integration_setup
-    slug = _model_slug(openai_compatible_model)
-    token_limit = 1200
+    flock_model_name = f"test-usage-limit-{_model_slug(openai_compatible_model)}-async-parallel"
+    row_count = 20
 
-    rows_16 = ",\n        ".join(f"('r{i:02d}')" for i in range(1, 17))
-    control_model = f"test-usage-limit-{slug}-async-parallel-16"
-    control_query = (
+    query = (
         _openai_compatible_setup_sql(
             openai_compatible_model,
-            control_model,
-            total_tokens_limit=token_limit,
+            flock_model_name,
+            total_tokens_limit=100,
             batch_size=16,
             is_async=True,
         )
-        + f"""
-    CREATE OR REPLACE TABLE usage_limit_async_parallel_16 AS
-    SELECT * FROM (VALUES
-        {rows_16}
-    ) AS t(prompt);
-    """
-        + _llm_complete_over_prompts_sql(control_model, "usage_limit_async_parallel_16")
+        + _batch_prompts_table_sql("usage_limit_async_parallel", row_count=row_count)
+        + _llm_complete_over_prompts_sql(flock_model_name, "usage_limit_async_parallel")
+        + _followup_sql(flock_model_name)
     )
-    control_result = run_cli(duckdb_cli_path, db_path, control_query, with_secrets=False)
-    assert (
-        control_result.returncode == 0
-    ), f"Expected one 16-row async batch to stay under {token_limit} tokens: {control_result.stderr}"
+    result = run_cli(duckdb_cli_path, db_path, query, with_secrets=False)
 
-    rows_20 = ",\n        ".join(f"('r{i:02d}')" for i in range(1, 21))
-    test_model = f"test-usage-limit-{slug}-async-parallel-20"
-    test_query = (
-        _openai_compatible_setup_sql(
-            openai_compatible_model,
-            test_model,
-            total_tokens_limit=token_limit,
-            batch_size=16,
-            is_async=True,
-        )
-        + f"""
-    CREATE OR REPLACE TABLE usage_limit_async_parallel_20 AS
-    SELECT * FROM (VALUES
-        {rows_20}
-    ) AS t(prompt);
-    """
-        + _llm_complete_over_prompts_sql(test_model, "usage_limit_async_parallel_20")
-    )
-    test_result = run_cli(duckdb_cli_path, db_path, test_query, with_secrets=False)
-
-    _assert_usage_limit_exceeded(test_result, expected_token_type="total_tokens")
+    assert result.returncode == 0, f"Query failed: {result.stderr}"
+    rows = _result_rows(result.stdout, "result", row_count)
+    assert all(row != "NULL" for row in rows), f"Expected both in-flight batches to return: {rows!r}"
+    assert _result_rows(result.stdout, "followup", 1) == ["NULL"]
