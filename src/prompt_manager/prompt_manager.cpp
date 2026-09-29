@@ -224,16 +224,22 @@ nlohmann::json PromptManager::TranscribeAudioColumn(const nlohmann::json& audio_
     transcription_model_json["model_name"] = transcription_model_name;
     Model transcription_model(transcription_model_json);
 
-    // Add transcription requests to batch
-    transcription_model.AddTranscriptionRequest(audio_column["data"]);
-
-    // Collect transcriptions
-    auto transcription_results = transcription_model.CollectTranscriptions();
-
-    // Convert vector<nlohmann::json> to nlohmann::json array
-    nlohmann::json transcriptions = nlohmann::json::array();
-    for (const auto& result: transcription_results) {
-        transcriptions.push_back(result);
+    // Only real audio is transcribed; a NULL keeps its row and stays NULL.
+    auto audio_files = nlohmann::json::array();
+    std::vector<size_t> audio_rows;
+    for (size_t row = 0; row < audio_column["data"].size(); row++) {
+        if (!audio_column["data"][row].is_null()) {
+            audio_files.push_back(audio_column["data"][row]);
+            audio_rows.push_back(row);
+        }
+    }
+    auto transcriptions = nlohmann::json(audio_column["data"].size(), nullptr);
+    if (!audio_files.empty()) {
+        transcription_model.AddTranscriptionRequest(audio_files);
+        const auto transcription_results = transcription_model.CollectTranscriptions();
+        for (size_t i = 0; i < transcription_results.size() && i < audio_rows.size(); i++) {
+            transcriptions[audio_rows[i]] = transcription_results[i];
+        }
     }
 
     // Create transcription column with proper naming
