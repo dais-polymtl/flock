@@ -1,27 +1,33 @@
 #include "flock/functions/input_parser.hpp"
 
 #include "duckdb/common/operator/cast_operators.hpp"
+#include <string_view>
 
 namespace flock {
 
 // Helper function to validate and clean context column, handling NULL values
-static void ValidateAndCleanContextColumn(nlohmann::json& column, const std::initializer_list<const char*>& allowed_keys) {
+static void ValidateAndCleanContextColumn(nlohmann::json& column, const std::initializer_list<std::string_view>& allowed_keys) {
     std::string column_type = "";
     bool has_type = false;
     bool has_transcription_model = false;
 
     for (const auto& key: allowed_keys) {
-        if (key != std::string("data")) {
-            bool key_exists = column.contains(key);
-            bool is_null = key_exists && column[key].get<std::string>() == "NULL";
+        if (key != "data") {
+            auto it = column.find(key);
+            if (it == column.end()) {
+                continue;
+            }
 
-            if (key == std::string("type") && key_exists && !is_null) {
-                column_type = column[key].get<std::string>();
+            if (it->is_null()) {
+                column.erase(it);
+                continue;
+            }
+
+            if (key == "type") {
+                column_type = it->get<std::string>();
                 has_type = true;
-            } else if (key == std::string("transcription_model") && key_exists && !is_null) {
+            } else if (key == "transcription_model") {
                 has_transcription_model = true;
-            } else if (!key_exists || is_null) {
-                column.erase(key);
             }
         }
     }
@@ -52,9 +58,9 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
 
                 auto context_columns = duckdb::ListValue::GetChildren(value);
                 for (auto context_column_idx = 0; context_column_idx < static_cast<int>(context_columns.size()); context_column_idx++) {
-                    auto context_column = context_columns[context_column_idx];
-                    auto context_column_json = CastVectorOfStructsToJson(duckdb::Vector(context_column), 1);
-                    auto allowed_keys = {"name", "data", "type", "detail", "transcription_model"};
+                    const auto context_column = context_columns[context_column_idx];
+                    const auto context_column_json = CastVectorOfStructsToJson(duckdb::Vector(context_column), 1);
+                    const std::initializer_list<std::string_view> allowed_keys = {"name", "data", "type", "detail", "transcription_model"};
                     for (const auto& key: context_column_json.items()) {
                         if (std::find(std::begin(allowed_keys), std::end(allowed_keys), key.key()) == std::end(allowed_keys)) {
                             throw std::runtime_error(duckdb_fmt::format("Unexpected key in 'context_columns': {}", key.key()));
@@ -97,7 +103,8 @@ nlohmann::json CastVectorOfStructsToJson(const duckdb::Vector& struct_vector, co
                 }
                 struct_json[key] = value.GetValue<bool>();
             } else {
-                struct_json[key] = value.ToString();
+                // SQL NULL stays a JSON null, so it is never confused with the text 'NULL'.
+                struct_json[key] = value.IsNull() ? nlohmann::json() : nlohmann::json(value.ToString());
             }
         }
     }
