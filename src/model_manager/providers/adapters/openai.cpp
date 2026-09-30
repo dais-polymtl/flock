@@ -70,7 +70,7 @@ void OpenAIProvider::AddCompletionRequest(const std::string& prompt, const int n
                                       {"stream_options", {{"include_usage", true}}}};
 
     if (!model_details_.model_parameters.empty()) {
-        request_payload.update(model_details_.model_parameters);
+        request_payload.update(model_details_.model_parameters, true);
     }
 
     if (model_details_.model_parameters.contains("response_format")) {
