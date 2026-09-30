@@ -87,7 +87,7 @@ void OpenAIProvider::AddCompletionRequest(const std::string& prompt, const int n
                 {"json_schema",
                  {{"name", "flock_response"},
                   {"strict", false},
-                  {"schema", {{"type", "object"}, {"properties", {{"items", {{"type", "array"}, {"minItems", num_output_tuples}, {"maxItems", num_output_tuples}, {"items", {{"type", GetOutputTypeString(output_type)}}}}}}}}}}}};
+                  {"schema", {{"type", "object"}, {"properties", {{"items", {{"type", "array"}, {"minItems", num_output_tuples}, {"maxItems", num_output_tuples}, {"items", {{"type", GetOutputTypeString(output_type)}}}}}}}, {"required", {"items"}}}}}}};
         ;
     }
 
