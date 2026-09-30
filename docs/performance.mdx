@@ -93,7 +93,7 @@ CREATE MODEL('limited-gpt4o', 'gpt-4o', 'openai', {
 
 ### `usage_limit`
 
-Enforces cumulative **token quotas** per model. When exceeded, Flock raises an error immediately (unlike context-window retries):
+Enforces cumulative **token quotas** per model. It is a soft cap: requests already in flight when a quota is crossed still return, and later requests are rejected, leaving their rows NULL (no context-window retries):
 
 ```sql
 CREATE MODEL('budget-gpt4o', 'gpt-4o', 'openai', {

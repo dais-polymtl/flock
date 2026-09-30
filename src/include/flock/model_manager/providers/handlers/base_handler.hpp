@@ -394,8 +394,6 @@ protected:
         std::vector<nlohmann::json> results(jsons.size());
 
         for (size_t i = 0; i < requests.size(); ++i) {
-            EnsureUsageLimitNotExceeded();
-
             long http_code = 0;
             curl_easy_getinfo(requests[i].easy, CURLINFO_RESPONSE_CODE, &http_code);
 
