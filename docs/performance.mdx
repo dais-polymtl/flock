@@ -29,7 +29,7 @@ See [LLM Metrics](/llm-metrics) for parsing token counts and latency.
 
 ## Batching with `max_batch_size`
 
-`max_batch_size` controls how many input tuples Flock groups into a single provider request (default: **16**).
+`max_batch_size` controls how many input tuples Flock groups into a single provider request (default: **4**).
 
 ```sql
 CREATE MODEL('batched-gpt4o', 'gpt-4o', 'openai', {"max_batch_size": 64});
