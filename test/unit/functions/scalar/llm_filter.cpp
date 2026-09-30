@@ -150,7 +150,7 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing) {
 }
 
 TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
-    constexpr size_t input_count = 10;
+    constexpr size_t input_count = DEFAULT_MAX_BATCH_SIZE;
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 

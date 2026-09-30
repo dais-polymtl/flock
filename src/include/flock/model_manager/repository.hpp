@@ -11,7 +11,7 @@
 
 namespace flock {
 
-inline constexpr size_t DEFAULT_MAX_BATCH_SIZE = 16;
+inline constexpr size_t DEFAULT_MAX_BATCH_SIZE = 4;
 
 struct TotalUsage {
     size_t prompt_tokens = 0;

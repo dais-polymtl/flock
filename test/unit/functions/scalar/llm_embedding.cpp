@@ -166,7 +166,7 @@ TEST_F(LLMEmbeddingTest, Operation_BatchProcessing) {
 }
 
 TEST_F(LLMEmbeddingTest, Operation_LargeInputSet_ProcessesCorrectly) {
-    constexpr size_t input_count = 10;
+    constexpr size_t input_count = DEFAULT_MAX_BATCH_SIZE;
     nlohmann::json expected_response = nlohmann::json::array();
     for (size_t i = 0; i < input_count; i++) {
         std::vector<double> embedding;
