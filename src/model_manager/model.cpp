@@ -59,7 +59,6 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     std::string db_model;
     std::string db_provider;
     nlohmann::json db_model_args = nlohmann::json::object();
-    bool db_loaded = false;
 
     const auto& hasBatchSizeConfig = [](const nlohmann::json& model_args) {
         return model_args.contains("max_batch_size") || model_args.contains("batch_size");
@@ -69,26 +68,20 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
                                    model_json.contains("secret") && model_json.contains("tuple_format") &&
                                    hasBatchSizeConfig(model_json);
 
-    // Each fallback path can call this helper, but only the first missing field
-    // queries storage. Fully resolved model JSON skips DB defaults entirely.
-    auto ensure_db_loaded = [&]() {
-        if (!db_loaded) {
-            std::tie(db_model, db_provider, db_model_args) = GetQueriedModel(model_details_.model_name);
-            db_loaded = true;
-        }
-    };
+    // Fully resolved model JSON (from bind) never reads storage.
+    if (!is_fully_resolved) {
+        std::tie(db_model, db_provider, db_model_args) = GetQueriedModel(model_details_.model_name);
+    }
 
     if (model_json.contains("model")) {
         model_details_.model = model_json.at("model").get<std::string>();
     } else {
-        ensure_db_loaded();
         model_details_.model = db_model;
     }
 
     if (model_json.contains("provider")) {
         model_details_.provider_name = model_json.at("provider").get<std::string>();
     } else {
-        ensure_db_loaded();
         model_details_.provider_name = db_provider;
     }
 
@@ -100,15 +93,10 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
 
     if (model_json.contains("model_parameters")) {
         model_details_.model_parameters = ParseModelParametersField(model_json);
-    } else if (is_fully_resolved) {
-        model_details_.model_parameters = nlohmann::json::object();
+    } else if (db_model_args.contains("model_parameters")) {
+        model_details_.model_parameters = db_model_args["model_parameters"];
     } else {
-        ensure_db_loaded();
-        if (db_model_args.contains("model_parameters")) {
-            model_details_.model_parameters = db_model_args["model_parameters"];
-        } else {
-            model_details_.model_parameters = nlohmann::json::object();
-        }
+        model_details_.model_parameters = nlohmann::json::object();
     }
 
     if (model_json.contains("tuple_format")) {
@@ -118,55 +106,38 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         } else {
             model_details_.tuple_format = tupleFormatFromStoredValue(tuple_format_value);
         }
+    } else if (db_model_args.contains("tuple_format")) {
+        model_details_.tuple_format = tupleFormatFromStoredValue(db_model_args.at("tuple_format"));
     } else {
-        ensure_db_loaded();
-        if (db_model_args.contains("tuple_format")) {
-            model_details_.tuple_format = tupleFormatFromStoredValue(db_model_args.at("tuple_format"));
-        } else {
-            model_details_.tuple_format = TupleFormat::XML;
-        }
+        model_details_.tuple_format = TupleFormat::XML;
     }
 
     if (hasBatchSizeConfig(model_json)) {
         model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(model_json);
+    } else if (hasBatchSizeConfig(db_model_args)) {
+        model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(db_model_args);
     } else {
-        ensure_db_loaded();
-        if (hasBatchSizeConfig(db_model_args)) {
-            model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(db_model_args);
-        } else {
-            model_details_.max_batch_size = DEFAULT_MAX_BATCH_SIZE;
-        }
+        model_details_.max_batch_size = DEFAULT_MAX_BATCH_SIZE;
     }
 
     if (model_json.contains("is_async")) {
         model_details_.is_async = model_json.at("is_async").get<bool>();
-    } else if (is_fully_resolved) {
-        model_details_.is_async = true;
+    } else if (db_model_args.contains("is_async")) {
+        model_details_.is_async = db_model_args.at("is_async").get<bool>();
     } else {
-        ensure_db_loaded();
-        if (db_model_args.contains("is_async")) {
-            model_details_.is_async = db_model_args.at("is_async").get<bool>();
-        } else {
-            model_details_.is_async = true;
-        }
+        model_details_.is_async = true;
     }
 
     if (model_json.contains("threshold")) {
         model_details_.threshold = ParseThresholdFromJson(model_json.at("threshold"));
-    } else if (!is_fully_resolved) {
-        ensure_db_loaded();
-        if (db_model_args.contains("threshold")) {
-            model_details_.threshold = db_model_args.at("threshold").get<double>();
-        }
+    } else if (db_model_args.contains("threshold")) {
+        model_details_.threshold = db_model_args.at("threshold").get<double>();
     }
 
     if (model_json.contains("rate_limit")) {
         model_details_.rate_limit = ParsePositiveSizeFromJson(model_json.at("rate_limit"), "rate_limit");
-    } else {
-        ensure_db_loaded();
-        if (db_model_args.contains("rate_limit")) {
-            model_details_.rate_limit = ParsePositiveSizeFromJson(db_model_args.at("rate_limit"), "rate_limit");
-        }
+    } else if (db_model_args.contains("rate_limit")) {
+        model_details_.rate_limit = ParsePositiveSizeFromJson(db_model_args.at("rate_limit"), "rate_limit");
     }
 
     if (model_json.contains("usage_limit")) {
@@ -180,15 +151,12 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
                     "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
                     "total_tokens_limit.");
         }
-    } else if (!is_fully_resolved) {
-        ensure_db_loaded();
-        if (db_model_args.contains("usage_limit")) {
-            model_details_.usage_limit = ParseUsageLimitFromJson(db_model_args.at("usage_limit"));
-            if (!model_details_.usage_limit->HasAnyLimit()) {
-                throw std::runtime_error(
-                        "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
-                        "total_tokens_limit.");
-            }
+    } else if (db_model_args.contains("usage_limit")) {
+        model_details_.usage_limit = ParseUsageLimitFromJson(db_model_args.at("usage_limit"));
+        if (!model_details_.usage_limit->HasAnyLimit()) {
+            throw std::runtime_error(
+                    "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
+                    "total_tokens_limit.");
         }
     }
 }

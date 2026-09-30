@@ -439,4 +439,55 @@ TEST_F(ModelManagerTest, ResolveModelDetailsToJsonPreservesInlineLimitOverrides)
     DeleteLocalTestModel(con, kInlineOverrideModelName);
 }
 
+TEST_F(ModelManagerTest, ResolvedModelWithoutRateLimitSkipsStorageLookup) {
+    auto con = Config::GetConnection();
+    InsertLocalTestModel(con, kInlineOverrideModelName,
+                         {{"tuple_format", static_cast<int>(TupleFormat::JSON)}, {"batch_size", 32}});
+    const auto resolved = Model::ResolveModelDetailsToJson({{"model_name", kInlineOverrideModelName}});
+    DeleteLocalTestModel(con, kInlineOverrideModelName);
+
+    // With the stored row gone, any storage lookup would throw "Model not found".
+    EXPECT_NO_THROW(Model{resolved});
+}
+
+TEST_F(ModelManagerTest, UnresolvedModelLoadsEveryStoredArg) {
+    auto con = Config::GetConnection();
+    InsertLocalTestModel(con, kInlineOverrideModelName,
+                         {{"tuple_format", static_cast<int>(TupleFormat::Markdown)},
+                          {"max_batch_size", 7},
+                          {"is_async", false},
+                          {"model_parameters", {{"temperature", 0.1}}},
+                          {"rate_limit", 30},
+                          {"usage_limit", {{"total_tokens_limit", 500}}}});
+
+    const auto details = Model(json{{"model_name", kInlineOverrideModelName}}).GetModelDetails();
+    DeleteLocalTestModel(con, kInlineOverrideModelName);
+
+    EXPECT_EQ(details.model, "gpt-4o");
+    EXPECT_EQ(details.provider_name, "openai");
+    EXPECT_EQ(details.tuple_format, TupleFormat::Markdown);
+    EXPECT_EQ(details.max_batch_size, 7);
+    EXPECT_FALSE(details.is_async);
+    EXPECT_EQ(details.model_parameters, json({{"temperature", 0.1}}));
+    ASSERT_TRUE(details.rate_limit.has_value());
+    EXPECT_EQ(details.rate_limit.value(), 30);
+    ASSERT_TRUE(details.usage_limit.has_value());
+    EXPECT_EQ(details.usage_limit->total_tokens_limit.value(), 500);
+}
+
+TEST_F(ModelManagerTest, ResolvedModelRoundTripsWithoutStorage) {
+    auto con = Config::GetConnection();
+    InsertLocalTestModel(con, kInlineOverrideModelName,
+                         {{"tuple_format", static_cast<int>(TupleFormat::Markdown)},
+                          {"max_batch_size", 7},
+                          {"is_async", false},
+                          {"model_parameters", {{"temperature", 0.1}}},
+                          {"rate_limit", 30},
+                          {"usage_limit", {{"total_tokens_limit", 500}}}});
+    const auto resolved = Model::ResolveModelDetailsToJson({{"model_name", kInlineOverrideModelName}});
+    DeleteLocalTestModel(con, kInlineOverrideModelName);
+
+    EXPECT_EQ(Model(resolved).GetModelDetailsAsJson(), resolved);
+}
+
 }// namespace flock
