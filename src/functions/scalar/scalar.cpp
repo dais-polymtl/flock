@@ -2,7 +2,9 @@
 #include "flock/model_manager/model.hpp"
 #include <algorithm>
 #include <cstddef>
+#include <duckdb/common/error_data.hpp>
 #include <duckdb/planner/expression/bound_function_expression.hpp>
+#include <iostream>
 #include <vector>
 
 namespace flock {
@@ -163,27 +165,22 @@ void ScalarFunctionBase::InitializeModelJson(
     bind_data.model_json = Model::ResolveModelDetailsToJson(user_model_json);
 }
 
-void ScalarFunctionBase::QueueCompletion(nlohmann::json& tuples, const std::string& user_prompt,
-                                         ScalarFunctionType function_type, Model& model) {
-    const auto [prompt, media_data] = PromptManager::Render(user_prompt, tuples, function_type, model.GetModelDetails().tuple_format);
-    OutputType output_type = OutputType::STRING;
-    if (function_type == ScalarFunctionType::FILTER) {
-        output_type = OutputType::BOOL;
-    }
-
-    model.AddCompletionRequest(prompt, static_cast<int>(tuples[0]["data"].size()), output_type, media_data);
+void ScalarFunctionBase::QueueCompletion(BatchContext batch, const std::string& user_prompt,
+                                         ScalarFunctionType function_type, Model& model, const std::optional<nlohmann::json>& choices) {
+    model.AddStructuredCompletionRequest({std::move(batch), user_prompt, function_type, choices});
 }
 
-nlohmann::json ScalarFunctionBase::Complete(nlohmann::json& columns, const std::string& user_prompt,
-                                            ScalarFunctionType function_type, Model& model) {
-    QueueCompletion(columns, user_prompt, function_type, model);
+nlohmann::json ScalarFunctionBase::Complete(BatchContext batch, const std::string& user_prompt,
+                                            ScalarFunctionType function_type, Model& model, const std::optional<nlohmann::json>& choices) {
+    QueueCompletion(std::move(batch), user_prompt, function_type, model, choices);
     auto response = model.CollectCompletions();
     return response[0]["items"];
 };
 
 nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tuples,
                                                         const std::string& user_prompt,
-                                                        const ScalarFunctionType function_type, Model& model) {
+                                                        const ScalarFunctionType function_type, Model& model,
+                                                        const std::optional<nlohmann::json>& choices) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
     const int configured = std::min<int>(model.GetModelDetails().max_batch_size, row_count);
     auto batch_size = configured;
@@ -193,16 +190,13 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
     int start_index = 0;
 
     do {
-        auto batch_tuples = BuildBatchTuples(tuples, start_index, batch_size);
-
-        start_index += batch_size;
-
         try {
-            auto response = Complete(batch_tuples, user_prompt, function_type, model);
-            NormalizeAndAppendBatchResponse(response, batch_tuples[0]["data"].size(), responses);
+            auto response = Complete(BatchContext(BuildBatchTuples(tuples, start_index, batch_size)), user_prompt,
+                                     function_type, model, choices);
+            NormalizeAndAppendBatchResponse(response, std::min<int>(batch_size, row_count - start_index), responses);
+            start_index += batch_size;
             batch_size = configured;
         } catch (const TokenLimitExceededError&) {
-            start_index -= batch_size;
             const int attempted_batch_size = batch_size;
             batch_size = batch_size / 2;
             if (batch_size == 0) {
@@ -214,11 +208,13 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
                 start_index += rows_to_null;
                 batch_size = configured;
             }
-        } catch (const UsageLimitExceededError&) {
+        } catch (const UsageLimitExceededError& error) {
             const int rows_not_yet_responded = row_count - static_cast<int>(responses.size());
             for (int i = 0; i < rows_not_yet_responded; i++) {
                 responses.push_back(nullptr);
             }
+            std::cerr << "[Flock] Warning: " << duckdb::ErrorData(error).RawMessage() << " " << rows_not_yet_responded
+                      << " rows returned NULL.\n";
             break;
         }
 
@@ -229,7 +225,8 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteSync(const nlohmann::json& tu
 
 nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& tuples,
                                                          const std::string& user_prompt,
-                                                         const ScalarFunctionType function_type, Model& model) {
+                                                         const ScalarFunctionType function_type, Model& model,
+                                                         const std::optional<nlohmann::json>& choices) {
     const int row_count = static_cast<int>(tuples[0]["data"].size());
     const int configured = std::min<int>(model.GetModelDetails().max_batch_size, row_count);
 
@@ -246,25 +243,29 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
         pending.clear();
 
         for (const auto& work: current_round) {
-            auto batch_tuples = BuildBatchTuples(tuples, work.start_index, work.batch_size);
-            QueueCompletion(batch_tuples, user_prompt, function_type, attempt_model);
+            QueueCompletion(BatchContext(BuildBatchTuples(tuples, work.start_index, work.batch_size)), user_prompt,
+                            function_type, attempt_model, choices);
         }
 
         std::vector<nlohmann::json> batch_responses;
         bool collect_threw_token_error = false;
-        bool collect_threw_usage_limit_error = false;
+        std::optional<UsageLimitExceededError> usage_limit_error;
         try {
             batch_responses = attempt_model.CollectCompletions();
         } catch (const TokenLimitExceededError&) {
             collect_threw_token_error = true;
-        } catch (const UsageLimitExceededError&) {
-            collect_threw_usage_limit_error = true;
+        } catch (const UsageLimitExceededError& error) {
+            usage_limit_error = error;
         }
 
-        if (collect_threw_usage_limit_error) {
+        if (usage_limit_error.has_value()) {
+            int nulled_rows = 0;
             for (const auto& work: current_round) {
                 NullBatchRows(work.start_index, work.batch_size, responses);
+                nulled_rows += work.batch_size;
             }
+            std::cerr << "[Flock] Warning: " << duckdb::ErrorData(usage_limit_error.value()).RawMessage() << " " << nulled_rows
+                      << " rows returned NULL.\n";
             break;
         }
 
@@ -296,12 +297,40 @@ nlohmann::json ScalarFunctionBase::BatchAndCompleteAsync(const nlohmann::json& t
 
 nlohmann::json ScalarFunctionBase::BatchAndComplete(const nlohmann::json& tuples,
                                                     const std::string& user_prompt,
-                                                    const ScalarFunctionType function_type, Model& model) {
-    if (model.GetModelDetails().is_async) {
-        return BatchAndCompleteAsync(tuples, user_prompt, function_type, model);
+                                                    const ScalarFunctionType function_type, Model& model,
+                                                    const std::optional<nlohmann::json>& choices) {
+    // A row whose context is all NULL has nothing to judge: it is not sent and stays NULL.
+    const auto row_count = tuples[0]["data"].size();
+    std::vector<size_t> sent_rows;
+    for (size_t row = 0; row < row_count; row++) {
+        for (const auto& column: tuples) {
+            if (!column["data"][row].is_null()) {
+                sent_rows.push_back(row);
+                break;
+            }
+        }
     }
 
-    return BatchAndCompleteSync(tuples, user_prompt, function_type, model);
+    auto responses = nlohmann::json(row_count, nullptr);
+    if (sent_rows.empty()) {
+        return responses;
+    }
+    auto sent_tuples = tuples;
+    for (auto& column: sent_tuples) {
+        auto data = nlohmann::json::array();
+        for (const auto row: sent_rows) {
+            data.push_back(column["data"][row]);
+        }
+        column["data"] = std::move(data);
+    }
+
+    const auto sent_responses = model.GetModelDetails().is_async
+                                        ? BatchAndCompleteAsync(sent_tuples, user_prompt, function_type, model, choices)
+                                        : BatchAndCompleteSync(sent_tuples, user_prompt, function_type, model, choices);
+    for (size_t i = 0; i < sent_rows.size(); i++) {
+        responses[sent_rows[i]] = sent_responses[i];
+    }
+    return responses;
 }
 
 void ScalarFunctionBase::InitializePrompt(
@@ -339,6 +368,7 @@ void ScalarFunctionBase::InitializePrompt(
     if (prompt_json.contains("context_columns")) {
         prompt_json.erase("context_columns");
     }
+    prompt_json.erase("choice");
 
     auto prompt_details = PromptManager::CreatePromptDetails(prompt_json);
     bind_data.prompt = prompt_details.prompt;
@@ -361,6 +391,8 @@ duckdb::unique_ptr<LlmFunctionBindData> ScalarFunctionBase::ValidateAndInitializ
     auto bind_data = duckdb::make_uniq<LlmFunctionBindData>();
 
     InitializeModelJson(context, arguments[0], *bind_data);
+    Model::RejectUnsupportedFunction(bind_data->model_json, function_name);
+
     if (initialize_prompt) {
         InitializePrompt(context, arguments[1], *bind_data);
     }

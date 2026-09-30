@@ -3,6 +3,7 @@
 #include "flock/core/common.hpp"
 #include "flock/core/config.hpp"
 #include "flock/custom_parser/query_parser.hpp"
+#include "flock/model_manager/repository.hpp"
 #include "flock/prompt_manager/repository.hpp"
 #include <sstream>
 #include <stdexcept>
@@ -13,7 +14,7 @@ namespace {
 
 bool IsAllowedModelArgKey(const std::string& key) {
     return key == "tuple_format" || key == "batch_size" || key == "max_batch_size" || key == "model_parameters" ||
-           key == "is_async" || key == "rate_limit" || key == "usage_limit";
+           key == "is_async" || key == "rate_limit" || key == "usage_limit" || key == "threshold";
 }
 
 void ValidateAndAssignBatchSizeArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
@@ -57,10 +58,7 @@ nlohmann::json ValidateUsageLimitObject(const nlohmann::json& value) {
 
 void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& key, const nlohmann::json& value) {
     if (!IsAllowedModelArgKey(key)) {
-        throw std::runtime_error(
-                "Unknown model_args parameter: '" + key +
-                "'. Only tuple_format, batch_size, max_batch_size, model_parameters, is_async, rate_limit, and "
-                "usage_limit are allowed.");
+        throw std::runtime_error("Unknown model_args parameter: '" + key + "'.");
     }
 
     if (key == "batch_size" || key == "max_batch_size") {
@@ -107,6 +105,11 @@ void ValidateAndAssignModelArg(nlohmann::json& model_args, const std::string& ke
 
     if (key == "usage_limit") {
         model_args[key] = ValidateUsageLimitObject(value);
+        return;
+    }
+
+    if (key == "threshold") {
+        model_args[key] = ParseThresholdFromJson(value);
         return;
     }
 }

@@ -103,6 +103,45 @@ TEST_F(LLMEmbeddingTest, LLMEmbeddingWithMultipleFields) {
     ASSERT_EQ(result_value.type().id(), duckdb::LogicalTypeId::LIST);
 }
 
+TEST_F(LLMEmbeddingTest, AllNullRowIsNotSentAndIsNull) {
+    const nlohmann::json expected_response = nlohmann::json::array({{0.1, 0.2}, {0.3, 0.4}});
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::SizeIs(2))).Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'text-embedding-3-small'}, {'context_columns': [{'data': text}]}) AS embedding FROM unnest(['first', NULL, 'third']) as tbl(text);");
+    ASSERT_TRUE(!results->HasError()) << results->GetError();
+    ASSERT_EQ(results->RowCount(), 3);
+    EXPECT_EQ(duckdb::ListValue::GetChildren(results->GetValue(0, 0))[0].GetValue<double>(), 0.1);
+    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
+    EXPECT_EQ(duckdb::ListValue::GetChildren(results->GetValue(0, 2))[0].GetValue<double>(), 0.3);
+}
+
+TEST_F(LLMEmbeddingTest, LeavesMissingValuesOutOfTheText) {
+    const nlohmann::json expected_response = nlohmann::json::array({{0.1, 0.2}, {0.3, 0.4}});
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::ElementsAre("Great screen ", "NULL phone ")))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectEmbeddings(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'text-embedding-3-small'}, {'context_columns': [{'data': a}, {'data': b}]}) AS embedding FROM (VALUES ('Great screen', NULL), ('NULL', 'phone')) as tbl(a, b);");
+    ASSERT_TRUE(!results->HasError()) << results->GetError();
+    ASSERT_EQ(results->RowCount(), 2);
+}
+
+TEST_F(LLMEmbeddingTest, OnlyNullRowsSendNothing) {
+    EXPECT_CALL(*mock_provider, AddEmbeddingRequest(::testing::_)).Times(0);
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'text-embedding-3-small'}, {'context_columns': [{'data': text}]}) AS embedding FROM (VALUES (NULL::VARCHAR), (NULL)) as tbl(text);");
+    ASSERT_TRUE(!results->HasError()) << results->GetError();
+    ASSERT_EQ(results->RowCount(), 2);
+    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
+    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
+}
+
 TEST_F(LLMEmbeddingTest, ValidateArguments) {
     TestValidateArguments();
 }
@@ -127,7 +166,7 @@ TEST_F(LLMEmbeddingTest, Operation_BatchProcessing) {
 }
 
 TEST_F(LLMEmbeddingTest, Operation_LargeInputSet_ProcessesCorrectly) {
-    constexpr size_t input_count = 10;
+    constexpr size_t input_count = DEFAULT_MAX_BATCH_SIZE;
     nlohmann::json expected_response = nlohmann::json::array();
     for (size_t i = 0; i < input_count; i++) {
         std::vector<double> embedding;

@@ -14,6 +14,7 @@ Supported secret types for Flock:
 - **Ollama**
 - **Azure**
 - **Anthropic**
+- **TypeSafe**
 
 ## 2. Creating a Secret
 
@@ -74,6 +75,25 @@ CREATE SECRET (
 
 This creates a secret named `__default_anthropic`. The `API_VERSION` parameter is optional.
 
+### 2.5 TypeSafe API Key
+
+```sql
+-- TypeSafe directly
+CREATE SECRET (
+    TYPE TYPESAFE,
+    API_KEY 'your-typesafe-api-key'
+);
+
+-- Through OpenRouter, with an OpenRouter key
+CREATE SECRET (
+    TYPE TYPESAFE,
+    API_KEY 'your-openrouter-api-key',
+    BASE_URL 'https://openrouter.ai/api'
+);
+```
+
+This creates a secret named `__default_typesafe`. `BASE_URL` is optional and defaults to TypeSafe itself.
+
 ## 3. Persistent Secrets
 
 To persist secrets across DuckDB sessions, use `CREATE PERSISTENT SECRET`:
@@ -117,6 +137,17 @@ CREATE PERSISTENT SECRET (
 ```
 
 Optionally add `API_VERSION '2024-01-01'` to use a custom API version.
+
+### 3.5 Example for TypeSafe (Persistent):
+
+```sql
+CREATE PERSISTENT SECRET (
+    TYPE TYPESAFE,
+    API_KEY 'your-api-key'
+);
+```
+
+Optionally add `BASE_URL 'https://openrouter.ai/api'` to use OpenRouter as the host.
 
 ## 4. Deleting Secrets
 

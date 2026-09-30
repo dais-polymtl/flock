@@ -89,6 +89,48 @@ TEST_F(LLMFilterTest, LLMFilterWithMultipleRows) {
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
 }
 
+// A row with no verdict is NULL, not true, so WHERE drops it.
+TEST_F(LLMFilterTest, UnevaluatedRowBecomesSqlNull) {
+    const nlohmann::json expected_response = {{"items", {true, nullptr, false}}};
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this review positive?', 'context_columns': [{'data': review}]}) AS result FROM unnest(['Great product!', 'Meh', 'Terrible quality']) as tbl(review);");
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 3);
+    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
+    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
+    EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "false");
+}
+
+TEST_F(LLMFilterTest, AllNullRowIsNotSentAndStaysNull) {
+    const nlohmann::json expected_response = {{"items", {true, false}}};
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, 2, ::testing::_, ::testing::_)).Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this review positive?', 'context_columns': [{'data': review}]}) AS result FROM unnest(['Great product!', NULL, 'Terrible quality']) as tbl(review);");
+    ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
+    ASSERT_EQ(results->RowCount(), 3);
+    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "true");
+    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
+    EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "false");
+}
+
+TEST_F(LLMFilterTest, SingleAllNullRowIsNotSentAndIsNull) {
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(0);
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Is this review positive?', 'context_columns': [{'data': review}]}) AS result FROM (VALUES (NULL::VARCHAR)) as tbl(review);");
+    ASSERT_TRUE(!results->HasError()) << results->GetError();
+    ASSERT_EQ(results->RowCount(), 1);
+    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
+}
+
 TEST_F(LLMFilterTest, ValidateArguments) {
     TestValidateArguments();
 }
@@ -108,7 +150,7 @@ TEST_F(LLMFilterTest, Operation_BatchProcessing) {
 }
 
 TEST_F(LLMFilterTest, Operation_LargeInputSet_ProcessesCorrectly) {
-    constexpr size_t input_count = 10;
+    constexpr size_t input_count = DEFAULT_MAX_BATCH_SIZE;
 
     const nlohmann::json expected_response = PrepareExpectedResponseForLargeInput(input_count);
 

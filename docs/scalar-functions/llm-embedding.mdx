@@ -170,7 +170,7 @@ The `llm_embedding` function accepts two primary inputs: model configuration and
 
 ## 3. Output
 
-The function returns a **JSON array** containing floating-point numbers that represent the semantic vector of the input text.
+The function returns a **JSON array** containing floating-point numbers that represent the semantic vector of the input text. A row whose context columns are all `NULL` is not sent and returns `NULL`, so it stays out of similarity search.
 
 **Example Output**:  
 For a product with the description _"Wireless headphones with noise cancellation"_, the output might look like this:

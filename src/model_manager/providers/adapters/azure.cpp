@@ -66,10 +66,11 @@ void AzureProvider::AddCompletionRequest(const std::string& prompt, const int nu
 
     nlohmann::json request_payload = {{"model", model_details_.model},
                                       {"messages", {{{"role", "user"}, {"content", message_content}}}},
-                                      {"stream", true}};
+                                      {"stream", true},
+                                      {"stream_options", {{"include_usage", true}}}};
 
     if (!model_details_.model_parameters.empty()) {
-        request_payload.update(model_details_.model_parameters);
+        request_payload.update(model_details_.model_parameters, true);
     }
 
     if (model_details_.model_parameters.contains("response_format")) {
@@ -87,7 +88,7 @@ void AzureProvider::AddCompletionRequest(const std::string& prompt, const int nu
                 {"json_schema",
                  {{"name", "flock_response"},
                   {"strict", false},
-                  {"schema", {{"type", "object"}, {"properties", {{"items", {{"type", "array"}, {"minItems", num_output_tuples}, {"maxItems", num_output_tuples}, {"items", {{"type", GetOutputTypeString(output_type)}}}}}}}}}}}};
+                  {"schema", {{"type", "object"}, {"properties", {{"items", {{"type", "array"}, {"minItems", num_output_tuples}, {"maxItems", num_output_tuples}, {"items", {{"type", GetOutputTypeString(output_type)}}}}}}}, {"required", {"items"}}}}}}};
         ;
     }
 

@@ -13,7 +13,8 @@ enum class FunctionType : uint8_t {
     LLM_RERANK = 4,
     LLM_FIRST = 5,
     LLM_LAST = 6,
-    UNKNOWN = 7
+    AI_CLASSIFY = 7,
+    UNKNOWN = 8
 };
 
 inline constexpr const char* FunctionTypeToString(FunctionType type) noexcept {
@@ -32,6 +33,8 @@ inline constexpr const char* FunctionTypeToString(FunctionType type) noexcept {
             return "llm_first";
         case FunctionType::LLM_LAST:
             return "llm_last";
+        case FunctionType::AI_CLASSIFY:
+            return "ai_classify";
         default:
             return "unknown";
     }

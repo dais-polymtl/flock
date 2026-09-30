@@ -73,6 +73,18 @@ TEST_F(LLMCompleteTest, LLMCompleteWithInputColumns) {
     ASSERT_EQ(results->GetValue(0, 0).GetValue<std::string>(), expected_response["items"][0]);
 }
 
+TEST_F(LLMCompleteTest, NoAnswerWithoutContextIsNull) {
+    const nlohmann::json expected_response = {{"items", {nullptr}}};
+    EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_)).Times(1);
+    EXPECT_CALL(*mock_provider, CollectCompletions(::testing::_))
+            .WillOnce(::testing::Return(std::vector<nlohmann::json>{expected_response}));
+
+    auto con = Config::GetConnection();
+    const auto results = con.Query("SELECT " + GetFunctionName() + "({'model_name': 'gpt-4o'}, {'prompt': 'Say hi'}) AS result;");
+    ASSERT_TRUE(!results->HasError()) << results->GetError();
+    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
+}
+
 TEST_F(LLMCompleteTest, ValidateArguments) {
     TestValidateArguments();
 }
@@ -221,24 +233,11 @@ TEST_F(LLMCompleteTest, Operation_AsyncRetriesWithSmallerBatchOnTokenOverflow) {
     const auto retry_batch_count = first_attempt_batches * 2;
 
     std::vector<nlohmann::json> retry_batch_responses;
-    const std::vector<std::pair<size_t, size_t>> retry_batches = {
-            {0, 8},
-            {8, 8},
-            {16, 8},
-            {24, 8},
-            {32, 8},
-            {40, 8},
-            {48, 8},
-            {56, 8},
-            {64, 8},
-            {72, 8},
-            {80, 8},
-            {88, 8},
-            {96, 2},
-            {98, 2},
-    };
-    for (const auto& [start_index, batch_count]: retry_batches) {
-        retry_batch_responses.push_back(PrepareExpectedResponseRange(start_index, batch_count));
+    for (size_t start_index = 0; start_index < input_count; start_index += DEFAULT_MAX_BATCH_SIZE) {
+        const auto batch_count = std::min<size_t>(DEFAULT_MAX_BATCH_SIZE, input_count - start_index);
+        const auto half = batch_count / 2;
+        retry_batch_responses.push_back(PrepareExpectedResponseRange(start_index, half));
+        retry_batch_responses.push_back(PrepareExpectedResponseRange(start_index + half, batch_count - half));
     }
 
     EXPECT_CALL(*mock_provider, AddCompletionRequest(::testing::_, ::testing::_, ::testing::_, ::testing::_))
@@ -291,8 +290,8 @@ TEST_F(LLMCompleteTest, Operation_SyncNullsRowAndContinuesAfterTokenOverflowExha
 
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 3);
-    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "null");
-    EXPECT_EQ(results->GetValue(0, 1).GetValue<std::string>(), "null");
+    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
+    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
     EXPECT_EQ(results->GetValue(0, 2).GetValue<std::string>(), "response 2");
 }
 
@@ -346,8 +345,8 @@ TEST_F(LLMCompleteTest, Operation_AsyncReturnsNullWhenTokenOverflowCannotRetry) 
 
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 2);
-    EXPECT_EQ(results->GetValue(0, 0).GetValue<std::string>(), "null");
-    EXPECT_EQ(results->GetValue(0, 1).GetValue<std::string>(), "null");
+    EXPECT_TRUE(results->GetValue(0, 0).IsNull());
+    EXPECT_TRUE(results->GetValue(0, 1).IsNull());
 }
 
 TEST_F(LLMCompleteTest, Operation_AsyncNullsTailBatchWhenTokenOverflowCannotRetry) {
@@ -367,7 +366,7 @@ TEST_F(LLMCompleteTest, Operation_AsyncNullsTailBatchWhenTokenOverflowCannotRetr
     ASSERT_TRUE(!results->HasError()) << "Query failed: " << results->GetError();
     ASSERT_EQ(results->RowCount(), 3);
     for (size_t i = 0; i < 3; i++) {
-        EXPECT_EQ(results->GetValue(0, i).GetValue<std::string>(), "null");
+        EXPECT_TRUE(results->GetValue(0, i).IsNull());
     }
 }
 

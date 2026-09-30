@@ -1,4 +1,5 @@
 #include "flock/model_manager/model.hpp"
+#include "flock/prompt_manager/prompt_manager.hpp"
 #include "flock/prompt_manager/repository.hpp"
 #include "flock/secret_manager/secret_manager.hpp"
 #include <algorithm>
@@ -58,7 +59,6 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
     std::string db_model;
     std::string db_provider;
     nlohmann::json db_model_args = nlohmann::json::object();
-    bool db_loaded = false;
 
     const auto& hasBatchSizeConfig = [](const nlohmann::json& model_args) {
         return model_args.contains("max_batch_size") || model_args.contains("batch_size");
@@ -68,26 +68,20 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
                                    model_json.contains("secret") && model_json.contains("tuple_format") &&
                                    hasBatchSizeConfig(model_json);
 
-    // Each fallback path can call this helper, but only the first missing field
-    // queries storage. Fully resolved model JSON skips DB defaults entirely.
-    auto ensure_db_loaded = [&]() {
-        if (!db_loaded) {
-            std::tie(db_model, db_provider, db_model_args) = GetQueriedModel(model_details_.model_name);
-            db_loaded = true;
-        }
-    };
+    // Fully resolved model JSON (from bind) never reads storage.
+    if (!is_fully_resolved) {
+        std::tie(db_model, db_provider, db_model_args) = GetQueriedModel(model_details_.model_name);
+    }
 
     if (model_json.contains("model")) {
         model_details_.model = model_json.at("model").get<std::string>();
     } else {
-        ensure_db_loaded();
         model_details_.model = db_model;
     }
 
     if (model_json.contains("provider")) {
         model_details_.provider_name = model_json.at("provider").get<std::string>();
     } else {
-        ensure_db_loaded();
         model_details_.provider_name = db_provider;
     }
 
@@ -99,15 +93,10 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
 
     if (model_json.contains("model_parameters")) {
         model_details_.model_parameters = ParseModelParametersField(model_json);
-    } else if (is_fully_resolved) {
-        model_details_.model_parameters = nlohmann::json::object();
+    } else if (db_model_args.contains("model_parameters")) {
+        model_details_.model_parameters = db_model_args["model_parameters"];
     } else {
-        ensure_db_loaded();
-        if (db_model_args.contains("model_parameters")) {
-            model_details_.model_parameters = db_model_args["model_parameters"];
-        } else {
-            model_details_.model_parameters = nlohmann::json::object();
-        }
+        model_details_.model_parameters = nlohmann::json::object();
     }
 
     if (model_json.contains("tuple_format")) {
@@ -117,46 +106,38 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
         } else {
             model_details_.tuple_format = tupleFormatFromStoredValue(tuple_format_value);
         }
+    } else if (db_model_args.contains("tuple_format")) {
+        model_details_.tuple_format = tupleFormatFromStoredValue(db_model_args.at("tuple_format"));
     } else {
-        ensure_db_loaded();
-        if (db_model_args.contains("tuple_format")) {
-            model_details_.tuple_format = tupleFormatFromStoredValue(db_model_args.at("tuple_format"));
-        } else {
-            model_details_.tuple_format = TupleFormat::XML;
-        }
+        model_details_.tuple_format = TupleFormat::XML;
     }
 
     if (hasBatchSizeConfig(model_json)) {
         model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(model_json);
+    } else if (hasBatchSizeConfig(db_model_args)) {
+        model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(db_model_args);
     } else {
-        ensure_db_loaded();
-        if (hasBatchSizeConfig(db_model_args)) {
-            model_details_.max_batch_size = ResolveMaxBatchSizeFromJson(db_model_args);
-        } else {
-            model_details_.max_batch_size = DEFAULT_MAX_BATCH_SIZE;
-        }
+        model_details_.max_batch_size = DEFAULT_MAX_BATCH_SIZE;
     }
 
     if (model_json.contains("is_async")) {
         model_details_.is_async = model_json.at("is_async").get<bool>();
-    } else if (is_fully_resolved) {
-        model_details_.is_async = true;
+    } else if (db_model_args.contains("is_async")) {
+        model_details_.is_async = db_model_args.at("is_async").get<bool>();
     } else {
-        ensure_db_loaded();
-        if (db_model_args.contains("is_async")) {
-            model_details_.is_async = db_model_args.at("is_async").get<bool>();
-        } else {
-            model_details_.is_async = true;
-        }
+        model_details_.is_async = true;
+    }
+
+    if (model_json.contains("threshold")) {
+        model_details_.threshold = ParseThresholdFromJson(model_json.at("threshold"));
+    } else if (db_model_args.contains("threshold")) {
+        model_details_.threshold = db_model_args.at("threshold").get<double>();
     }
 
     if (model_json.contains("rate_limit")) {
         model_details_.rate_limit = ParsePositiveSizeFromJson(model_json.at("rate_limit"), "rate_limit");
-    } else {
-        ensure_db_loaded();
-        if (db_model_args.contains("rate_limit")) {
-            model_details_.rate_limit = ParsePositiveSizeFromJson(db_model_args.at("rate_limit"), "rate_limit");
-        }
+    } else if (db_model_args.contains("rate_limit")) {
+        model_details_.rate_limit = ParsePositiveSizeFromJson(db_model_args.at("rate_limit"), "rate_limit");
     }
 
     if (model_json.contains("usage_limit")) {
@@ -170,15 +151,12 @@ void Model::LoadModelDetails(const nlohmann::json& model_json) {
                     "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
                     "total_tokens_limit.");
         }
-    } else if (!is_fully_resolved) {
-        ensure_db_loaded();
-        if (db_model_args.contains("usage_limit")) {
-            model_details_.usage_limit = ParseUsageLimitFromJson(db_model_args.at("usage_limit"));
-            if (!model_details_.usage_limit->HasAnyLimit()) {
-                throw std::runtime_error(
-                        "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
-                        "total_tokens_limit.");
-            }
+    } else if (db_model_args.contains("usage_limit")) {
+        model_details_.usage_limit = ParseUsageLimitFromJson(db_model_args.at("usage_limit"));
+        if (!model_details_.usage_limit->HasAnyLimit()) {
+            throw std::runtime_error(
+                    "'usage_limit' must specify at least one of prompt_tokens_limit, completion_tokens_limit, or "
+                    "total_tokens_limit.");
         }
     }
 }
@@ -273,6 +251,9 @@ void Model::ConstructProvider() {
         case FLOCKMTL_OLLAMA:
             provider_ = std::make_shared<OllamaProvider>(model_details_, rate_limiter, usage_limiter);
             break;
+        case FLOCKMTL_TYPESAFE:
+            provider_ = std::make_shared<TypeSafeProvider>(model_details_, rate_limiter, usage_limiter);
+            break;
         case FLOCKMTL_ANTHROPIC:
             provider_ = std::make_shared<AnthropicProvider>(model_details_, rate_limiter, usage_limiter);
             break;
@@ -291,6 +272,9 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
     result["tuple_format"] = static_cast<int>(model_details_.tuple_format);
     result["max_batch_size"] = model_details_.max_batch_size;
     result["is_async"] = model_details_.is_async;
+    if (model_details_.threshold.has_value()) {
+        result["threshold"] = *model_details_.threshold;
+    }
     result["secret"] = model_details_.secret;
     if (model_details_.rate_limit.has_value()) {
         result["rate_limit"] = *model_details_.rate_limit;
@@ -302,6 +286,24 @@ nlohmann::json Model::GetModelDetailsAsJson() const {
         result["model_parameters"] = model_details_.model_parameters;
     }
     return result;
+}
+
+void Model::RejectUnsupportedFunction(const nlohmann::json& resolved_model_json, const std::string& function_name) {
+    if (!resolved_model_json.contains("provider")) {
+        return;
+    }
+    const auto provider_name = resolved_model_json["provider"].get<std::string>();
+    const auto is_typesafe = GetProviderType(provider_name) == FLOCKMTL_TYPESAFE;
+    // TypeSafe cannot generate text, so it serves only the operators that judge rows.
+    if (is_typesafe && function_name != "llm_filter" && function_name != "ai_classify") {
+        throw duckdb::BinderException(function_name + " is not supported by the '" + provider_name +
+                                      "' provider, which answers typed questions and cannot generate text. It supports llm_filter "
+                                      "and ai_classify. Use a generative provider for " +
+                                      function_name + ".");
+    }
+    if (!is_typesafe && function_name == "ai_classify") {
+        throw duckdb::BinderException("ai_classify is supported only by the 'typesafe' provider.");
+    }
 }
 
 nlohmann::json Model::ResolveModelDetailsToJson(const nlohmann::json& user_model_json) {
@@ -317,6 +319,17 @@ nlohmann::json Model::ResolveModelDetailsToJson(const nlohmann::json& user_model
 
 void Model::AddCompletionRequest(const std::string& prompt, const int num_output_tuples, OutputType output_type, const nlohmann::json& media_data) {
     provider_->AddCompletionRequest(prompt, num_output_tuples, output_type, media_data);
+}
+
+void Model::AddStructuredCompletionRequest(const StructuredCompletionRequest& request) {
+    if (provider_->AcceptsStructuredTuples()) {
+        provider_->AddStructuredCompletionRequest(request);
+        return;
+    }
+    const auto& [prompt, media_data] = PromptManager::Render(request.user_prompt, request.batch.Columns(),
+                                                             request.function_type, model_details_.tuple_format);
+    const auto output_type = request.function_type == ScalarFunctionType::FILTER ? OutputType::BOOL : OutputType::STRING;
+    provider_->AddCompletionRequest(prompt, static_cast<int>(request.batch.RowCount()), output_type, media_data);
 }
 
 void Model::AddEmbeddingRequest(const std::vector<std::string>& inputs) {

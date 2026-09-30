@@ -1,0 +1,73 @@
+#include "duckdb/planner/expression/bound_function_expression.hpp"
+#include "flock/functions/input_parser.hpp"
+#include "flock/functions/scalar/ai_classify.hpp"
+#include "flock/metrics/manager.hpp"
+#include "flock/model_manager/model.hpp"
+
+namespace flock {
+
+duckdb::unique_ptr<duckdb::FunctionData> AiClassify::Bind(
+        duckdb::ClientContext& context,
+        duckdb::ScalarFunction& bound_function,
+        duckdb::vector<duckdb::unique_ptr<duckdb::Expression>>& arguments) {
+    return ScalarFunctionBase::ValidateAndInitializeBindData(context, arguments, "ai_classify", true);
+}
+
+void AiClassify::Execute(duckdb::DataChunk& args, duckdb::ExpressionState& state, duckdb::Vector& result) {
+    MetricsManager::StartInvocation(state.GetContext().db.get(), MetricsManager::GenerateUniqueId(), FunctionType::AI_CLASSIFY);
+    auto exec_start = std::chrono::high_resolution_clock::now();
+
+    auto& func_expr = state.expr.Cast<duckdb::BoundFunctionExpression>();
+    auto* bind_data = &func_expr.bind_info->Cast<LlmFunctionBindData>();
+    Model model = bind_data->CreateModel();
+    auto model_details = model.GetModelDetails();
+    MetricsManager::SetModelInfo(model_details.model_name, model_details.provider_name);
+
+    // The choices are the same for every row, so the first row's are used.
+    auto choices = nlohmann::json::object();
+    const auto first_prompt = args.data[1].GetValue(0);
+    const auto& prompt_type = first_prompt.type();
+    for (idx_t i = 0; i < duckdb::StructType::GetChildCount(prompt_type); i++) {
+        if (duckdb::StructType::GetChildName(prompt_type, i) != "choice") {
+            continue;
+        }
+        // Each choice is a label, or a struct {label, description}.
+        for (const auto& choice: duckdb::ListValue::GetChildren(duckdb::StructValue::GetChildren(first_prompt)[i])) {
+            if (choice.type().id() != duckdb::LogicalTypeId::STRUCT) {
+                choices[choice.ToString()] = nullptr;
+                continue;
+            }
+            const auto fields = CastValueToJson(choice);
+            if (!fields.contains("label")) {
+                throw std::runtime_error("ai_classify: each entry in 'choice' needs a 'label', e.g. "
+                                         "{'label': 'blocker', 'description': '...'}.");
+            }
+            choices[fields["label"].get<std::string>()] = fields.value("description", nlohmann::json());
+        }
+    }
+
+    const auto context_columns = CastVectorOfStructsToJson(args.data[1], args.size())["context_columns"];
+    const auto& responses = BatchAndComplete(context_columns, bind_data->prompt, ScalarFunctionType::CLASSIFY, model, choices);
+    for (idx_t i = 0; i < args.size(); i++) {
+        const auto& answer = responses[i];
+        if (!answer.is_object()) {
+            result.SetValue(i, duckdb::Value());
+            continue;
+        }
+        duckdb::vector<duckdb::Value> labels;
+        duckdb::vector<duckdb::Value> probabilities;
+        const auto answer_probabilities = answer.value("probabilities", nlohmann::json::object());
+        for (const auto& [label, probability]: answer_probabilities.items()) {
+            labels.emplace_back(label);
+            probabilities.push_back(duckdb::Value::DOUBLE(probability.get<double>()));
+        }
+        result.SetValue(i, duckdb::Value::STRUCT({{"choice", duckdb::Value(answer["choice"].get<std::string>())},
+                                                  {"confidence", duckdb::Value::DOUBLE(answer.value("confidence", 0.0))},
+                                                  {"probabilities", duckdb::Value::MAP(duckdb::LogicalType::VARCHAR, duckdb::LogicalType::DOUBLE,
+                                                                                       std::move(labels), std::move(probabilities))}}));
+    }
+
+    MetricsManager::AddExecutionTime(std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - exec_start).count());
+}
+
+}// namespace flock

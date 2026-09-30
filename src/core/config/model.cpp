@@ -26,7 +26,9 @@ void Config::SetupDefaultModelsConfig(duckdb::Connection& con, std::string& sche
             "('gpt-4o-transcribe', 'gpt-4o-transcribe', 'openai'),"
             "('gpt-4o-mini-transcribe', 'gpt-4o-mini-transcribe', 'openai'),"
             "('text-embedding-3-large', 'text-embedding-3-large', 'openai'), "
-            "('text-embedding-3-small', 'text-embedding-3-small', 'openai');",
+            "('text-embedding-3-small', 'text-embedding-3-small', 'openai'), "
+            "('jev', 'jev-latest', 'typesafe'), "
+            "('jev-latest', 'jev-latest', 'typesafe');",
             schema_name, table_name));
 }
 
